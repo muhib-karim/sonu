@@ -7,7 +7,8 @@
     "start": "electron .",
     "build": "electron-builder",
     "fetch-icon": "node scripts/fetch-tray-icon.js",
-    "preview": "python -m http.server 8000"
+    "preview": "python -m http.server 8000",
+    "screenshots": "node scripts/capture-screenshots-final.js"
   },
   "author": "muhib-karim",
   "license": "MIT",

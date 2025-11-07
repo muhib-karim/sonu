@@ -1309,6 +1309,24 @@ function appendHistory(text) {
   }
 }
 
+  // Screenshot capture handler (for automated screenshots)
+  ipcMain.handle('screenshot:capture', async (_evt, filename) => {
+    if (!mainWindow) return { success: false, error: 'Window not available' };
+    try {
+      const image = await mainWindow.webContents.capturePage();
+      const buffer = image.toPNG();
+      const screenshotsDir = path.join(__dirname, 'screenshots');
+      if (!fs.existsSync(screenshotsDir)) {
+        fs.mkdirSync(screenshotsDir, { recursive: true });
+      }
+      const filepath = path.join(screenshotsDir, filename);
+      fs.writeFileSync(filepath, buffer);
+      return { success: true, filepath: filepath };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
   app.whenReady().then(() => {
     // Initialize logger first
     logger = getLogger();
