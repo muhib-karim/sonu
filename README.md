@@ -505,42 +505,31 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgements & Inspirations
 
-This project was shaped by the creativity of the open-source AI community and by several pioneering dictation and productivity tools.
+This project was made possible thanks to the amazing work of the open-source AI community and several commercial products that inspired its design.
 
-### 🧠 Open-Source Projects & Frameworks
-| Project | Description |
-|----------|--------------|
-| <a href=" `https://github.com/ggml-org/whisper.cpp` ">![whisper.cpp-ggml--org-blue?logo=github` ](assets/showcase/whisper.png)</a> | Core C/C++ Whisper engine enabling fully offline transcription. |
-| <a href=" `https://github.com/SYSTRAN/faster-whisper` ">![faster--whisper-SYSTRAN-blue?logo=github` ](assets/showcase/faster--whisper-systran-blue?logo=github`_.png)</a> | CTranslate2-based Whisper implementation optimized for speed and memory. |
-| <a href=" `https://github.com/Const-me/Whisper` ">![Const--me%2FWhisper-GPU-orange?logo=github` ](assets/showcase/const--me%2fwhisper-gpu-orange?logo=github`_.png)</a> | GPU-accelerated desktop Whisper engine inspiring local inference pipelines. |
-| <a href=" `https://github.com/rhasspy/wyoming-faster-whisper` ">![Rhasspy%20Wyoming-Faster--Whisper-lightgrey?logo=github` ](assets/showcase/rhasspy%20wyoming-faster--whisper-lightgrey?logo=github`_.png)</a> | Offline speech-to-text service used in Home Assistant voice stacks. |
-| <a href=" `https://github.com/handyorg/handy` ">![Handy-Tauri--App-green?logo=tauri` ](assets/showcase/handy-tauri--app-green?logo=tauri`_.png)</a> | Example of a privacy-first desktop STT UX. |
-| <a href=" `https://github.com/dimastatz/whisper-flow` ">![whisper--flow-library-blueviolet?logo=github` ](assets/showcase/whisper--flow-library-blueviolet?logo=github`_.png)</a> | Real-time Whisper streaming library influencing pipeline design. |
-| <a href=" `https://github.com/AlexxIT/FasterWhisper` ">![AlexxIT-FasterWhisper-yellow?logo=github` ](assets/showcase/alexxit-fasterwhisper-yellow?logo=github`_.png)</a> | Containerized deployment reference for Whisper services. |
-
----
+### 🧠 Open-Source Projects
+- **whisper.cpp** – by ggml-org: the fully offline C/C++ Whisper implementation that powers this app’s transcription engine.  
+- **faster-whisper** – by SYSTRAN: CTranslate2-based Whisper optimized for fast CPU/GPU inference.  
+- **Const-me/Whisper** – GPU-accelerated desktop Whisper engine that inspired local model integration.  
+- **Rhasspy Wyoming Faster-Whisper** – practical offline STT example used in Home Assistant voice systems.  
+- **Handy (Tauri)** – privacy-first local speech-to-text UX inspiration.  
+- **Whisper-flow (library)** – reference for real-time streaming transcription pipelines.  
+- **AlexxIT/FasterWhisper Add-on** – great packaging reference for self-hosted Whisper services. 
 
 ### 💬 Commercial & UX Inspirations
-| App / Product | Influence |
-|----------------|------------|
-| 🌀 **Wispr Flow** | Seamless real-time voice dictation workflow and fluid UI. |
-| ⌨️ **Typeless** | Minimalist speech-to-text experience with focus on flow and speed. |
-| 🎧 **MacWhisper / Whisper Desktop / WhisperNote** | Early desktop attempts to make Whisper accessible for everyday users. |
-| 🪄 **Descript & Otter.ai** | Best-in-class transcription UX and editing concepts that inspired offline workflow design. |
+- **Wispr Flow** – for its smooth real-time dictation interface and workflow design.  
+- **Typeless** – for its minimal, distraction-free speech-to-text UX.  
+- **MacWhisper / Whisper Desktop / WhisperNote** – for early attempts at offline Whisper usability.  
+- **Descript & Otter.ai** – for industry-leading transcription and editing experiences that inspired the UX of this offline version. 
+
+### ⚙️ Development Tools
+- **Cursor IDE** – main environment used for writing and testing the app.  
+- **Trae AI Solo Code** – used for autonomous offline build automation and showcase generation. 
 
 ---
 
-### ⚙️ Development Tools & Automation
-| Tool | Role |
-|------|------|
-| ![Cursor-IDE-blue?logo=visualstudiocode` ](assets/showcase/cursor-ide-blue?logo=visualstudiocode`_.png) | Main environment for iterative coding and debugging. |
-| ![Trae`  AI-Solo Code-orange?logo=bolt](assets/showcase/trae`_ai-solo_code-orange?logo=bolt.png) | Local autonomous build automation and showcase generation. |
-
----
-
-> Built independently, with deep respect for every developer and researcher advancing local speech recognition.  
-> Engineered and tested entirely offline using **Cursor IDE** + **Trae AI Solo Code**.  
-> All trademarks and product names belong to their respective owners.
+> Built independently and completely offline with respect for all the creators above.  
+> All trademarks belong to their respective owners. 
 
 ---
 
