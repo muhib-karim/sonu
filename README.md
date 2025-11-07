@@ -206,7 +206,21 @@ npm run build
 
 This creates a Windows installer in the `dist` folder.
 
----
+## 📸 Automated Showcase Capture
+
+Generate fresh screenshots of every major tab without manual clicking:
+
+```bash
+npm run showcase
+```
+
+The command launches SONU in a special showcase mode, walks through Home, Dictionary, Snippets, Style, Notes, and all Settings sub-pages, and saves PNGs to `assets/showcase/`. To turn the stills into a short MP4 for GitHub or the redbook, run (requires `ffmpeg`):
+
+```bash
+ffmpeg -y -framerate 1 -pattern_type glob -i "assets/showcase/*.png" -c:v libx264 -pix_fmt yuv420p assets/showcase/showcase.mp4
+```
+
+--- 
 
 ## 🎯 Usage
 
@@ -497,3 +511,50 @@ For issues, questions, or feature requests:
 © 2025 SONU. All rights reserved.
 
 </div>
+<!-- 🔄 AUTO-GENERATED SHOWCASE SECTION START -->
+<p align="center">
+  <img src="assets/showcase/01_home.png" width="100%" alt="App Home" />
+</p>
+
+<h1 align="center">🎙 Whisper Offline Dictation App</h1>
+<p align="center"><b>Fully Offline · Open Source · Powered by Whisper.cpp</b></p>
+
+---
+
+## 🚀 Latest Showcase (1080p)
+<p align="center">
+  <video width="100%" height="auto" controls>
+    <source src="assets/showcase/showcase.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</p>
+
+---
+
+## 🧠 Key Features Demonstrated
+| Feature | Description |
+|----------|-------------|
+| 🗣 **Offline Dictation** | Real-time Whisper.cpp transcription with no internet |
+| ⚙️ **Model Selector** | Recommends models based on hardware, supports import |
+| 💾 **Resumable Offline Model Downloads** | Integrity-checked downloads with mirror fallback |
+| ✍️ **Smart Text Output** | Types text where the cursor is via nut.js + clipboard fallback |
+| 🎨 **Modern UI** | Electron + Tailwind interface |
+| 🔐 **Privacy-First** | No telemetry, all processing local |
+
+---
+
+## 🖼 Screenshots
+| Home | Settings | Dictation |
+|------|-----------|-----------|
+| <img src="assets/showcase/01_home.png" width="300"/> | <img src="assets/showcase/02_settings.png" width="300"/> | <img src="assets/showcase/03_dictation_start.png" width="300"/> |
+
+| Model Selector | Output Log | Help |
+|----------------|-------------|------|
+| <img src="assets/showcase/04_model_selector.png" width="300"/> | <img src="assets/showcase/05_output_log.png" width="300"/> | <img src="assets/showcase/06_help.png" width="300"/> |
+
+---
+
+<p align="center">
+  <sub>© 2025 Whisper Offline Dictation App — Open-source under MIT License</sub>
+</p>
+<!-- 🔄 AUTO-GENERATED SHOWCASE SECTION END -->
