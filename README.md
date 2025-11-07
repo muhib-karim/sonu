@@ -38,33 +38,33 @@
 
 <table>
   <tr>
-    <td>![Home](assets/showcase/01_home.png)</td>
-    <td>![Dictation Start](assets/showcase/02_dictation_start.png)</td>
-    <td>![Output Log](assets/showcase/03_output_log.png)</td>
+    <td><img src="assets/showcase/01_home.png" alt="Home"></td>
+    <td><img src="assets/showcase/02_dictation_start.png" alt="Dictation Start"></td>
+    <td><img src="assets/showcase/03_output_log.png" alt="Output Log"></td>
   </tr>
   <tr>
-    <td>![Help](assets/showcase/04_help.png)</td>
-    <td>![Dictionary](assets/showcase/05_dictionary.png)</td>
-    <td>![Snippets](assets/showcase/06_snippets.png)</td>
+    <td><img src="assets/showcase/04_help.png" alt="Help"></td>
+    <td><img src="assets/showcase/05_dictionary.png" alt="Dictionary"></td>
+    <td><img src="assets/showcase/06_snippets.png" alt="Snippets"></td>
   </tr>
   <tr>
-    <td>![Style](assets/showcase/07_style.png)</td>
-    <td>![Notes](assets/showcase/08_notes.png)</td>
-    <td>![Settings](assets/showcase/09_settings.png)</td>
+    <td><img src="assets/showcase/07_style.png" alt="Style"></td>
+    <td><img src="assets/showcase/08_notes.png" alt="Notes"></td>
+    <td><img src="assets/showcase/09_settings.png" alt="Settings"></td>
   </tr>
   <tr>
-    <td>![Settings - General](assets/showcase/10_settings-general.png)</td>
-    <td>![Settings - System](assets/showcase/11_settings-system.png)</td>
-    <td>![Model Selector](assets/showcase/12_model_selector.png)</td>
+    <td><img src="assets/showcase/10_settings-general.png" alt="Settings - General"></td>
+    <td><img src="assets/showcase/11_settings-system.png" alt="Settings - System"></td>
+    <td><img src="assets/showcase/12_model_selector.png" alt="Model Selector"></td>
   </tr>
   <tr>
-    <td>![Settings - Themes](assets/showcase/13_settings-themes.png)</td>
-    <td>![Settings - Vibe](assets/showcase/14_settings-vibe.png)</td>
-    <td>![Settings - Experimental](assets/showcase/15_settings-experimental.png)</td>
+    <td><img src="assets/showcase/13_settings-themes.png" alt="Settings - Themes"></td>
+    <td><img src="assets/showcase/14_settings-vibe.png" alt="Settings - Vibe"></td>
+    <td><img src="assets/showcase/15_settings-experimental.png" alt="Settings - Experimental"></td>
   </tr>
   <tr>
-    <td>![Theme - Light](assets/showcase/16_theme-light.png)</td>
-    <td>![Theme - Dark](assets/showcase/17_theme-dark.png)</td>
+    <td><img src="assets/showcase/16_theme-light.png" alt="Theme - Light"></td>
+    <td><img src="assets/showcase/17_theme-dark.png" alt="Theme - Dark"></td>
     <td></td>
   </tr>
   
