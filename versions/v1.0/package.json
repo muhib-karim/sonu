@@ -1,0 +1,41 @@
+{
+  "name": "offline-voice-typing",
+  "version": "1.0.0",
+  "description": "Offline voice typing app using Whisper (Windows)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "fetch-icon": "node scripts/fetch-tray-icon.js",
+    "preview": "python -m http.server 8000"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.0",
+    "sharp": "^0.34.5"
+  },
+  "dependencies": {
+    "electron-localshortcut": "^3.2.1",
+    "robotjs": "^0.6.0"
+  },
+  "build": {
+    "appId": "com.offlinevoicetyping.app",
+    "productName": "Offline Voice Typing",
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "**/*",
+      "!**/*.md",
+      "whisper_service.py"
+    ]
+  }
+}

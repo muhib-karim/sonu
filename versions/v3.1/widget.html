@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Indicator</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      html, body { 
+        height: 100%; 
+        margin: 0; 
+        padding: 0; 
+        background: transparent;
+        -webkit-app-region: drag;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: default;
+        pointer-events: auto;
+      }
+      .wrap { 
+        width: 100%; 
+        height: 100%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        gap: 8px;
+        padding: 0 6px;
+        -webkit-app-region: drag;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: default;
+        pointer-events: auto;
+      }
+      .widget-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(11, 15, 26, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 4px 8px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        -webkit-app-region: drag;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: default;
+        pointer-events: auto;
+      }
+      .widget-button {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: none;
+        flex-shrink: 0;
+        -webkit-app-region: no-drag;
+      }
+      .widget-button.cancel {
+        background: #e0e0e0;
+        color: #333;
+      }
+      .widget-button.cancel:hover {
+        background: #d0d0d0;
+      }
+      .widget-button.stop {
+        background: #ff4444;
+        color: white;
+      }
+      .widget-button.stop:hover {
+        background: #ff3333;
+      }
+      .widget-button .icon {
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 1;
+      }
+      .widget-button .stop-icon {
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 2px;
+      }
+      .waveform-container {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        height: 22px;
+        padding: 0 4px;
+        -webkit-app-region: drag;
+        cursor: default;
+        pointer-events: auto;
+      }
+      .waveform-bar {
+        width: 2px;
+        background: #23c9ff;
+        border-radius: 2px;
+        animation: waveform 1.2s ease-in-out infinite;
+      }
+      .waveform-bar:nth-child(1) { animation-delay: 0s; height: 6px; }
+      .waveform-bar:nth-child(2) { animation-delay: 0.1s; height: 12px; }
+      .waveform-bar:nth-child(3) { animation-delay: 0.2s; height: 18px; }
+      .waveform-bar:nth-child(4) { animation-delay: 0.3s; height: 15px; }
+      .waveform-bar:nth-child(5) { animation-delay: 0.4s; height: 9px; }
+      .waveform-bar:nth-child(6) { animation-delay: 0.5s; height: 14px; }
+      .waveform-bar:nth-child(7) { animation-delay: 0.6s; height: 16px; }
+      .waveform-bar:nth-child(8) { animation-delay: 0.7s; height: 11px; }
+      @keyframes waveform {
+        0%, 100% { transform: scaleY(0.3); opacity: 0.6; }
+        50% { transform: scaleY(1); opacity: 1; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="widget-container">
+        <button class="widget-button cancel" title="Cancel" id="cancel-btn">
+          <span class="icon">×</span>
+        </button>
+        <div class="waveform-container">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+        </div>
+        <button class="widget-button stop" title="Stop" id="stop-btn">
+          <div class="stop-icon"></div>
+        </button>
+      </div>
+    <script>
+      (() => {
+        const widgetApp = window.widgetApp || {
+          stopRecording: () => console.log('Stop recording'),
+          cancelRecording: () => console.log('Cancel recording')
+        };
+        
+        const cancelBtn = document.getElementById('cancel-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            widgetApp.cancelRecording();
+          });
+        }
+        
+        if (stopBtn) {
+          stopBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            widgetApp.stopRecording();
+          });
+        }
+      })();
+    </script>
+    </div>
+  </body>
+</html>

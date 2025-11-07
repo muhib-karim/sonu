@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SONU - Offline Voice Typing</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="window-controls">
+      <button class="window-control minimize" id="minimize-btn" title="Minimize">−</button>
+      <button class="window-control maximize" id="maximize-btn" title="Maximize">□</button>
+      <button class="window-control close" id="close-btn" title="Close">×</button>
+    </div>
+    
+    <div class="app-container">
+      <!-- Left Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <img src="assets/tray/mic-16.png" alt="SONU" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <div class="logo-icon" style="display:none;">▮▮▮</div>
+            <span class="logo-text">SONU</span>
+            <div class="theme-toggle-container">
+              <button class="theme-toggle-btn" id="theme-toggle-btn" data-theme="light">
+                <div class="theme-toggle-track">
+                  <div class="theme-toggle-thumb">
+                    <svg class="theme-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="5"/>
+                      <line x1="12" y1="1" x2="12" y2="3"/>
+                      <line x1="12" y1="21" x2="12" y2="23"/>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                      <line x1="1" y1="12" x2="3" y2="12"/>
+                      <line x1="21" y1="12" x2="23" y2="12"/>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg class="theme-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+          <button class="nav-item active" data-page="home">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>
+            <span>Home</span>
+          </button>
+          <button class="nav-item" data-page="dictionary">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>Dictionary</span>
+          </button>
+          <button class="nav-item" data-page="snippets">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>Snippets</span>
+          </button>
+          <button class="nav-item" data-page="style">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 7h16M4 12h16M4 17h7"/>
+            </svg>
+            <span>Style</span>
+          </button>
+          <button class="nav-item" data-page="notes">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span>Notes</span>
+          </button>
+        </nav>
+        
+        <div class="sidebar-footer">
+          <button class="nav-item" data-page="settings">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+            </svg>
+            <span>Settings</span>
+          </button>
+        </div>
+      </aside>
+      
+      <!-- Main Content Area -->
+      <main class="main-content" id="main-content">
+        <!-- Home Page -->
+        <div class="page active" id="page-home">
+          <div class="page-header">
+            <h1 class="welcome-text">Welcome back</h1>
+            <div class="stats-cards">
+              <div class="stat-card">
+                <span class="stat-icon">🔥</span>
+                <span class="stat-value" id="stat-streak">0 days</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-icon">🚀</span>
+                <span class="stat-value" id="stat-words">0 words</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-icon">👍</span>
+                <span class="stat-value" id="stat-wpm">0 WPM</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="dictation-box">
+            <div class="dictation-content">
+              <h2 class="dictation-title">Hold down <strong id="current-hold-hotkey">Ctrl+Win</strong> to dictate in any app</h2>
+              <p class="dictation-desc">SONU works in all your apps. Try it in email, messages, docs or anywhere else. Use caps for hands-free mode.</p>
+              <button class="dictation-btn" id="edit-hotkeys-btn">Edit</button>
+            </div>
+          </div>
+          
+          <!-- Live Transcription Preview -->
+          <div class="live-preview" id="live-preview" style="display: none;">
+            <div class="live-preview-header">
+              <span class="live-indicator"></span>
+              <span>Live Transcription</span>
+            </div>
+            <div class="live-preview-text" id="live-preview-text"></div>
+          </div>
+          
+          <div class="history-section">
+            <h3 class="history-title">TODAY</h3>
+            <div class="history-list" id="history-list">
+              <!-- History items will be inserted here -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Settings Page -->
+        <div class="page" id="page-settings">
+          <div class="settings-container">
+            <aside class="settings-sidebar">
+              <div class="settings-nav-group">
+                <h4 class="settings-nav-title">SETTINGS</h4>
+                <button class="settings-nav-item active" data-settings-page="general">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                  </svg>
+                  <span>General</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="system">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                  <span>System</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="vibe">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  </svg>
+                  <span>Vibe coding</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="experimental">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 2v6m6-6v6M5 10h14M3 18h18M5 14h14"/>
+                  </svg>
+                  <span>Experimental</span>
+                </button>
+              </div>
+              
+              <div class="settings-nav-group">
+                <h4 class="settings-nav-title">ACCOUNT</h4>
+                <button class="settings-nav-item" data-settings-page="account">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span>Account</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="team">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                  <span>Team</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="billing">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                  <span>Plans and Billing</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="privacy">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  <span>Data and Privacy</span>
+                </button>
+              </div>
+              
+              <div class="settings-footer">
+                <span class="version-text">SONU v3.0.0-dev</span>
+                <svg class="cloud-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                </svg>
+              </div>
+            </aside>
+            
+            <div class="settings-content">
+              <div class="settings-page active" id="settings-general">
+                <h1 class="settings-page-title">General</h1>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Keyboard shortcuts</h3>
+                      <p class="settings-card-desc">Hold <strong>Ctrl</strong> + <strong>Win</strong> and speak. <a href="#" class="learn-more-link">Learn more →</a></p>
+                    </div>
+                    <button class="settings-change-btn" id="change-shortcuts-btn">Change</button>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Microphone</h3>
+                      <p class="settings-card-desc" id="microphone-desc">Auto-detect (Audio)</p>
+                    </div>
+                    <button class="settings-change-btn" id="change-microphone-btn">Change</button>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Languages</h3>
+                      <p class="settings-card-desc" id="language-desc">English</p>
+                    </div>
+                    <button class="settings-change-btn" id="change-language-btn">Change</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Other settings pages can be added here -->
+              <div class="settings-page" id="settings-system">
+                <h1 class="settings-page-title">System</h1>
+                <p class="settings-placeholder">System settings coming soon...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Other pages (Dictionary, Snippets, Style, Notes) -->
+        <div class="page" id="page-dictionary">
+          <h1>Dictionary</h1>
+          <p class="page-placeholder">Dictionary features coming soon...</p>
+        </div>
+        <div class="page" id="page-snippets">
+          <h1>Snippets</h1>
+          <p class="page-placeholder">Snippets features coming soon...</p>
+        </div>
+        <div class="page" id="page-style">
+          <h1>Style</h1>
+          <p class="page-placeholder">Style features coming soon...</p>
+        </div>
+        <div class="page" id="page-notes">
+          <h1>Notes</h1>
+          <p class="page-placeholder">Notes features coming soon...</p>
+        </div>
+      </main>
+    </div>
+    
+    <!-- Modals -->
+    <div class="modal" id="shortcuts-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Keyboard Shortcuts</h2>
+          <button class="modal-close" data-modal="shortcuts-modal">×</button>
+      </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <span>Hold Hotkey</span>
+            <input type="text" id="modal-hold-hotkey" placeholder="Ctrl+Win+Space" />
+          </label>
+          <label class="modal-label">
+            <span>Toggle Hotkey</span>
+            <input type="text" id="modal-toggle-hotkey" placeholder="Ctrl+Shift+Space" />
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="shortcuts-modal">Cancel</button>
+            <button class="btn-primary" id="save-shortcuts-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal" id="microphone-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Microphone Settings</h2>
+          <button class="modal-close" data-modal="microphone-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <span>Select Microphone</span>
+            <select id="microphone-select" class="modal-select">
+              <option>Auto-detect (Audio)</option>
+            </select>
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="microphone-modal">Cancel</button>
+            <button class="btn-primary" id="save-microphone-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal" id="language-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Language Settings</h2>
+          <button class="modal-close" data-modal="language-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <span>Select Language</span>
+            <select id="language-select" class="modal-select">
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+            </select>
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="language-modal">Cancel</button>
+            <button class="btn-primary" id="save-language-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script src="renderer.js"></script>
+  </body>
+</html>

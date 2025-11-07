@@ -1,0 +1,58 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-01-15",
+  "models": {
+    "tiny": {
+      "filename": "ggml-tiny-q5_0.gguf",
+      "size_mb": 75,
+      "description": "Fastest, lowest accuracy - best for real-time dictation",
+      "recommended_for": "≤4 cores / <8 GB RAM",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_0.gguf?download=true",
+      "sha256": null
+    },
+    "base": {
+      "filename": "ggml-base-q5_0.gguf",
+      "size_mb": 145,
+      "description": "Balanced speed & accuracy - recommended for most users",
+      "recommended_for": "4–8 cores / 8–16 GB RAM",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_0.gguf?download=true",
+      "sha256": null
+    },
+    "small": {
+      "filename": "ggml-small-q5_0.gguf",
+      "size_mb": 480,
+      "description": "Slower but more accurate - good for high-quality transcription",
+      "recommended_for": "8–12 cores / ≥16 GB RAM",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_0.gguf?download=true",
+      "sha256": null
+    },
+    "medium": {
+      "filename": "ggml-medium-q5_0.gguf",
+      "size_mb": 1536,
+      "description": "Best accuracy for CPU use - requires powerful system",
+      "recommended_for": ">12 cores / ≥32 GB RAM",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q5_0.gguf?download=true",
+      "sha256": null
+    }
+  },
+  "mirrors": [
+    {
+      "name": "Hugging Face (Primary)",
+      "base_url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/",
+      "priority": 1
+    },
+    {
+      "name": "Hugging Face (Alternative)",
+      "base_url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/models/",
+      "priority": 2
+    },
+    {
+      "name": "GitHub Releases",
+      "base_url": "https://github.com/ggerganov/whisper.cpp/releases/download/",
+      "priority": 3
+    }
+  ],
+  "offline_first": true,
+  "notes": "All models are open-source and free to redistribute. No authentication required."
+}
+

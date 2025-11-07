@@ -1,0 +1,161 @@
+{
+  "app": {
+    "name": "SONU",
+    "description": "Offline Voice Typing Application",
+    "version": "Version"
+  },
+  "nav": {
+    "home": "Home",
+    "history": "History",
+    "dictionary": "Dictionary",
+    "snippets": "Snippets",
+    "style": "Style",
+    "notes": "Notes",
+    "settings": "Settings"
+  },
+  "dictation": {
+    "title": "Speak anywhere",
+    "description": "SONU works in all your apps. Try it in email, messages, docs or anywhere else.",
+    "hotkey": "Hold down the {hotkey} key, speak, and let go to insert spoken text.",
+    "start": "Start Dictation",
+    "stop": "Stop Dictation"
+  },
+  "stats": {
+    "time": "Total dictation time",
+    "words": "Words dictated",
+    "saved": "Time saved",
+    "wpm": "Average dictation speed"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "system": "System",
+    "model": "Model Selector",
+    "themes": "Themes",
+    "vibe": "Vibe coding",
+    "experimental": "Experimental",
+    "account": "Account",
+    "team": "Team",
+    "billing": "Plans and Billing",
+    "privacy": "Data and Privacy",
+    "language": "Language",
+    "language_description": "Choose your preferred language for the interface",
+    "shortcuts": "Keyboard shortcuts",
+    "shortcuts_desc": "Hold {hold} to dictate. Toggle: {toggle}.",
+    "microphone": "Microphone",
+    "microphone_desc": "Auto-detect (Audio)",
+    "languages": "Languages",
+    "languages_desc": "English"
+  },
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "change": "Change",
+    "refresh": "Refresh",
+    "download": "Download & Apply Model",
+    "browse": "Browse",
+    "clear": "Clear",
+    "edit": "Edit",
+    "copy": "Copy",
+    "delete": "Delete"
+  },
+  "messages": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "saved": "Settings saved successfully",
+    "copied": "Copied to clipboard",
+    "error": "An error occurred",
+    "confirm_delete": "Are you sure you want to delete this item?",
+    "no_microphone": "No microphone detected",
+    "model_downloading": "Downloading model...",
+    "model_ready": "Model ready for offline transcription",
+    "cache_cleared": "Cache cleared successfully"
+  },
+  "history": {
+    "title": "History",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "older": "Older",
+    "empty": "No transcription history yet",
+    "clear_all": "Clear all history",
+    "retention": "Keep history",
+    "retention_desc": "How long do you want to keep your dictation history on your device?",
+    "forever": "Forever",
+    "30days": "30 days",
+    "7days": "7 days",
+    "1day": "1 day",
+    "private": "Your data stays private",
+    "private_desc": "Your voice dictations are private with zero data retention. They are stored only on your device and cannot be accessed from anywhere else."
+  },
+  "model": {
+    "title": "Model Selector",
+    "recommendation": "Recommended for your system",
+    "hardware": "Hardware detected",
+    "current": "Current model",
+    "available": "Available models",
+    "size": "Size",
+    "status": "Status",
+    "downloaded": "Downloaded",
+    "not_downloaded": "Not downloaded",
+    "downloading": "Downloading...",
+    "verifying": "Verifying...",
+    "ready": "Ready",
+    "failed": "Failed",
+    "space": "Available Space",
+    "path": "Models stored at",
+    "custom_path": "Custom download location",
+    "auto_select": "Auto-select recommended model",
+    "auto_select_desc": "Automatically choose the best model for your system"
+  },
+  "themes": {
+    "light": "Light",
+    "dark": "Dark",
+    "midnight_purple": "Midnight Purple",
+    "solarized": "Solarized",
+    "soft_gray": "Soft Gray",
+    "follow_system": "Follow system theme",
+    "follow_system_desc": "Automatically switch between light and dark themes based on your system settings"
+  },
+  "system": {
+    "title": "System Information",
+    "device": "Device",
+    "os": "Operating System",
+    "cpu": "Processor",
+    "cores": "CPU Cores",
+    "threads": "CPU Threads",
+    "ram": "Memory",
+    "gpu": "Graphics",
+    "arch": "Architecture",
+    "app_version": "App Version",
+    "refresh": "Refresh system info"
+  },
+  "accessibility": {
+    "skip_to_content": "Skip to main content",
+    "skip_to_nav": "Skip to navigation",
+    "keyboard_shortcuts": "Keyboard shortcuts",
+    "help": "Press Ctrl+/ for keyboard shortcuts",
+    "recording_started": "Recording started",
+    "recording_stopped": "Recording stopped",
+    "transcribed": "Transcribed",
+    "error_occurred": "Error occurred"
+  },
+  "errors": {
+    "network": "Network connection failed",
+    "microphone": "Microphone access denied",
+    "model_load": "Failed to load model",
+    "audio": "Audio device error",
+    "settings": "Invalid settings",
+    "download": "Download failed",
+    "permission": "Permission denied",
+    "storage": "Insufficient storage space"
+  },
+  "help": {
+    "title": "Help & Support",
+    "getting_started": "Getting Started",
+    "troubleshooting": "Troubleshooting",
+    "faq": "Frequently Asked Questions",
+    "contact": "Contact Support",
+    "documentation": "Documentation"
+  }
+}

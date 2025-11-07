@@ -1,0 +1,25 @@
+{
+  "theme": "dark",
+  "follow_system_theme": false,
+  "auto_model": true,
+  "selected_model": "base",
+  "language": "en",
+  "dictation_hotkey": "Ctrl+Space",
+  "launch_on_startup": false,
+  "sound_feedback": true,
+  "vibe_coding_enabled": false,
+  "waveform_animation": true,
+  "continuous_dictation": false,
+  "low_latency": false,
+  "noise_reduction": false,
+  "local_only": true,
+  "auto_delete_cache": false,
+  "model_download_path": "",
+  "history_retention": "forever",
+  "widgetPosition": {
+    "x": 0,
+    "y": 0
+  },
+  "app_language": "en"
+}
+

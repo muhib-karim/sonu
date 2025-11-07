@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SONU - Offline Voice Typing</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="window-controls">
+      <button class="window-control minimize" id="minimize-btn" title="Minimize">−</button>
+      <button class="window-control maximize" id="maximize-btn" title="Maximize">□</button>
+      <button class="window-control close" id="close-btn" title="Close">×</button>
+    </div>
+    
+    <div class="app-container">
+      <!-- Left Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <img src="assets/tray/mic-16.png" alt="SONU" class="logo-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <div class="logo-icon" style="display:none;">▮▮▮</div>
+            <span class="logo-text">SONU</span>
+            <div class="theme-toggle-container">
+              <button class="theme-toggle-btn" id="theme-toggle-btn" data-theme="light">
+                <div class="theme-toggle-track">
+                  <div class="theme-toggle-thumb">
+                    <svg class="theme-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="5"/>
+                      <line x1="12" y1="1" x2="12" y2="3"/>
+                      <line x1="12" y1="21" x2="12" y2="23"/>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                      <line x1="1" y1="12" x2="3" y2="12"/>
+                      <line x1="21" y1="12" x2="23" y2="12"/>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                    <svg class="theme-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+          <button class="nav-item active" data-page="home">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>
+            <span>Home</span>
+          </button>
+          <button class="nav-item" data-page="dictionary">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>Dictionary</span>
+          </button>
+          <button class="nav-item" data-page="snippets">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>Snippets</span>
+          </button>
+          <button class="nav-item" data-page="style">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 7h16M4 12h16M4 17h7"/>
+            </svg>
+            <span>Style</span>
+          </button>
+          <button class="nav-item" data-page="notes">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span>Notes</span>
+          </button>
+        </nav>
+        
+        <div class="sidebar-footer">
+          <button class="nav-item" data-page="settings">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+            </svg>
+            <span>Settings</span>
+          </button>
+        </div>
+      </aside>
+      
+      <!-- Main Content Area -->
+      <main class="main-content" id="main-content">
+        <!-- Home Page -->
+        <div class="page active" id="page-home">
+          <div class="page-header">
+            <h1 class="welcome-text">Speak Everywhere</h1>
+            <div class="stats-cards">
+              <div class="stat-card">
+                <div class="stat-card-header">
+                  <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span class="stat-label">Total dictation time</span>
+                </div>
+                <span class="stat-value" id="stat-time">0 min</span>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-header">
+                  <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                  </svg>
+                  <span class="stat-label">Words dictated</span>
+                </div>
+                <span class="stat-value" id="stat-words">0 words</span>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-header">
+                  <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                  <span class="stat-label">Time saved</span>
+                </div>
+                <span class="stat-value" id="stat-saved">0 min</span>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-header">
+                  <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="13 1 3 1 3 13 13 13"/>
+                    <polyline points="23 11 13 11 13 23 23 23"/>
+                  </svg>
+                  <span class="stat-label">Average dictation speed</span>
+                </div>
+                <span class="stat-value" id="stat-wpm">0 WPM</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="dictation-box">
+            <div class="dictation-content">
+              <h2 class="dictation-title">Hold down on the <strong id="current-hold-hotkey" class="hotkey-display" style="cursor: pointer; text-decoration: underline;">Right Alt</strong> key, speak, and let go to insert spoken text.</h2>
+              <p class="dictation-desc">SONU works in all your apps. Try it in email, messages, docs or anywhere else.</p>
+            </div>
+          </div>
+          
+          <!-- Live Transcription Preview -->
+          <div class="live-preview" id="live-preview" style="display: none;">
+            <div class="live-preview-header">
+              <span class="live-indicator"></span>
+              <span>Live Transcription</span>
+            </div>
+            <div class="live-preview-text" id="live-preview-text"></div>
+          </div>
+          
+          <!-- Waveform Animation -->
+          <div class="waveform-container" id="waveform-container" style="display: none;">
+            <canvas id="waveform-canvas" width="800" height="120"></canvas>
+          </div>
+          
+          <!-- History Settings Card (Combined) -->
+          <div class="history-settings-cards" style="margin-top: 32px;">
+            <div class="history-settings-card">
+              <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <div class="card-content">
+                <h3 class="card-title">Your data stays private</h3>
+                <p class="card-desc">Your voice dictations are private with zero data retention. They are stored only on your device and cannot be accessed from anywhere else.</p>
+                <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 14px; color: var(--text-secondary);">Keep history:</span>
+                  <select class="card-select" id="history-retention" style="flex: 0 0 auto; min-width: 140px;">
+                    <option value="forever">Forever</option>
+                    <option value="30">30 days</option>
+                    <option value="7">7 days</option>
+                    <option value="1">1 day</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- History Section -->
+          <div class="history-section" style="margin-top: 32px;">
+            <div class="history-list" id="history-list-full">
+              <!-- History items will be inserted here -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Settings Page -->
+        <div class="page" id="page-settings">
+          <div class="settings-container">
+            <aside class="settings-sidebar">
+              <div class="settings-nav-group">
+                <h4 class="settings-nav-title">SETTINGS</h4>
+                <button class="settings-nav-item active" data-settings-page="general">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
+                  </svg>
+                  <span>General</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="system">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                  <span>System</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="model">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                  </svg>
+                  <span>Model Selector</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="themes">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                  </svg>
+                  <span>Themes</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="vibe">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  </svg>
+                  <span>Vibe coding</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="experimental">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 2v6m6-6v6M5 10h14M3 18h18M5 14h14"/>
+                  </svg>
+                  <span>Experimental</span>
+                </button>
+              </div>
+              
+              <div class="settings-nav-group">
+                <h4 class="settings-nav-title">ACCOUNT</h4>
+                <button class="settings-nav-item" data-settings-page="account">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span>Account</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="team">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                  <span>Team</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="billing">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                  <span>Plans and Billing</span>
+                </button>
+                <button class="settings-nav-item" data-settings-page="privacy">
+                  <svg class="settings-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  <span>Data and Privacy</span>
+                </button>
+              </div>
+              
+              <div class="settings-footer">
+                <span class="version-text">SONU v3.0.0-dev</span>
+                <svg class="cloud-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                </svg>
+              </div>
+            </aside>
+            
+            <div class="settings-content">
+              <div class="settings-page active" id="settings-general">
+                <h1 class="settings-page-title">General</h1>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Keyboard shortcuts</h3>
+                      <p class="settings-card-desc" id="keyboard-shortcuts-desc">Hold <strong id="current-hold-hotkey-display">Ctrl+Win+Space</strong> to dictate. Toggle: <strong id="current-toggle-hotkey-display">Ctrl+Shift+Space</strong>. <a href="#" class="learn-more-link">Learn more →</a></p>
+                    </div>
+                    <button class="settings-change-btn" id="change-shortcuts-btn">Change</button>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Microphone</h3>
+                      <p class="settings-card-desc" id="microphone-desc">Auto-detect (Audio)</p>
+                    </div>
+                    <button class="settings-change-btn" id="change-microphone-btn">Change</button>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Languages</h3>
+                      <p class="settings-card-desc" id="language-desc">English</p>
+                    </div>
+                    <button class="settings-change-btn" id="change-language-btn">Change</button>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Launch Sonu on System Startup</h3>
+                      <p class="settings-card-desc">Automatically start Sonu when your computer boots.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="launch-on-startup-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Default Transcription Language</h3>
+                      <p class="settings-card-desc">Set the default language for voice transcription.</p>
+                    </div>
+                    <select class="settings-select" id="default-language-select">
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="it">Italian</option>
+                      <option value="pt">Portuguese</option>
+                      <option value="zh">Chinese</option>
+                      <option value="ja">Japanese</option>
+                      <option value="ko">Korean</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Enable Sound Feedback on Dictation</h3>
+                      <p class="settings-card-desc">Play a sound when dictation starts and stops.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="sound-feedback-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Show Live Waveform Animation</h3>
+                      <p class="settings-card-desc">Display a visual waveform while dictating.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="waveform-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- System Tab -->
+              <div class="settings-page" id="settings-system">
+                <h1 class="settings-page-title">System Information</h1>
+                <p class="settings-page-subtitle">Hardware and environment details of your system.</p>
+                
+                <div class="settings-card">
+                  <div class="settings-card-header">
+                    <h3 class="settings-card-title">System Overview</h3>
+                    <button class="settings-refresh-btn" id="refresh-system-info-btn">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                      </svg>
+                      Refresh Info
+                    </button>
+                  </div>
+                  <div class="system-info-container" id="system-info-container">
+                    <div class="system-info-loading">Loading system information...</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Model Selector Tab -->
+              <div class="settings-page" id="settings-model">
+                <h1 class="settings-page-title">Whisper Model Configuration</h1>
+                <p class="settings-page-subtitle">Select or auto-detect the optimal Whisper model for offline transcription.</p>
+                
+                <div class="settings-card" id="model-recommendation-card" style="display: none; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); border: 1px solid #c084fc;">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title" style="color: #7c3aed; font-weight: 600;">✨ Recommended for your system</h3>
+                      <p class="settings-card-desc" id="model-recommendation-text" style="margin-top: 8px;"></p>
+                      <p class="settings-card-desc" id="model-hardware-info" style="font-size: 0.85em; color: #6b21a8; margin-top: 4px;"></p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Storage Information</h3>
+                      <p class="settings-card-desc">Available disk space for model downloads.</p>
+                    </div>
+                    <div class="settings-card-controls">
+                      <p class="settings-card-desc" id="model-disk-space">Checking available space...</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Download Location</h3>
+                      <p class="settings-card-desc">Choose where to store downloaded models.</p>
+                    </div>
+                    <div class="settings-card-controls">
+                      <div>
+                        <input type="text" id="model-download-path" class="settings-input" readonly placeholder="Select download location...">
+                        <button class="settings-secondary-btn" id="browse-model-path-btn">Browse...</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Model Selection</h3>
+                      <p class="settings-card-desc">Choose the Whisper model size. Larger models are more accurate but require more resources.</p>
+                    </div>
+                    <div class="settings-card-controls">
+                      <select class="settings-select" id="model-select">
+                        <option value="tiny">Tiny (75 MB) - Fastest, least accurate</option>
+                        <option value="base">Base (142 MB) - Balanced</option>
+                        <option value="small">Small (244 MB) - Good accuracy</option>
+                        <option value="medium">Medium (769 MB) - High accuracy</option>
+                        <option value="large">Large (1550 MB) - Best accuracy</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Auto-Pick Model</h3>
+                      <p class="settings-card-desc">Automatically select the best model based on your system's RAM and CPU.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="auto-model-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Model Status</h3>
+                      <p class="settings-card-desc" id="model-status-desc">Ready to download and apply model.</p>
+                    </div>
+                    <div class="settings-card-controls" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                      <button class="settings-primary-btn" id="download-model-btn">Download & Apply Model</button>
+                      <button class="settings-secondary-btn" id="import-model-btn">Import Model File...</button>
+                    </div>
+                  </div>
+                  <div class="model-progress" id="model-progress" style="display: none;">
+                    <div class="progress-bar">
+                      <div class="progress-fill" id="model-progress-fill"></div>
+                    </div>
+                    <div class="progress-text" id="model-progress-text">Downloading...</div>
+                    <div class="progress-speed" id="model-progress-speed" style="display: none;"></div>
+                  </div>
+                </div>
+
+                <!-- Manual Download Section -->
+                <div class="settings-card" id="manual-download-card" style="display: none;">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Manual Download</h3>
+                      <p class="settings-card-desc">If automatic download fails, download manually and import using "Import Model File..." button above.</p>
+                    </div>
+                  </div>
+                  <div class="manual-download-list" id="manual-download-list" style="margin-top: 16px;">
+                    <!-- Manual download links will be inserted here -->
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Themes Tab -->
+              <div class="settings-page" id="settings-themes">
+                <h1 class="settings-page-title">Themes</h1>
+                <p class="settings-page-subtitle">Customize how Sonu looks.</p>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Theme Selection</h3>
+                      <p class="settings-card-desc">Choose a theme that matches your preference. Custom themes will override the main light/dark toggle.</p>
+                    </div>
+                  </div>
+                  <div class="themes-grid" id="themes-grid">
+                    <div class="theme-option" data-theme="light">
+                      <div class="theme-preview light-preview"></div>
+                      <div class="theme-label">Light</div>
+                      <div class="theme-badge default-badge">Default</div>
+                    </div>
+                    <div class="theme-option" data-theme="dark">
+                      <div class="theme-preview dark-preview"></div>
+                      <div class="theme-label">Dark</div>
+                    </div>
+                    <div class="theme-option" data-theme="midnight-purple">
+                      <div class="theme-preview midnight-purple-preview"></div>
+                      <div class="theme-label">Midnight Purple</div>
+                    </div>
+                    <div class="theme-option" data-theme="solarized">
+                      <div class="theme-preview solarized-preview"></div>
+                      <div class="theme-label">Solarized</div>
+                    </div>
+                    <div class="theme-option" data-theme="soft-gray">
+                      <div class="theme-preview soft-gray-preview"></div>
+                      <div class="theme-label">Soft Gray</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Vibe Coding Tab -->
+              <div class="settings-page" id="settings-vibe">
+                <h1 class="settings-page-title">Vibe Coding</h1>
+                <p class="settings-page-subtitle">Configure voice dictation for coding editors.</p>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Enable Voice Dictation in Coding Editors</h3>
+                      <p class="settings-card-desc">Allow Sonu to work in code editors like VS Code, Sublime Text, etc.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="vibe-coding-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Coding Hotkey</h3>
+                      <p class="settings-card-desc" id="vibe-hotkey-desc">Ctrl + Space</p>
+                    </div>
+                    <button class="settings-change-btn" id="change-vibe-hotkey-btn">Change</button>
+                  </div>
+                </div>
+                
+              </div>
+              
+              <!-- Experimental Tab -->
+              <div class="settings-page" id="settings-experimental">
+                <h1 class="settings-page-title">Experimental</h1>
+                <p class="settings-page-subtitle">Try out new features that are still in development.</p>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Enable Continuous Dictation</h3>
+                      <p class="settings-card-desc">Keep listening continuously without needing to hold the hotkey.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="continuous-dictation-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Use Low-Latency Audio Backend</h3>
+                      <p class="settings-card-desc">Reduce audio processing delay for faster transcription.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="low-latency-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Enable Neural Noise Reduction</h3>
+                      <p class="settings-card-desc">Use AI-powered noise reduction for better transcription quality.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="noise-reduction-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Account Tab -->
+              <div class="settings-page" id="settings-account">
+                <h1 class="settings-page-title">Account</h1>
+                <p class="settings-page-subtitle">Manage your Sonu account.</p>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">User Information</h3>
+                      <p class="settings-card-desc">You are using Sonu in offline mode.</p>
+                    </div>
+                  </div>
+                  <div class="account-info">
+                    <div class="account-item">
+                      <span class="account-label">Status:</span>
+                      <span class="account-value">Offline Mode</span>
+                    </div>
+                    <div class="account-item">
+                      <span class="account-label">Account Type:</span>
+                      <span class="account-value">Local User</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Account Actions</h3>
+                      <p class="settings-card-desc">Sign out or switch accounts (when online features are available).</p>
+                    </div>
+                    <button class="settings-secondary-btn" id="sign-out-btn">Sign Out / Switch Account</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Team Tab -->
+              <div class="settings-page" id="settings-team">
+                <h1 class="settings-page-title">Team</h1>
+                <p class="settings-page-subtitle">Team collaboration features.</p>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Team Collaboration</h3>
+                      <p class="settings-card-desc">Team collaboration coming soon.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Billing Tab -->
+              <div class="settings-page" id="settings-billing">
+                <h1 class="settings-page-title">Plans and Billing</h1>
+                <p class="settings-page-subtitle">Manage your subscription and billing.</p>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Billing Information</h3>
+                      <p class="settings-card-desc">Sonu runs 100% offline — no billing required.</p>
+                    </div>
+                  </div>
+                  <div class="billing-info">
+                    <div class="billing-message">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                      </svg>
+                      <h3>No Subscription Required</h3>
+                      <p>All features are available offline. No cloud services, no billing, no data collection.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Privacy Tab -->
+              <div class="settings-page" id="settings-privacy">
+                <h1 class="settings-page-title">Data and Privacy</h1>
+                <p class="settings-page-subtitle">Control how your data is handled.</p>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Keep Transcriptions Local Only</h3>
+                      <p class="settings-card-desc">Ensure all transcriptions are stored locally and never sent to external servers.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="local-only-toggle" checked>
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Auto-Delete Cache After Each Session</h3>
+                      <p class="settings-card-desc">Automatically clear temporary files and cache when you close the app.</p>
+                    </div>
+                    <label class="settings-toggle">
+                      <input type="checkbox" id="auto-delete-cache-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="settings-card-info">
+                      <h3 class="settings-card-title">Clear Cache</h3>
+                      <p class="settings-card-desc">Manually clear all cached data and temporary files.</p>
+                    </div>
+                    <button class="settings-secondary-btn" id="clear-cache-btn">Clear Cache</button>
+                  </div>
+                </div>
+                
+                <div class="settings-card">
+                  <div class="settings-card-content">
+                    <div class="privacy-note">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                      <p><strong>Privacy First:</strong> Sonu operates 100% offline. No external data is sent. All processing happens on your device.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Dictionary Page -->
+        <div class="page" id="page-dictionary">
+          <div class="page-header">
+            <h1 class="page-title">Dictionary</h1>
+            <div class="page-actions">
+              <button class="btn-primary" id="new-word-btn">New word</button>
+            </div>
+          </div>
+          
+          <div class="dictionary-list" id="dictionary-list">
+            <!-- Dictionary words will be inserted here -->
+          </div>
+          
+          <div class="dictionary-empty" id="dictionary-empty" style="display: none;">
+            <p class="empty-message">No words in your dictionary yet. Click "New word" to add one.</p>
+          </div>
+        </div>
+        <!-- Snippets Page -->
+        <div class="page" id="page-snippets">
+          <div class="page-header">
+            <h1 class="page-title">Snippets</h1>
+            <div class="page-actions">
+              <button class="btn-primary" id="new-snippet-btn">New snippet</button>
+            </div>
+          </div>
+          
+          <div class="snippets-list" id="snippets-list">
+            <!-- Snippets will be inserted here -->
+          </div>
+          
+          <div class="snippets-empty" id="snippets-empty" style="display: none;">
+            <p class="empty-message">No snippets yet. Click "New snippet" to add one.</p>
+          </div>
+        </div>
+        
+        <div class="page" id="page-style">
+          <h1>Style</h1>
+          <p class="page-placeholder">Style features coming soon...</p>
+        </div>
+        
+        <!-- Notes Page -->
+        <div class="page" id="page-notes">
+          <div class="page-header">
+            <h1 class="page-title">For quick thoughts you want to come back to</h1>
+          </div>
+          
+          <div class="notes-input-card">
+            <div class="notes-input-wrapper">
+              <div class="notes-input-placeholder" id="notes-input-placeholder">
+                Press and hold Ctrl + Win and start speaking
+              </div>
+              <div class="notes-input-content" id="notes-input-content" contenteditable="false" style="display: none;"></div>
+              <button class="notes-mic-btn" id="notes-mic-btn" title="Start voice input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="23"/>
+                  <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div class="notes-section">
+            <div class="notes-section-header">
+              <h3 class="notes-section-title">RECENTS</h3>
+              <div class="notes-section-actions">
+                <button class="notes-action-icon" id="notes-search-btn" title="Search notes">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </button>
+                <button class="notes-action-icon" id="notes-view-toggle-btn" title="Toggle view">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                  </svg>
+                </button>
+                <button class="notes-action-icon" id="notes-refresh-btn" title="Refresh">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div class="notes-list" id="notes-list">
+              <!-- Notes will be inserted here -->
+            </div>
+            
+            <div class="notes-empty" id="notes-empty" style="display: none;">
+              <p class="empty-message">No notes found</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    
+    <!-- Modals -->
+    <div class="modal" id="shortcuts-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Keyboard Shortcuts</h2>
+          <button class="modal-close" data-modal="shortcuts-modal">×</button>
+      </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <span>Hold Hotkey</span>
+            <input type="text" id="modal-hold-hotkey" placeholder="Ctrl+Win+Space" />
+          </label>
+          <label class="modal-label">
+            <span>Toggle Hotkey</span>
+            <input type="text" id="modal-toggle-hotkey" placeholder="Ctrl+Shift+Space" />
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="shortcuts-modal">Cancel</button>
+            <button class="btn-primary" id="save-shortcuts-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal" id="microphone-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Microphone Settings</h2>
+          <button class="modal-close" data-modal="microphone-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <span>Select Microphone</span>
+            <select id="microphone-select" class="modal-select">
+              <option>Auto-detect (Audio)</option>
+            </select>
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="microphone-modal">Cancel</button>
+            <button class="btn-primary" id="save-microphone-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal" id="language-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Language Settings</h2>
+          <button class="modal-close" data-modal="language-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <span>Select Language</span>
+            <select id="language-select" class="modal-select">
+              <option value="en">English</option>
+              <option value="es">Español (Spanish)</option>
+              <option value="fr">Français (French)</option>
+              <option value="de">Deutsch (German)</option>
+              <option value="zh">中文 (Chinese)</option>
+              <option value="ja">日本語 (Japanese)</option>
+              <option value="ko">한국어 (Korean)</option>
+              <option value="pt">Português (Portuguese)</option>
+              <option value="ru">Русский (Russian)</option>
+              <option value="it">Italiano (Italian)</option>
+              <option value="nl">Nederlands (Dutch)</option>
+              <option value="sv">Svenska (Swedish)</option>
+              <option value="da">Dansk (Danish)</option>
+              <option value="no">Norsk (Norwegian)</option>
+              <option value="fi">Suomi (Finnish)</option>
+              <option value="pl">Polski (Polish)</option>
+              <option value="tr">Türkçe (Turkish)</option>
+              <option value="ar">العربية (Arabic)</option>
+              <option value="he">עברית (Hebrew)</option>
+              <option value="hi">हिन्दी (Hindi)</option>
+              <option value="th">ไทย (Thai)</option>
+              <option value="vi">Tiếng Việt (Vietnamese)</option>
+              <option value="id">Bahasa Indonesia (Indonesian)</option>
+              <option value="ms">Bahasa Melayu (Malay)</option>
+              <option value="cs">Čeština (Czech)</option>
+              <option value="sk">Slovenčina (Slovak)</option>
+              <option value="hu">Magyar (Hungarian)</option>
+              <option value="ro">Română (Romanian)</option>
+              <option value="bg">Български (Bulgarian)</option>
+              <option value="hr">Hrvatski (Croatian)</option>
+              <option value="sr">Српски (Serbian)</option>
+              <option value="uk">Українська (Ukrainian)</option>
+              <option value="el">Ελληνικά (Greek)</option>
+              <option value="ca">Català (Catalan)</option>
+              <option value="eu">Euskara (Basque)</option>
+              <option value="ga">Gaeilge (Irish)</option>
+              <option value="cy">Cymraeg (Welsh)</option>
+            </select>
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="language-modal">Cancel</button>
+            <button class="btn-primary" id="save-language-btn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Add to vocabulary modal -->
+    <div class="modal" id="add-word-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add to vocabulary</h2>
+          <button class="modal-close" data-modal="add-word-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <input type="text" id="new-word-input" class="modal-input" placeholder="Add a new word" autofocus />
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="add-word-modal">Cancel</button>
+            <button class="btn-primary" id="add-word-submit-btn">Add word</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Add snippet modal -->
+    <div class="modal" id="add-snippet-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add snippet</h2>
+          <button class="modal-close" data-modal="add-snippet-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <span>Title</span>
+            <input type="text" id="snippet-title-input" class="modal-input" placeholder="Snippet title" />
+          </label>
+          <label class="modal-label">
+            <span>Text</span>
+            <textarea id="snippet-text-input" class="modal-textarea" placeholder="Snippet text" rows="6"></textarea>
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="add-snippet-modal">Cancel</button>
+            <button class="btn-primary" id="add-snippet-submit-btn">Add snippet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Edit snippet modal -->
+    <div class="modal" id="edit-snippet-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Edit snippet</h2>
+          <button class="modal-close" data-modal="edit-snippet-modal">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="modal-label">
+            <span>Title</span>
+            <input type="text" id="edit-snippet-title-input" class="modal-input" placeholder="Snippet title" />
+          </label>
+          <label class="modal-label">
+            <span>Text</span>
+            <textarea id="edit-snippet-text-input" class="modal-textarea" placeholder="Snippet text" rows="6"></textarea>
+          </label>
+          <div class="modal-actions">
+            <button class="btn-secondary" data-modal="edit-snippet-modal">Cancel</button>
+            <button class="btn-primary" id="edit-snippet-submit-btn">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script src="renderer.js"></script>
+  </body>
+</html>

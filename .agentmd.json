@@ -1,0 +1,66 @@
+{
+  "project_name": "Sonu AI Dictation",
+  "workflow": {
+    "parallel_mode": true,
+    "memory_sharing": true,
+    "conflict_resolution": "smart-merge",
+    "auto_review": true,
+    "sync_interval": 10
+  },
+  "shared_memory": {
+    "enabled": true,
+    "sync_path": ".agentmd_memory/",
+    "data_format": "json",
+    "context_window": 25,
+    "tracking": {
+      "changeset_sync": true,
+      "commit_annotations": true,
+      "diff_resolution": "auto-approve-safe"
+    }
+  },
+  "agents": {
+    "UIAgent": {
+      "role": "Frontend/UI Designer",
+      "description": "Glass UI, layout, React components, restoring functionality",
+      "focus_files": ["index.html", "styles.css", "renderer.js", "src/components/", "src/pages/", "src/styles/"],
+      "model": "gpt-5",
+      "priority": "high",
+      "depends_on": ["BackendAgent", "SystemAgent"]
+    },
+    "BackendAgent": {
+      "role": "Backend Developer",
+      "description": "Model download manager, IPC bridge stability",
+      "focus_files": ["backend/", "main.js", "preload.js", "model_manager.py", "whisper_service.py", "system_utils.py"],
+      "model": "gpt-5",
+      "priority": "high",
+      "depends_on": ["UIAgent"]
+    },
+    "SystemAgent": {
+      "role": "Platform Engineer",
+      "description": "Build config, cross-platform scripts",
+      "focus_files": ["package.json", "scripts/", "build/"],
+      "model": "gpt-5-mini",
+      "priority": "medium"
+    },
+    "DocAgent": {
+      "role": "Documentation Writer",
+      "description": "Docs, changelog, readme updates",
+      "focus_files": ["README.md", "CHANGELOG.md", "docs/"],
+      "model": "gpt-5-mini",
+      "priority": "low"
+    }
+  },
+  "version_control": {
+    "enable_checkpointing": true,
+    "safe_commit_tag": "sonu_stable_v3.0",
+    "target_commit_tag": "sonu_stable_v4.0",
+    "auto_revert_on_fail": true
+  },
+  "orchestration": {
+    "enabled": true,
+    "restore_baseline": "sonu_stable_v3.0",
+    "target_version": "4.0",
+    "parallel_execution": true
+  }
+}
+

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SONU - Offline Voice Typing</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="window-controls">
+      <button class="window-control minimize" id="minimize-btn" title="Minimize">−</button>
+      <button class="window-control maximize" id="maximize-btn" title="Maximize">□</button>
+      <button class="window-control close" id="close-btn" title="Close">×</button>
+    </div>
+    <div class="container">
+      <div class="title-bar" id="drag-region"></div>
+      <div class="header">
+        <div class="mic">🎤</div>
+        <div id="status" class="status">Ready. Press Ctrl+Shift+Space to start</div>
+        <div id="listening-indicator" class="indicator" style="display:none">
+          <span class="wave wave1"></span>
+          <span class="wave wave2"></span>
+          <span class="wave wave3"></span>
+        </div>
+      </div>
+      <div id="output" class="output"></div>
+      <div class="controls">
+        <button id="toggle-btn" class="btn">Toggle Recording</button>
+        <div class="settings">
+          <h4>Settings</h4>
+          <label class="row">
+            <span>Hold Hotkey</span>
+            <input id="hotkey-hold" type="text" placeholder="Ctrl+Win+Space" />
+          </label>
+          <label class="row">
+            <span>Toggle Hotkey</span>
+            <input id="hotkey-toggle" type="text" placeholder="Ctrl+Shift+Space" />
+          </label>
+          <div class="row hint">Both shortcuts work: Hold for press-and-hold; Toggle for on/off.</div>
+          <button id="save-settings" class="btn secondary">Save Settings</button>
+        </div>
+      </div>
+    </div>
+    <script src="renderer.js"></script>
+  </body>
+</html>
+
