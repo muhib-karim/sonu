@@ -18,6 +18,63 @@
 
 ---
 
+## 📸 Screenshots
+
+<div align="center">
+
+### Main Application Window
+
+![Main Window](screenshots/main-window.png)
+
+*Main application window showing the home page with modern glassmorphic design*
+
+### Settings Page
+
+![Settings Page](screenshots/settings-page.png)
+
+*Comprehensive settings interface with all configuration options*
+
+### Model Selector
+
+![Model Selector](screenshots/model-selector.png)
+
+*Model selection interface with download and import options*
+
+### Active Dictation
+
+![Dictation Active](screenshots/dictation-active.png)
+
+*Live transcription in action with real-time partial results*
+
+### Theme Comparison
+
+<table>
+<tr>
+<td width="50%">
+
+**Light Theme**
+
+![Light Theme](screenshots/theme-light.png)
+
+</td>
+<td width="50%">
+
+**Dark Theme**
+
+![Dark Theme](screenshots/theme-dark.png)
+
+</td>
+</tr>
+</table>
+
+*Beautiful light and dark themes with smooth transitions*
+
+</div>
+
+> **Note**: Screenshots are placeholders. To add actual screenshots, see [screenshots/README.md](screenshots/README.md) for instructions.
+
+---
+
 ## 🚀 Overview
 
 **SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using Cursor IDE and AI assistance, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
