@@ -1,0 +1,88 @@
+name: Auto Screenshot and Upload
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Check if web mode exists
+        id: check_web
+        run: |
+          if grep -q '"dev"' package.json || grep -q '"start"' package.json; then
+            echo "web_mode=true" >> $GITHUB_OUTPUT
+          else
+            echo "web_mode=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Electron app automation
+        if: steps.check_web.outputs.web_mode == 'false'
+        run: |
+          echo "📸 Running Electron app automation..."
+          node auto_screenshot.js || echo "Electron automation completed (may require display)"
+        env:
+          DISPLAY: ':99'
+        continue-on-error: true
+
+      - name: Setup Xvfb (for headless display)
+        if: steps.check_web.outputs.web_mode == 'false'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1280x720x24 &
+
+      - name: Commit and push screenshots
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are changes
+          if git diff --staged --quiet && git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add screenshots/*.png recordings/*.mp4 2>/dev/null || true
+            git commit -m "docs: Auto-update screenshots and video [CI]" || echo "No changes to commit"
+            git push origin main || echo "Push failed or no changes"
+          fi
+
+      - name: Upload screenshots as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/*.png
+          retention-days: 30
+
+      - name: Upload video as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recordings
+          path: recordings/*.mp4
+          retention-days: 7
+
