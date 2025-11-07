@@ -8,7 +8,10 @@
     "build": "electron-builder",
     "fetch-icon": "node scripts/fetch-tray-icon.js",
     "preview": "python -m http.server 8000",
-    "screenshots": "node scripts/take-screenshots-for-github.js"
+    "screenshots": "electron scripts/take-screenshots-for-github.js",
+    "auto-screenshots": "node auto_screenshot.js",
+    "showcase": "electron scripts/run-showcase.js",
+    "banner": "node scripts/generate-banner.js"
   },
   "author": "muhib-karim",
   "license": "MIT",
@@ -27,6 +30,7 @@
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.9.0",
+    "playwright": "^1.56.1",
     "sharp": "^0.34.5"
   },
   "dependencies": {

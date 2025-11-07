@@ -6,6 +6,8 @@
 
 **Professional-grade offline voice typing solution powered by Faster-Whisper AI**
 
+[![Video Formats](https://img.shields.io/badge/video-MP4%20%7C%20H.265%20%7C%20VP9-orange)](#-showcase)
+[![Screenshots](https://img.shields.io/badge/screenshots-17-blue)](#-showcase)
 [![Version](https://img.shields.io/badge/version-3.5.0-blue.svg)](https://github.com/muhib-karim/sonu)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
@@ -13,6 +15,16 @@
 [![Node.js](https://img.shields.io/badge/node.js-16.0%2B-green.svg)](https://nodejs.org/)
 
 *Transform your voice into text instantly, completely offline, with enterprise-grade accuracy*
+
+</div>
+
+<div align="center">
+
+<!-- Banner GIF/PNG preview -->
+<img src="assets/showcase/banner.gif" alt="SONU Showcase Banner" onerror="this.onerror=null;this.src='assets/showcase/banner.png';" />
+
+<br/>
+<sub>Quickstart showcase generation: <code>npm run showcase</code> · Banner: <code>npm run banner</code></sub>
 
 </div>
 
