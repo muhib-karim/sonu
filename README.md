@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![SONU Logo](assets/showcase/mic-32.png)
+![SONU Logo](assets/tray/mic-32.png)
 
 **Professional-grade offline voice typing solution powered by Faster-Whisper AI**
 
