@@ -130,5 +130,5 @@ npx playwright install chromium
 
 ---
 
-**Built with ❤️ using Cursor IDE and Playwright**
+**Built with ❤️ using TraeAI IDE and Playwright**
 

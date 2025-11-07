@@ -280,7 +280,7 @@ sonu/
 
 ## Acknowledgments
 
-This architecture was designed and implemented by a solo developer with the assistance of **Cursor**, an amazing AI-powered IDE that significantly accelerated development and improved code quality. The intelligent code completion, context-aware suggestions, and seamless AI assistance made building SONU as a solo project truly efficient and enjoyable.
+This architecture was designed and implemented by a solo developer with the assistance of **TraeAI**, a world-class AI-powered IDE that significantly accelerated development and improved code quality. The intelligent code completion, context-aware suggestions, and seamless AI assistance made building SONU as a solo project truly efficient and enjoyable.
 
 This project demonstrates the power of AI-augmented development, showing how a single developer can create professional-grade applications with the right tools.
 

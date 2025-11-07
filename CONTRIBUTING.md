@@ -1,6 +1,6 @@
 # Contributing to SONU
 
-Thank you for your interest in contributing to SONU! This project was built by a solo developer using Cursor IDE and AI assistance, and we welcome contributions from the community.
+Thank you for your interest in contributing to SONU! This project was built by a solo developer using TraeAI IDE and AI assistance, and we welcome contributions from the community.
 
 ## Code of Conduct
 

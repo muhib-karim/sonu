@@ -18,66 +18,91 @@
 
 ---
 
-## 📸 Screenshots
+## 📸 Showcase
 
 <div align="center">
 
-### Main Application Window
-
-![Main Window](screenshots/main-window.png)
-
-*Main application window showing the home page with modern glassmorphic design*
-
-### Settings Page
-
-![Settings Page](screenshots/settings-page.png)
-
-*Comprehensive settings interface with all configuration options*
-
-### Model Selector
-
-![Model Selector](screenshots/model-selector.png)
-
-*Model selection interface with download and import options*
-
-### Active Dictation
-
-![Dictation Active](screenshots/dictation-active.png)
-
-*Live transcription in action with real-time partial results*
-
-### Theme Comparison
+### Full Gallery
 
 <table>
-<tr>
-<td width="50%">
-
-**Light Theme**
-
-![Light Theme](screenshots/theme-light.png)
-
-</td>
-<td width="50%">
-
-**Dark Theme**
-
-![Dark Theme](screenshots/theme-dark.png)
-
-</td>
-</tr>
+  <tr>
+    <td><img src="assets/showcase/01_home.png" width="260" alt="Home" /></td>
+    <td><img src="assets/showcase/02_dictation_start.png" width="260" alt="Dictation Start" /></td>
+    <td><img src="assets/showcase/03_output_log.png" width="260" alt="Output Log" /></td>
+  </tr>
+  <tr>
+    <td><img src="assets/showcase/04_help.png" width="260" alt="Help" /></td>
+    <td><img src="assets/showcase/05_dictionary.png" width="260" alt="Dictionary" /></td>
+    <td><img src="assets/showcase/06_snippets.png" width="260" alt="Snippets" /></td>
+  </tr>
+  <tr>
+    <td><img src="assets/showcase/07_style.png" width="260" alt="Style" /></td>
+    <td><img src="assets/showcase/08_notes.png" width="260" alt="Notes" /></td>
+    <td><img src="assets/showcase/09_settings.png" width="260" alt="Settings" /></td>
+  </tr>
+  <tr>
+    <td><img src="assets/showcase/10_settings-general.png" width="260" alt="Settings - General" /></td>
+    <td><img src="assets/showcase/11_settings-system.png" width="260" alt="Settings - System" /></td>
+    <td><img src="assets/showcase/12_model_selector.png" width="260" alt="Model Selector" /></td>
+  </tr>
+  <tr>
+    <td><img src="assets/showcase/13_settings-themes.png" width="260" alt="Settings - Themes" /></td>
+    <td><img src="assets/showcase/14_settings-vibe.png" width="260" alt="Settings - Vibe" /></td>
+    <td><img src="assets/showcase/15_settings-experimental.png" width="260" alt="Settings - Experimental" /></td>
+  </tr>
+  <tr>
+    <td><img src="assets/showcase/16_theme-light.png" width="260" alt="Theme - Light" /></td>
+    <td><img src="assets/showcase/17_theme-dark.png" width="260" alt="Theme - Dark" /></td>
+    <td></td>
+  </tr>
+  
+  <!-- Theme Comparison Row -->
+  <tr>
+    <td colspan="3">
+      <em>Beautiful light and dark themes with smooth transitions</em>
+    </td>
+  </tr>
+  
+  <!-- Video Showcase -->
+  <tr>
+    <td colspan="3">
+      <h3>Video Showcase</h3>
+      <p>
+        <a href="assets/showcase/showcase.mp4">MP4 Montage</a> ·
+        <a href="assets/showcase/showcase_vp9.webm">VP9 Montage</a> ·
+        <a href="assets/showcase/showcase_h265.mp4">HEVC Montage</a>
+      </p>
+      <p>
+        Slideshow: 
+        <a href="assets/showcase/showcase_slideshow_h265.mp4">HEVC</a> ·
+        <a href="assets/showcase/showcase_slideshow_vp9.webm">VP9</a> ·
+        <a href="assets/showcase/showcase_slideshow_3s_h265.mp4">HEVC (Ken Burns)</a> ·
+        <a href="assets/showcase/showcase_slideshow_3s_vp9.webm">VP9 (Ken Burns)</a>
+      </p>
+    </td>
+  </tr>
+  
+  <tr>
+    <td colspan="3">
+      <sub>Screenshots and videos are auto-generated via <code>npm run showcase</code> and saved to <code>assets/showcase/</code>.</sub>
+    </td>
+  </tr>
+  
+  <tr>
+    <td colspan="3">
+      <sub>Use <code>scripts/run-showcase.js</code> with <code>ffmpeg</code> filters from <code>assets/showcase/slideshow_filter*.txt</code> to render slideshows.</sub>
+    </td>
+  </tr>
+  
 </table>
 
-*Beautiful light and dark themes with smooth transitions*
-
 </div>
-
-> **Note**: Screenshots are placeholders. To add actual screenshots, see [screenshots/README.md](screenshots/README.md) for instructions.
 
 ---
 
 ## 🚀 Overview
 
-**SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using Cursor IDE and AI assistance, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
+**SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using TraeAI IDE and AI assistance, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
 
 ### Key Highlights
 
@@ -219,6 +244,14 @@ The command launches SONU in a special showcase mode, walks through Home, Dictio
 ```bash
 ffmpeg -y -framerate 1 -pattern_type glob -i "assets/showcase/*.png" -c:v libx264 -pix_fmt yuv420p assets/showcase/showcase.mp4
 ```
+
+### Showcase Videos
+
+- HEVC (H.265) slideshow: `assets/showcase/showcase_slideshow_h265.mp4`
+- VP9 (WebM) slideshow: `assets/showcase/showcase_slideshow_vp9.webm`
+- Original MP4 montage: `assets/showcase/showcase.mp4`
+- Social-ready HEVC: `assets/showcase/showcase_h265.mp4`
+- Social-ready VP9: `assets/showcase/showcase_vp9.webm`
 
 --- 
 
@@ -462,14 +495,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 SONU is built on the shoulders of giants. I extend my deepest gratitude to:
 
-- **Cursor** - The amazing AI-powered IDE that made solo development efficient and enjoyable. This project was built entirely using Cursor's AI assistance ([cursor.sh](https://cursor.sh))
+- **TraeAI** - The world-class IDE that made solo development efficient and enjoyable. This project was built using TraeAI's AI assistance
 - **OpenAI** - For the revolutionary Whisper model ([github.com/openai/whisper](https://github.com/openai/whisper))
 - **Faster-Whisper** - For the efficient CPU-optimized implementation ([github.com/guillaumekln/faster-whisper](https://github.com/guillaumekln/faster-whisper))
 - **Electron** - For the desktop application framework ([electronjs.org](https://www.electronjs.org))
 - **CTranslate2** - For the efficient inference engine ([github.com/OpenNMT/CTranslate2](https://github.com/OpenNMT/CTranslate2))
 - **All Open-Source Contributors** - To the open-source projects that make SONU possible
 
-This project demonstrates the power of AI-assisted development, built by a solo developer using Cursor IDE. For a complete list of acknowledgments and open-source resources, see [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md).
+This project demonstrates the power of AI-assisted development, built by a solo developer using TraeAI IDE. For a complete list of acknowledgments and open-source resources, see [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md).
 
 ---
 
@@ -502,7 +535,7 @@ For issues, questions, or feature requests:
 
 <div align="center">
 
-**Made with ❤️ by a solo developer using Cursor IDE and AI assistance**
+**Made with ❤️ by a solo developer using TraeAI IDE and AI assistance**
 
 *Built to demonstrate the power of AI-augmented development*
 
@@ -511,50 +544,4 @@ For issues, questions, or feature requests:
 © 2025 SONU. All rights reserved.
 
 </div>
-<!-- 🔄 AUTO-GENERATED SHOWCASE SECTION START -->
-<p align="center">
-  <img src="assets/showcase/01_home.png" width="100%" alt="App Home" />
-</p>
-
-<h1 align="center">🎙 Whisper Offline Dictation App</h1>
-<p align="center"><b>Fully Offline · Open Source · Powered by Whisper.cpp</b></p>
-
----
-
-## 🚀 Latest Showcase (1080p)
-<p align="center">
-  <video width="100%" height="auto" controls>
-    <source src="assets/showcase/showcase.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</p>
-
----
-
-## 🧠 Key Features Demonstrated
-| Feature | Description |
-|----------|-------------|
-| 🗣 **Offline Dictation** | Real-time Whisper.cpp transcription with no internet |
-| ⚙️ **Model Selector** | Recommends models based on hardware, supports import |
-| 💾 **Resumable Offline Model Downloads** | Integrity-checked downloads with mirror fallback |
-| ✍️ **Smart Text Output** | Types text where the cursor is via nut.js + clipboard fallback |
-| 🎨 **Modern UI** | Electron + Tailwind interface |
-| 🔐 **Privacy-First** | No telemetry, all processing local |
-
----
-
-## 🖼 Screenshots
-| Home | Settings | Dictation |
-|------|-----------|-----------|
-| <img src="assets/showcase/01_home.png" width="300"/> | <img src="assets/showcase/02_settings.png" width="300"/> | <img src="assets/showcase/03_dictation_start.png" width="300"/> |
-
-| Model Selector | Output Log | Help |
-|----------------|-------------|------|
-| <img src="assets/showcase/04_model_selector.png" width="300"/> | <img src="assets/showcase/05_output_log.png" width="300"/> | <img src="assets/showcase/06_help.png" width="300"/> |
-
----
-
-<p align="center">
-  <sub>© 2025 Whisper Offline Dictation App — Open-source under MIT License</sub>
-</p>
-<!-- 🔄 AUTO-GENERATED SHOWCASE SECTION END -->
+<!-- Showcase consolidated in the main Screenshots section above -->

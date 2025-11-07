@@ -163,5 +163,5 @@ git push origin main
 
 ---
 
-**Built with ❤️ using Cursor IDE and Playwright**
+**Built with ❤️ using TraeAI IDE and Playwright**
 

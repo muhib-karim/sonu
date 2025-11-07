@@ -4,9 +4,9 @@ SONU would not have been possible without the incredible tools, libraries, and c
 
 ## Development Tools
 
-### Cursor IDE
+### TraeAI IDE
 
-**Cursor** has been the cornerstone of this project. As a solo developer, this amazing AI-powered IDE made it possible to build SONU efficiently:
+**TraeAI** has been the cornerstone of this project. As a solo developer, this world-class AI-powered IDE made it possible to build SONU efficiently:
 
 - **Intelligent Code Completion**: Context-aware suggestions that accelerated development
 - **AI-Powered Assistance**: Seamless integration of AI to help solve complex problems
@@ -15,12 +15,9 @@ SONU would not have been possible without the incredible tools, libraries, and c
 - **Learning Support**: Helped understand and implement best practices
 - **Solo Development**: Made it possible to build a professional-grade application without a team
 
-The development experience with Cursor was truly exceptional. This entire project was built using Cursor's AI assistance, demonstrating the power of AI-augmented development. I am deeply grateful for this innovative tool that has revolutionized how I write code.
+The development experience with TraeAI was truly exceptional. This project was built using TraeAI's AI assistance, demonstrating the power of AI-augmented development. I am deeply grateful for this innovative tool that has elevated how I write code.
 
-**Website**: [cursor.sh](https://cursor.sh)  
-**GitHub**: [getcursor/cursor](https://github.com/getcursor/cursor)
-
-*This project serves as a testament to what's possible when a solo developer leverages the power of AI-assisted development tools like Cursor.*
+*This project serves as a testament to what's possible when a solo developer leverages the power of AI-assisted development tools like TraeAI.*
 
 ## Core Technologies
 
@@ -243,13 +240,13 @@ Thank you to all testers and users who have helped improve SONU:
 
 ## Special Thanks
 
-A special thank you to **Cursor** for creating an IDE that not only makes coding more efficient but also makes solo development truly viable. The AI-powered features, intelligent suggestions, and seamless development experience have been instrumental in building SONU as a solo project.
+A special thank you to **TraeAI** for creating an IDE that not only makes coding more efficient but also makes solo development truly viable. The AI-powered features, intelligent suggestions, and seamless development experience have been instrumental in building SONU as a solo project.
 
 I also extend my gratitude to all the maintainers and contributors of the open-source projects mentioned above. Without their dedication and hard work, SONU would not have been possible.
 
 ## About This Project
 
-This project was built entirely by a solo developer using Cursor IDE and AI assistance. It demonstrates the power of modern AI-augmented development tools in enabling individual developers to create professional-grade applications that would traditionally require a team.
+This project was built entirely by a solo developer using TraeAI IDE and AI assistance. It demonstrates the power of modern AI-augmented development tools in enabling individual developers to create professional-grade applications that would traditionally require a team.
 
 ---
 
