@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![SONU Logo](assets/tray/mic-32.png)
+![SONU Logo](assets/showcase/mic-32.png)
 
 **Professional-grade offline voice typing solution powered by Faster-Whisper AI**
 
@@ -21,7 +21,7 @@
 <div align="center">
 
 <!-- Banner GIF/PNG preview -->
-<img src="assets/showcase/banner.gif" alt="SONU Showcase Banner" onerror="this.onerror=null;this.src='assets/showcase/banner.png';" />
+![SONU Showcase Banner](assets/showcase/banner.png)
 
 <br/>
 <sub>Quickstart showcase generation: <code>npm run showcase</code> · Banner: <code>npm run banner</code></sub>
@@ -38,33 +38,33 @@
 
 <table>
   <tr>
-    <td><img src="assets/showcase/01_home.png" width="260" alt="Home" /></td>
-    <td><img src="assets/showcase/02_dictation_start.png" width="260" alt="Dictation Start" /></td>
-    <td><img src="assets/showcase/03_output_log.png" width="260" alt="Output Log" /></td>
+    <td>![Home](assets/showcase/01_home.png)</td>
+    <td>![Dictation Start](assets/showcase/02_dictation_start.png)</td>
+    <td>![Output Log](assets/showcase/03_output_log.png)</td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/04_help.png" width="260" alt="Help" /></td>
-    <td><img src="assets/showcase/05_dictionary.png" width="260" alt="Dictionary" /></td>
-    <td><img src="assets/showcase/06_snippets.png" width="260" alt="Snippets" /></td>
+    <td>![Help](assets/showcase/04_help.png)</td>
+    <td>![Dictionary](assets/showcase/05_dictionary.png)</td>
+    <td>![Snippets](assets/showcase/06_snippets.png)</td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/07_style.png" width="260" alt="Style" /></td>
-    <td><img src="assets/showcase/08_notes.png" width="260" alt="Notes" /></td>
-    <td><img src="assets/showcase/09_settings.png" width="260" alt="Settings" /></td>
+    <td>![Style](assets/showcase/07_style.png)</td>
+    <td>![Notes](assets/showcase/08_notes.png)</td>
+    <td>![Settings](assets/showcase/09_settings.png)</td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/10_settings-general.png" width="260" alt="Settings - General" /></td>
-    <td><img src="assets/showcase/11_settings-system.png" width="260" alt="Settings - System" /></td>
-    <td><img src="assets/showcase/12_model_selector.png" width="260" alt="Model Selector" /></td>
+    <td>![Settings - General](assets/showcase/10_settings-general.png)</td>
+    <td>![Settings - System](assets/showcase/11_settings-system.png)</td>
+    <td>![Model Selector](assets/showcase/12_model_selector.png)</td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/13_settings-themes.png" width="260" alt="Settings - Themes" /></td>
-    <td><img src="assets/showcase/14_settings-vibe.png" width="260" alt="Settings - Vibe" /></td>
-    <td><img src="assets/showcase/15_settings-experimental.png" width="260" alt="Settings - Experimental" /></td>
+    <td>![Settings - Themes](assets/showcase/13_settings-themes.png)</td>
+    <td>![Settings - Vibe](assets/showcase/14_settings-vibe.png)</td>
+    <td>![Settings - Experimental](assets/showcase/15_settings-experimental.png)</td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/16_theme-light.png" width="260" alt="Theme - Light" /></td>
-    <td><img src="assets/showcase/17_theme-dark.png" width="260" alt="Theme - Dark" /></td>
+    <td>![Theme - Light](assets/showcase/16_theme-light.png)</td>
+    <td>![Theme - Dark](assets/showcase/17_theme-dark.png)</td>
     <td></td>
   </tr>
   
@@ -510,13 +510,13 @@ This project was shaped by the creativity of the open-source AI community and by
 ### 🧠 Open-Source Projects & Frameworks
 | Project | Description |
 |----------|--------------|
-| <a href=" `https://github.com/ggml-org/whisper.cpp` "><img src=" `https://img.shields.io/badge/whisper.cpp-ggml--org-blue?logo=github` " /></a> | Core C/C++ Whisper engine enabling fully offline transcription. |
-| <a href=" `https://github.com/SYSTRAN/faster-whisper` "><img src=" `https://img.shields.io/badge/faster--whisper-SYSTRAN-blue?logo=github` " /></a> | CTranslate2-based Whisper implementation optimized for speed and memory. |
-| <a href=" `https://github.com/Const-me/Whisper` "><img src=" `https://img.shields.io/badge/Const--me%2FWhisper-GPU-orange?logo=github` " /></a> | GPU-accelerated desktop Whisper engine inspiring local inference pipelines. |
-| <a href=" `https://github.com/rhasspy/wyoming-faster-whisper` "><img src=" `https://img.shields.io/badge/Rhasspy%20Wyoming-Faster--Whisper-lightgrey?logo=github` " /></a> | Offline speech-to-text service used in Home Assistant voice stacks. |
-| <a href=" `https://github.com/handyorg/handy` "><img src=" `https://img.shields.io/badge/Handy-Tauri--App-green?logo=tauri` " /></a> | Example of a privacy-first desktop STT UX. |
-| <a href=" `https://github.com/dimastatz/whisper-flow` "><img src=" `https://img.shields.io/badge/whisper--flow-library-blueviolet?logo=github` " /></a> | Real-time Whisper streaming library influencing pipeline design. |
-| <a href=" `https://github.com/AlexxIT/FasterWhisper` "><img src=" `https://img.shields.io/badge/AlexxIT-FasterWhisper-yellow?logo=github` " /></a> | Containerized deployment reference for Whisper services. |
+| <a href=" `https://github.com/ggml-org/whisper.cpp` ">![whisper.cpp-ggml--org-blue?logo=github` ](assets/showcase/whisper.png)</a> | Core C/C++ Whisper engine enabling fully offline transcription. |
+| <a href=" `https://github.com/SYSTRAN/faster-whisper` ">![faster--whisper-SYSTRAN-blue?logo=github` ](assets/showcase/faster--whisper-systran-blue?logo=github`_.png)</a> | CTranslate2-based Whisper implementation optimized for speed and memory. |
+| <a href=" `https://github.com/Const-me/Whisper` ">![Const--me%2FWhisper-GPU-orange?logo=github` ](assets/showcase/const--me%2fwhisper-gpu-orange?logo=github`_.png)</a> | GPU-accelerated desktop Whisper engine inspiring local inference pipelines. |
+| <a href=" `https://github.com/rhasspy/wyoming-faster-whisper` ">![Rhasspy%20Wyoming-Faster--Whisper-lightgrey?logo=github` ](assets/showcase/rhasspy%20wyoming-faster--whisper-lightgrey?logo=github`_.png)</a> | Offline speech-to-text service used in Home Assistant voice stacks. |
+| <a href=" `https://github.com/handyorg/handy` ">![Handy-Tauri--App-green?logo=tauri` ](assets/showcase/handy-tauri--app-green?logo=tauri`_.png)</a> | Example of a privacy-first desktop STT UX. |
+| <a href=" `https://github.com/dimastatz/whisper-flow` ">![whisper--flow-library-blueviolet?logo=github` ](assets/showcase/whisper--flow-library-blueviolet?logo=github`_.png)</a> | Real-time Whisper streaming library influencing pipeline design. |
+| <a href=" `https://github.com/AlexxIT/FasterWhisper` ">![AlexxIT-FasterWhisper-yellow?logo=github` ](assets/showcase/alexxit-fasterwhisper-yellow?logo=github`_.png)</a> | Containerized deployment reference for Whisper services. |
 
 ---
 
@@ -533,8 +533,8 @@ This project was shaped by the creativity of the open-source AI community and by
 ### ⚙️ Development Tools & Automation
 | Tool | Role |
 |------|------|
-| <img src=" `https://img.shields.io/badge/Cursor-IDE-blue?logo=visualstudiocode` " /> | Main environment for iterative coding and debugging. |
-| <img src=" `https://img.shields.io/badge/Trae`  AI-Solo Code-orange?logo=bolt" /> | Local autonomous build automation and showcase generation. |
+| ![Cursor-IDE-blue?logo=visualstudiocode` ](assets/showcase/cursor-ide-blue?logo=visualstudiocode`_.png) | Main environment for iterative coding and debugging. |
+| ![Trae`  AI-Solo Code-orange?logo=bolt](assets/showcase/trae`_ai-solo_code-orange?logo=bolt.png) | Local autonomous build automation and showcase generation. |
 
 ---
 
