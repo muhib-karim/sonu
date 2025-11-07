@@ -1,0 +1,24 @@
+# SONU Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core transcription engine
+faster-whisper>=1.0.0
+
+# Audio capture and processing
+pyaudio>=0.2.14
+
+# Keyboard input handling
+keyboard>=0.13.5
+
+# Scientific computing
+numpy>=1.24.0
+
+# System information (optional)
+psutil>=5.9.0
+
+# GPU detection (optional)
+GPUtil>=1.4.0
+
+# HTTP requests for model downloads (optional)
+requests>=2.31.0
+

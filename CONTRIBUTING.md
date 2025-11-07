@@ -1,6 +1,6 @@
 # Contributing to SONU
 
-Thank you for your interest in contributing to SONU! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to SONU! This project was built by a solo developer using Cursor IDE and AI assistance, and we welcome contributions from the community.
 
 ## Code of Conduct
 

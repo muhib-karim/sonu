@@ -20,7 +20,7 @@
 
 ## 🚀 Overview
 
-**SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
+**SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using Cursor IDE and AI assistance, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
 
 ### Key Highlights
 
@@ -389,10 +389,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **OpenAI** for the Whisper model
-- **Faster-Whisper** team for the efficient CPU-optimized implementation
-- **Electron** team for the desktop framework
-- **Community** for feedback and testing
+SONU is built on the shoulders of giants. I extend my deepest gratitude to:
+
+- **Cursor** - The amazing AI-powered IDE that made solo development efficient and enjoyable. This project was built entirely using Cursor's AI assistance ([cursor.sh](https://cursor.sh))
+- **OpenAI** - For the revolutionary Whisper model ([github.com/openai/whisper](https://github.com/openai/whisper))
+- **Faster-Whisper** - For the efficient CPU-optimized implementation ([github.com/guillaumekln/faster-whisper](https://github.com/guillaumekln/faster-whisper))
+- **Electron** - For the desktop application framework ([electronjs.org](https://www.electronjs.org))
+- **CTranslate2** - For the efficient inference engine ([github.com/OpenNMT/CTranslate2](https://github.com/OpenNMT/CTranslate2))
+- **All Open-Source Contributors** - To the open-source projects that make SONU possible
+
+This project demonstrates the power of AI-assisted development, built by a solo developer using Cursor IDE. For a complete list of acknowledgments and open-source resources, see [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md).
 
 ---
 
@@ -425,7 +431,9 @@ For issues, questions, or feature requests:
 
 <div align="center">
 
-**Made with ❤️ for professionals who value privacy and efficiency**
+**Made with ❤️ by a solo developer using Cursor IDE and AI assistance**
+
+*Built to demonstrate the power of AI-augmented development*
 
 [Documentation](docs/README.md) • [Changelog](CHANGELOG.md) • [Contributing](CONTRIBUTING.md) • [License](LICENSE)
 

@@ -9,7 +9,7 @@
     "fetch-icon": "node scripts/fetch-tray-icon.js",
     "preview": "python -m http.server 8000"
   },
-  "author": "SONU Development Team",
+  "author": "muhib-karim",
   "license": "MIT",
   "repository": {
     "type": "git",
