@@ -503,18 +503,44 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 Acknowledgments
+## 🙏 Acknowledgements & Inspirations
 
-SONU is built on the shoulders of giants. I extend my deepest gratitude to:
+This project was shaped by the creativity of the open-source AI community and by several pioneering dictation and productivity tools.
 
-- **TraeAI** - The world-class IDE that made solo development efficient and enjoyable. This project was built using TraeAI's AI assistance
-- **OpenAI** - For the revolutionary Whisper model ([github.com/openai/whisper](https://github.com/openai/whisper))
-- **Faster-Whisper** - For the efficient CPU-optimized implementation ([github.com/guillaumekln/faster-whisper](https://github.com/guillaumekln/faster-whisper))
-- **Electron** - For the desktop application framework ([electronjs.org](https://www.electronjs.org))
-- **CTranslate2** - For the efficient inference engine ([github.com/OpenNMT/CTranslate2](https://github.com/OpenNMT/CTranslate2))
-- **All Open-Source Contributors** - To the open-source projects that make SONU possible
+### 🧠 Open-Source Projects & Frameworks
+| Project | Description |
+|----------|--------------|
+| <a href=" `https://github.com/ggml-org/whisper.cpp` "><img src=" `https://img.shields.io/badge/whisper.cpp-ggml--org-blue?logo=github` " /></a> | Core C/C++ Whisper engine enabling fully offline transcription. |
+| <a href=" `https://github.com/SYSTRAN/faster-whisper` "><img src=" `https://img.shields.io/badge/faster--whisper-SYSTRAN-blue?logo=github` " /></a> | CTranslate2-based Whisper implementation optimized for speed and memory. |
+| <a href=" `https://github.com/Const-me/Whisper` "><img src=" `https://img.shields.io/badge/Const--me%2FWhisper-GPU-orange?logo=github` " /></a> | GPU-accelerated desktop Whisper engine inspiring local inference pipelines. |
+| <a href=" `https://github.com/rhasspy/wyoming-faster-whisper` "><img src=" `https://img.shields.io/badge/Rhasspy%20Wyoming-Faster--Whisper-lightgrey?logo=github` " /></a> | Offline speech-to-text service used in Home Assistant voice stacks. |
+| <a href=" `https://github.com/handyorg/handy` "><img src=" `https://img.shields.io/badge/Handy-Tauri--App-green?logo=tauri` " /></a> | Example of a privacy-first desktop STT UX. |
+| <a href=" `https://github.com/dimastatz/whisper-flow` "><img src=" `https://img.shields.io/badge/whisper--flow-library-blueviolet?logo=github` " /></a> | Real-time Whisper streaming library influencing pipeline design. |
+| <a href=" `https://github.com/AlexxIT/FasterWhisper` "><img src=" `https://img.shields.io/badge/AlexxIT-FasterWhisper-yellow?logo=github` " /></a> | Containerized deployment reference for Whisper services. |
 
-This project demonstrates the power of AI-assisted development, built by a solo developer using TraeAI IDE. For a complete list of acknowledgments and open-source resources, see [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md).
+---
+
+### 💬 Commercial & UX Inspirations
+| App / Product | Influence |
+|----------------|------------|
+| 🌀 **Wispr Flow** | Seamless real-time voice dictation workflow and fluid UI. |
+| ⌨️ **Typeless** | Minimalist speech-to-text experience with focus on flow and speed. |
+| 🎧 **MacWhisper / Whisper Desktop / WhisperNote** | Early desktop attempts to make Whisper accessible for everyday users. |
+| 🪄 **Descript & Otter.ai** | Best-in-class transcription UX and editing concepts that inspired offline workflow design. |
+
+---
+
+### ⚙️ Development Tools & Automation
+| Tool | Role |
+|------|------|
+| <img src=" `https://img.shields.io/badge/Cursor-IDE-blue?logo=visualstudiocode` " /> | Main environment for iterative coding and debugging. |
+| <img src=" `https://img.shields.io/badge/Trae`  AI-Solo Code-orange?logo=bolt" /> | Local autonomous build automation and showcase generation. |
+
+---
+
+> Built independently, with deep respect for every developer and researcher advancing local speech recognition.  
+> Engineered and tested entirely offline using **Cursor IDE** + **Trae AI Solo Code**.  
+> All trademarks and product names belong to their respective owners.
 
 ---
 
