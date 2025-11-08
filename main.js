@@ -203,7 +203,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true
     },
-    show: isShowcaseMode
+    show: isShowcaseMode || isTestMode
   });
 
   mainWindow.loadFile('index.html');
@@ -1350,8 +1350,10 @@ function appendHistory(text) {
     createWindow();
     createIndicatorWindow();
     registerHotkeys();
-    // Pre-initialize whisper service for ultra-fast response
-    ensureWhisperService();
+    // Pre-initialize whisper service for ultra-fast response (skip in test mode)
+    if (!isTestMode) {
+      ensureWhisperService();
+    }
 
     ipcMain.on('toggle-recording', () => toggleRecording());
     

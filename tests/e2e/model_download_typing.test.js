@@ -18,12 +18,13 @@ describe('Model Download and Typing E2E Tests', () => {
     }
 
     // Launch Electron app from project root
-    const appPath = path.resolve(__dirname, '..');
+    const appPath = path.resolve(__dirname, '..', '..');
     electronApp = await electron.launch({
       args: [appPath],
       env: {
         ...process.env,
         NODE_ENV: 'test',
+        SHOWCASE_CAPTURE: 'true',
         E2E_TEST: '1'
       }
     });
