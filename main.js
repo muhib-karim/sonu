@@ -22,6 +22,7 @@ app.whenReady().then(() => {
 }
 const path = require('path');
 const fs = require('fs');
+const fsp = fs.promises;
 const { spawn, execSync } = require('child_process');
 const https = require('follow-redirects').https;
 const http = require('follow-redirects').http;
@@ -30,6 +31,10 @@ const { pipeline } = require('stream/promises');
 const os = require('os');
 const { getLogger } = require('./logger');
 
+const isShowcaseMode = String(process.env.SHOWCASE_CAPTURE || '').toLowerCase() === '1' ||
+  String(process.env.SHOWCASE_CAPTURE || '').toLowerCase() === 'true';
+const showcaseOutputDir = path.join(__dirname, 'assets', 'showcase');
+
 let mainWindow;
 let tray;
 let whisperProcess;
@@ -37,6 +42,9 @@ let whisperStdoutBuffer = ''; // Buffer for incomplete stdout lines
 let isRecording = false;
 let robot;
 let robotType = null; // 'robot-js' or 'robotjs'
+const isTestMode = String(process.env.NODE_ENV || '').toLowerCase() === 'test' ||
+  String(process.env.E2E_TEST || '').toLowerCase() === '1' ||
+  String(process.env.E2E_TEST || '').toLowerCase() === 'true';
 let indicatorWindow;
 let fadeTimer = null;
 let indicatorState = 'hidden';
@@ -53,23 +61,29 @@ let whisperModelReady = false; // Track if whisper model is loaded
 let activeDownloadProcess = null; // Track active download process for cancellation
 let pendingRecordingAction = null; // Queue recording action if model not ready yet
 
-try {
-  robot = require('robot-js');
-  robotType = 'robot-js';
-  console.log('✓ robot-js loaded successfully');
-} catch (e1) {
+if (!isTestMode) {
   try {
-    robot = require('robotjs');
-    robotType = 'robotjs';
-    console.log('✓ robotjs loaded successfully');
-  } catch (e2) {
-    robot = null;
-    robotType = null;
-    console.warn('⚠ robot automation library not available; auto-typing disabled.');
-    console.warn('Install robotjs: npm install robotjs');
-    console.error('robot-js error:', e1.message);
-    console.error('robotjs error:', e2.message);
+    robot = require('robot-js');
+    robotType = 'robot-js';
+    console.log('✓ robot-js loaded successfully');
+  } catch (e1) {
+    try {
+      robot = require('robotjs');
+      robotType = 'robotjs';
+      console.log('✓ robotjs loaded successfully');
+    } catch (e2) {
+      robot = null;
+      robotType = null;
+      console.warn('⚠ robot automation library not available; auto-typing disabled.');
+      console.warn('Install robotjs: npm install robotjs');
+      console.error('robot-js error:', e1.message);
+      console.error('robotjs error:', e2.message);
+    }
   }
+} else {
+  robot = null;
+  robotType = null;
+  console.log('Test mode detected: skipping robot libraries for E2E stability');
 }
 
 // Helper function to find Python executable
@@ -188,11 +202,29 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true
-    }
+    },
+    show: isShowcaseMode
   });
 
   mainWindow.loadFile('index.html');
-  mainWindow.hide();
+  if (!isShowcaseMode) {
+    mainWindow.hide();
+  }
+  if (isShowcaseMode) {
+    mainWindow.setResizable(false);
+    mainWindow.center();
+    mainWindow.webContents.once('did-finish-load', () => {
+      setTimeout(() => {
+        runShowcaseCapture().catch((error) => {
+          console.error('Showcase capture failed:', error);
+          if (logger) {
+            logger.error('Showcase capture failed', error);
+          }
+          app.quit();
+        });
+      }, 1000);
+    });
+  }
 
   // Add keyboard shortcut for reloading (Ctrl+R or Cmd+R)
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -1308,24 +1340,6 @@ function appendHistory(text) {
     console.warn('Failed to write history:', e);
   }
 }
-
-  // Screenshot capture handler (for automated screenshots)
-  ipcMain.handle('screenshot:capture', async (_evt, filename) => {
-    if (!mainWindow) return { success: false, error: 'Window not available' };
-    try {
-      const image = await mainWindow.webContents.capturePage();
-      const buffer = image.toPNG();
-      const screenshotsDir = path.join(__dirname, 'screenshots');
-      if (!fs.existsSync(screenshotsDir)) {
-        fs.mkdirSync(screenshotsDir, { recursive: true });
-      }
-      const filepath = path.join(screenshotsDir, filename);
-      fs.writeFileSync(filepath, buffer);
-      return { success: true, filepath: filepath };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  });
 
   app.whenReady().then(() => {
     // Initialize logger first
@@ -2553,80 +2567,52 @@ function appendHistory(text) {
         return cachedResult;
       }
 
-      // Use faster-whisper's built-in download (most reliable - it's what whisper_service.py uses)
+      // Define target path for the model file
+      const targetPath = path.join(downloadPath, modelDef.filename);
+
+      // Use Python offline model downloader for robust, resumable downloads
       const pythonCmd = findPythonExecutable();
-      if (pythonCmd) {
+      const downloaderScript = path.join(__dirname, 'offline_model_downloader.py');
+      
+      if (pythonCmd && fs.existsSync(downloaderScript)) {
         try {
-          console.log(`📥 Using faster-whisper to download ${modelName}`);
-          
-          // Use faster-whisper to download (just like whisper_service.py does)
-          // This is the SAME method that successfully loads models in whisper_service.py
-          const downloadScript = `
-import sys
-import json
-import time
-from faster_whisper import WhisperModel
-
-model_name = "${modelName}"
-
-try:
-    print(json.dumps({"type": "progress", "percent": 5, "message": "Connecting to Hugging Face..."}), flush=True)
-    time.sleep(0.5)
-    
-    print(json.dumps({"type": "progress", "percent": 10, "message": "Starting faster-whisper download for " + model_name.upper() + "..."}), flush=True)
-    
-    # This ONE line downloads the model if not present (same as whisper_service.py!)
-    model = WhisperModel(model_name, device="cpu")
-    
-    print(json.dumps({"type": "progress", "percent": 100, "message": "Model loaded successfully!"}), flush=True)
-    
-    # Success!
-    result = {
-        "type": "result",
-        "success": True,
-        "model": model_name,
-        "status": "downloaded",
-        "cached": False,
-        "size_mb": ${modelDef.size_mb}
-    }
-    print(json.dumps(result), flush=True)
-    sys.exit(0)
-    
-except Exception as e:
-    error_msg = str(e)
-    print(json.dumps({"type": "result", "success": False, "error": error_msg}), flush=True)
-    sys.exit(1)
-`;
-          
-          // Execute Python with the download script
-          const pythonProcess = spawn(pythonCmd, ['-c', downloadScript], {
-            cwd: __dirname,
-            stdio: ['pipe', 'pipe', 'pipe'],
-            shell: true,
-            windowsHide: true
-          });
-          
-          activeDownloadProcess = pythonProcess;
-          
           return await new Promise((resolve, reject) => {
+            const pythonProcess = spawn(pythonCmd, [downloaderScript, 'download', modelName, downloadPath], {
+              cwd: __dirname,
+              stdio: ['pipe', 'pipe', 'pipe'],
+              shell: process.platform === 'win32',
+              windowsHide: true
+            });
+            
+            activeDownloadProcess = pythonProcess;
+            
             let stdout = '';
             let stderr = '';
             
             pythonProcess.stdout.on('data', (data) => {
               stdout += data.toString();
               const lines = stdout.split('\n');
-              stdout = lines.pop() || '';
+              stdout = lines.pop() || ''; // Keep incomplete line
               
               for (const line of lines) {
                 if (line.trim()) {
                   try {
                     const jsonData = JSON.parse(line);
-                    if (jsonData.type === 'progress' && mainWindow && !mainWindow.isDestroyed()) {
-                      mainWindow.webContents.send('model:progress', {
-                        percent: jsonData.percent || 0,
-                        message: jsonData.message || 'Downloading...'
-                      });
+                    if (jsonData.type === 'progress') {
+                      // Send progress update
+                      if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('model:progress', {
+                          percent: jsonData.percent || 0,
+                          bytesDownloaded: jsonData.bytesDownloaded || 0,
+                          bytesTotal: jsonData.bytesTotal || 0,
+                          speedKB: jsonData.speedKB || 0,
+                          message: jsonData.message || `Downloading ${modelName}... ${jsonData.percent || 0}%`,
+                          elapsed: jsonData.elapsed || 0,
+                          remaining: jsonData.remaining || 0
+                        });
+                      }
                     } else if (jsonData.type === 'result') {
+                      // Download complete
                       activeDownloadProcess = null;
                       if (jsonData.success) {
                         // Set as active model
@@ -2640,15 +2626,32 @@ except Exception as e:
                         }
                         
                         if (mainWindow && !mainWindow.isDestroyed()) {
-                          mainWindow.webContents.send('model:complete', jsonData);
+                          mainWindow.webContents.send('model:complete', {
+                            success: true,
+                            model: modelName,
+                            path: jsonData.path,
+                            cache_path: downloadPath,
+                            size_mb: jsonData.size_mb,
+                            status: jsonData.status || 'downloaded',
+                            cached: jsonData.cached || false
+                          });
                         }
-                        resolve(jsonData);
+                        resolve({
+                          success: true,
+                          model: modelName,
+                          path: jsonData.path,
+                          cache_path: downloadPath,
+                          size_mb: jsonData.size_mb,
+                          status: jsonData.status || 'downloaded',
+                          cached: jsonData.cached || false
+                        });
                       } else {
-                        reject(new Error(jsonData.error || 'Download failed'));
+                        // Python downloader failed, fall back to Node.js
+                        reject(new Error(jsonData.error || 'Python downloader failed'));
                       }
                     }
                   } catch (e) {
-                    // Not JSON
+                    // Not JSON, ignore
                   }
                 }
               }
@@ -2656,27 +2659,35 @@ except Exception as e:
             
             pythonProcess.stderr.on('data', (data) => {
               stderr += data.toString();
-              console.log('faster-whisper:', data.toString().trim());
+              console.log('offline_model_downloader stderr:', data.toString().trim());
             });
             
             pythonProcess.on('close', (code) => {
               activeDownloadProcess = null;
-              if (code !== 0 && !stdout.includes('"success": true')) {
-                reject(new Error(`faster-whisper download failed: ${stderr}`));
+              if (code !== 0) {
+                // Python downloader failed, fall back to Node.js
+                reject(new Error(`Python downloader exited with code ${code}`));
               }
             });
             
             pythonProcess.on('error', (error) => {
               activeDownloadProcess = null;
+              // Python not available or script error, fall back to Node.js
               reject(error);
             });
+          }).catch(async (error) => {
+            // Fall back to Node.js downloader
+            console.log('Python downloader failed, falling back to Node.js:', error.message);
+            return await downloadModelWithNodeJS(modelName, modelDef, downloadPath, targetPath);
           });
         } catch (error) {
-          console.error('faster-whisper download error:', error);
-          throw error;
+          // Fall back to Node.js downloader
+          console.log('Python downloader error, falling back to Node.js:', error.message);
+          return await downloadModelWithNodeJS(modelName, modelDef, downloadPath, targetPath);
         }
       } else {
-        throw new Error('Python not available - cannot download models');
+        // Python not available, use Node.js downloader
+        return await downloadModelWithNodeJS(modelName, modelDef, downloadPath, targetPath);
       }
     } catch (e) {
       try {
@@ -3635,6 +3646,178 @@ except Exception as e:
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
+
+async function runShowcaseCapture() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    console.warn('Showcase capture skipped: main window unavailable');
+    return;
+  }
+
+  await fsp.mkdir(showcaseOutputDir, { recursive: true });
+  const scenes = buildShowcaseScenes();
+  const captured = [];
+
+  for (const scene of scenes) {
+    try {
+      if (scene.action) {
+        await scene.action();
+      }
+      await wait(scene.wait || 1200);
+      if (!mainWindow || mainWindow.isDestroyed()) break;
+      const image = await mainWindow.capturePage();
+      const filename = `${scene.id}.png`;
+      const filePath = path.join(showcaseOutputDir, filename);
+      await fsp.writeFile(filePath, image.toPNG());
+      captured.push({ filename, description: scene.description });
+      console.log(`Showcase saved: ${filename} (${scene.description})`);
+    } catch (error) {
+      console.error(`Failed to capture scene ${scene.id}:`, error);
+    }
+  }
+
+  if (captured.length) {
+    console.log(`\nShowcase capture complete. Files saved to ${showcaseOutputDir}`);
+    console.log('Scenes:');
+    captured.forEach(({ filename, description }) => {
+      console.log(` - ${filename}: ${description}`);
+    });
+    console.log('\nCreate a video by running (requires ffmpeg):');
+    console.log('ffmpeg -y -framerate 1 -pattern_type glob -i "assets/showcase/*.png" -c:v libx264 -pix_fmt yuv420p assets/showcase/showcase.mp4');
+  } else {
+    console.warn('No showcase scenes were captured.');
+  }
+
+  setTimeout(() => app.quit(), 800);
+}
+
+function buildShowcaseScenes() {
+  return [
+    {
+      id: '01-home',
+      description: 'Home overview',
+      action: () => showcaseNavigate('home')
+    },
+    {
+      id: '02-dictionary',
+      description: 'Dictionary workspace',
+      action: () => showcaseNavigate('dictionary')
+    },
+    {
+      id: '03-snippets',
+      description: 'Snippets library',
+      action: () => showcaseNavigate('snippets')
+    },
+    {
+      id: '04-style',
+      description: 'Style presets',
+      action: () => showcaseNavigate('style')
+    },
+    {
+      id: '05-notes',
+      description: 'Notes dashboard',
+      action: () => showcaseNavigate('notes')
+    },
+    {
+      id: '06-settings-general',
+      description: 'Settings – General',
+      action: () => showcaseNavigateSettings('general')
+    },
+    {
+      id: '07-settings-system',
+      description: 'Settings – System',
+      action: () => showcaseNavigateSettings('system')
+    },
+    {
+      id: '08-settings-model',
+      description: 'Settings – Model selector',
+      action: () => showcaseNavigateSettings('model')
+    },
+    {
+      id: '09-settings-themes',
+      description: 'Settings – Themes',
+      action: () => showcaseNavigateSettings('themes')
+    },
+    {
+      id: '10-home-dark',
+      description: 'Home in dark theme',
+      action: async () => {
+        await showcaseNavigate('home');
+        await wait(500);
+        await showcaseSetTheme('dark');
+      }
+    }
+  ];
+}
+
+function showcaseExec(script) {
+  if (!mainWindow || mainWindow.isDestroyed()) return Promise.resolve(false);
+  return mainWindow.webContents.executeJavaScript(script, true).catch((error) => {
+    console.error('Showcase script error:', error);
+    return false;
+  });
+}
+
+async function showcaseNavigate(page) {
+  const clicked = await showcaseExec(`
+    (function() {
+      const target = document.querySelector('.nav-item[data-page="${page}"]');
+      if (target) {
+        target.click();
+        return true;
+      }
+      return false;
+    })();
+  `);
+  if (!clicked) {
+    console.warn(`Showcase navigation failed for page: ${page}`);
+  }
+}
+
+async function showcaseNavigateSettings(page) {
+  await showcaseNavigate('settings');
+  await wait(400);
+  const clicked = await showcaseExec(`
+    (function() {
+      const nav = document.querySelector('.settings-nav-item[data-settings-page="${page}"]');
+      if (nav) {
+        nav.click();
+        return true;
+      }
+      return false;
+    })();
+  `);
+  if (!clicked) {
+    console.warn(`Showcase settings navigation failed for page: ${page}`);
+  }
+}
+
+async function showcaseSetTheme(theme) {
+  const applied = await showcaseExec(`
+    (function() {
+      const root = document.documentElement;
+      const current = root.getAttribute('data-theme') || 'light';
+      if (current === '${theme}') {
+        return true;
+      }
+      root.setAttribute('data-theme', '${theme}');
+      const toggle = document.querySelector('#theme-toggle-btn, .theme-toggle-btn');
+      if (toggle) {
+        const aria = toggle.getAttribute('data-theme');
+        if (aria !== '${theme}') {
+          toggle.setAttribute('data-theme', '${theme}');
+        }
+      }
+      return true;
+    })();
+  `);
+  if (!applied) {
+    console.warn(`Showcase theme switch failed for theme: ${theme}`);
+  }
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
   app.on('will-quit', () => {
   globalShortcut.unregisterAll();

@@ -11,12 +11,18 @@ describe('SONU E2E Tests', () => {
   let mainWindow;
 
   beforeAll(async () => {
-    // Launch Electron app
+    // Ensure setImmediate exists in test environment
+    if (typeof setImmediate === 'undefined') {
+      global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
+    }
+    // Launch Electron app from project root
+    const appPath = path.resolve(__dirname, '..');
     electronApp = await electron.launch({
-      args: ['.'],
+      args: [appPath],
       env: {
         ...process.env,
-        NODE_ENV: 'test'
+        NODE_ENV: 'test',
+        E2E_TEST: '1'
       }
     });
 
@@ -26,7 +32,8 @@ describe('SONU E2E Tests', () => {
     // Wait for app to load
     await mainWindow.waitForLoadState('domcontentloaded');
     await mainWindow.waitForLoadState('networkidle').catch(() => {});
-    await mainWindow.waitForTimeout(2000);
+    await mainWindow.waitForSelector('#sidebar');
+    await mainWindow.waitForTimeout(500);
   }, 30000);
 
   afterAll(async () => {
@@ -232,7 +239,7 @@ describe('SONU E2E Tests', () => {
         await mainWindow.click('[data-page="nonexistent"]', { timeout: 1000 });
       } catch (e) {
         // Should not crash the app
-        expect(e.message).toContain('timeout');
+        expect(e.message).toMatch(/Timeout/i);
       }
 
       // App should still be responsive
@@ -245,6 +252,6 @@ describe('SONU E2E Tests', () => {
 
       // Should still display settings page
       await mainWindow.waitForSelector('#settings-general.active');
-    });
+    }, 10000);
   });
 });

@@ -17,12 +17,14 @@ describe('Model Download and Typing E2E Tests', () => {
       global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
     }
 
-    // Launch Electron app
+    // Launch Electron app from project root
+    const appPath = path.resolve(__dirname, '..');
     electronApp = await electron.launch({
-      args: ['.'],
+      args: [appPath],
       env: {
         ...process.env,
-        NODE_ENV: 'test'
+        NODE_ENV: 'test',
+        E2E_TEST: '1'
       }
     });
 
