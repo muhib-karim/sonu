@@ -13,7 +13,7 @@ describe('SONU E2E Tests', () => {
   beforeAll(async () => {
     // Launch Electron app
     electronApp = await electron.launch({
-      args: [path.join(__dirname, '..', '..', 'main.js')],
+      args: ['.'],
       env: {
         ...process.env,
         NODE_ENV: 'test'
@@ -24,7 +24,9 @@ describe('SONU E2E Tests', () => {
     mainWindow = await electronApp.firstWindow();
 
     // Wait for app to load
-    await mainWindow.waitForLoadState();
+    await mainWindow.waitForLoadState('domcontentloaded');
+    await mainWindow.waitForLoadState('networkidle').catch(() => {});
+    await mainWindow.waitForTimeout(2000);
   }, 30000);
 
   afterAll(async () => {

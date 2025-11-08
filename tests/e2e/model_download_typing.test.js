@@ -12,9 +12,14 @@ describe('Model Download and Typing E2E Tests', () => {
   let mainWindow;
 
   beforeAll(async () => {
+    // Ensure setImmediate exists in test environment
+    if (typeof setImmediate === 'undefined') {
+      global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
+    }
+
     // Launch Electron app
     electronApp = await electron.launch({
-      args: [path.join(__dirname, '..', '..', 'main.js')],
+      args: ['.'],
       env: {
         ...process.env,
         NODE_ENV: 'test'
@@ -25,7 +30,9 @@ describe('Model Download and Typing E2E Tests', () => {
     mainWindow = await electronApp.firstWindow();
 
     // Wait for app to load
-    await mainWindow.waitForLoadState();
+    await mainWindow.waitForLoadState('domcontentloaded');
+    await mainWindow.waitForLoadState('networkidle').catch(() => {});
+    await mainWindow.waitForTimeout(1000);
   }, 30000);
 
   afterAll(async () => {
@@ -37,24 +44,24 @@ describe('Model Download and Typing E2E Tests', () => {
   describe('Model Download Workflow', () => {
     test('should navigate to model selector', async () => {
       // Click on Settings
-      await mainWindow.click('button[data-page="settings"]');
-      await mainWindow.waitForTimeout(500);
+      await mainWindow.click('[data-page="settings"]');
+      await mainWindow.waitForSelector('#page-settings');
 
       // Click on Model Selector tab
-      await mainWindow.click('button[data-settings-tab="model-selector"]');
-      await mainWindow.waitForTimeout(500);
+      await mainWindow.click('[data-settings-page="model"]');
+      await mainWindow.waitForSelector('#settings-model.active');
 
       // Check if model selector is visible
-      const modelSelector = await mainWindow.$('#page-settings');
+      const modelSelector = await mainWindow.$('#settings-model.active');
       expect(modelSelector).toBeTruthy();
     }, 10000);
 
     test('should display model download button', async () => {
       // Navigate to model selector
-      await mainWindow.click('button[data-page="settings"]');
-      await mainWindow.waitForTimeout(500);
-      await mainWindow.click('button[data-settings-tab="model-selector"]');
-      await mainWindow.waitForTimeout(500);
+      await mainWindow.click('[data-page="settings"]');
+      await mainWindow.waitForSelector('#page-settings');
+      await mainWindow.click('[data-settings-page="model"]');
+      await mainWindow.waitForSelector('#settings-model.active');
 
       // Check for download button
       const downloadBtn = await mainWindow.$('#download-model-btn');
