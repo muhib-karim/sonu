@@ -269,7 +269,7 @@ def main():
 
     def live_transcribe_loop():
         while True:
-            time.sleep(1.2)
+            time.sleep(0.8)  # Reduced from 1.2s to 0.8s for faster partial updates
             try:
                 with lock:
                     active = recording_flag

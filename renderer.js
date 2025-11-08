@@ -2357,10 +2357,36 @@ window.accessibilityManager = accessibilityManager;
   if (modelSelect) {
     modelSelect.addEventListener('change', async (e) => {
       const modelName = e.target.value;
+      
+      // If a download is in progress, cancel it first when switching models
+      const progressContainer = document.getElementById('model-progress');
+      const cancelBtn = document.getElementById('cancel-download-btn');
+      const isDownloading = !!(progressContainer && 
+                                progressContainer.style.display !== 'none' && 
+                                cancelBtn && 
+                                cancelBtn.style.display !== 'none');
+      
+      if (isDownloading) {
+        console.log('Model switched during download, cancelling current download...');
+        // Cancel the current download
+        if (ipc.cancelDownload && typeof ipc.cancelDownload === 'function') {
+          try {
+            await ipc.cancelDownload();
+            // Wait a moment for cancellation to process
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } catch (e) {
+            console.error('Error cancelling download on model switch:', e);
+          }
+        }
+      }
+      
       saveAppSettings({ selected_model: modelName });
       
       // Check if model is downloaded and update button state
       await checkModelStatus();
+      
+      // Update active model display
+      await updateActiveModelDisplay();
     });
   }
 
@@ -2490,6 +2516,28 @@ window.accessibilityManager = accessibilityManager;
       const progressFill = document.getElementById('model-progress-fill');
       const progressText = document.getElementById('model-progress-text');
       const progressSpeed = document.getElementById('model-progress-speed');
+
+      // Check if a download is already in progress
+      const cancelBtn = document.getElementById('cancel-download-btn');
+      const isDownloading = !!(progressContainer && 
+                                progressContainer.style.display !== 'none' && 
+                                cancelBtn && 
+                                cancelBtn.style.display !== 'none');
+      
+      if (isDownloading) {
+        console.log('Download already in progress, cancelling current download first...');
+        // Cancel the current download before starting a new one
+        if (ipc.cancelDownload && typeof ipc.cancelDownload === 'function') {
+          try {
+            await ipc.cancelDownload();
+            // Wait for cancellation to complete
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          } catch (e) {
+            console.error('Error cancelling existing download:', e);
+            // Still proceed, but log the error
+          }
+        }
+      }
 
       // Show progress container with class toggle instead of inline style
       if (progressContainer) {
@@ -3126,7 +3174,7 @@ window.accessibilityManager = accessibilityManager;
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         audioContextInitialized = true;
         // Resume audio context if suspended (required for user interaction)
-        if (audioContext.state === 'suspended') {
+        if (audioContext.state === 'suspended' && typeof audioContext.resume === 'function') {
           audioContext.resume().catch(e => {
             console.error('Failed to resume audio context on init:', e);
           });
@@ -3137,7 +3185,7 @@ window.accessibilityManager = accessibilityManager;
       }
     }
     // Resume if suspended
-    if (audioContext && audioContext.state === 'suspended') {
+    if (audioContext && audioContext.state === 'suspended' && typeof audioContext.resume === 'function') {
       audioContext.resume().catch(e => {
         console.error('Failed to resume audio context:', e);
       });
@@ -3150,7 +3198,7 @@ window.accessibilityManager = accessibilityManager;
   const initAudioContext = () => {
     if (!audioContextInitialized) {
       const ctx = getAudioContext();
-      if (ctx) {
+      if (ctx && typeof ctx.resume === 'function') {
         ctx.resume().then(() => {
           audioContextInitialized = true;
           console.log('Audio context initialized and resumed');
@@ -3172,7 +3220,7 @@ window.accessibilityManager = accessibilityManager;
     
     try {
       // Ensure context is running
-      if (ctx.state === 'suspended') {
+      if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
         ctx.resume().catch(e => console.error('Failed to resume audio context:', e));
       }
       
@@ -3231,7 +3279,7 @@ window.accessibilityManager = accessibilityManager;
         }
         
         // Resume if suspended
-        if (ctx.state === 'suspended') {
+        if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
           ctx.resume().then(() => {
             console.log('Audio context resumed, playing sound:', type);
             if (type === 'start') {

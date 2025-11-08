@@ -84,6 +84,17 @@ coverage/
 # Temporary and cache directories
 xet/
 .cache/
+artifacts/
+
+# Old whisper.cpp model files (not used with faster-whisper)
+base
+tiny
+ggml-*.bin
+ggml-*.bin.part
+
+# Temporary log files
+automation_log.txt
+screenshot_log.txt
 
 # Old version-specific files (keep versions/ but ignore user data)
 versions/*/data/

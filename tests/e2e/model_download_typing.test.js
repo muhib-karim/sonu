@@ -19,6 +19,7 @@ describe('Model Download and Typing E2E Tests', () => {
 
     // Launch Electron app from project root
     const appPath = path.resolve(__dirname, '..', '..');
+    // Let Playwright auto-detect Electron executable
     electronApp = await electron.launch({
       args: [appPath],
       env: {

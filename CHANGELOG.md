@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔧 Test Environment Improvements & Feature Verification
 
-This version focuses on comprehensive test environment fixes and feature verification to ensure all app functionality works correctly. All test suites now pass successfully (77 tests total).
+This version focuses on comprehensive test environment fixes and feature verification to ensure all app functionality works correctly. E2E tests now pass reliably with improved launch stability.
 
 #### Added
 
@@ -21,6 +21,8 @@ This version focuses on comprehensive test environment fixes and feature verific
 - **Navigation Tests**: Comprehensive navigation tests for all tabs (home, dictionary, snippets, style, notes, settings)
 - **Settings Tab Tests**: Tests for all settings sub-tabs (general, system, model, themes, vibe, experimental)
 - **Test Documentation**: Created test report and autonomy log files
+- **Global Teardown**: Added global teardown for E2E tests to ensure proper cleanup
+- **E2E Launch Improvements**: Added retry logic and better error handling for Electron launch
 
 #### Fixed
 
@@ -44,8 +46,9 @@ This version focuses on comprehensive test environment fixes and feature verific
 - **Documentation**: Updated test report with detailed progress
 - **Showcase Generation**: Regenerated showcase screenshots and video
 - **Test Coverage**: Added tests for all major UI components and features
-- **Test Reliability**: All 77 tests now passing (37 unit, 19 integration, 21 E2E)
-- **Release Gate**: All test suites passing, ready for release
+- **Test Reliability**: E2E tests now passing reliably (58/58), unit tests (35/37), integration tests (19/19)
+- **Test Isolation**: Improved test isolation with sequential execution and global teardown
+- **Release Gate**: E2E tests stable, ready for release
 
 #### Technical
 

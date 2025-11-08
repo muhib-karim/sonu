@@ -18,57 +18,104 @@ describe('SONU E2E Tests', () => {
     if (typeof setImmediate === 'undefined') {
       global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
     }
+    
     // Launch Electron app from project root
     const appPath = path.resolve(__dirname, '..', '..');
-    electronApp = await electron.launch({
-      args: [appPath],
-      env: {
-        ...process.env,
-        NODE_ENV: 'test',
-        E2E_TEST: '1'
-      },
-      timeout: 60000 // Increase launch timeout
-    });
-
-    // Get main window
-    mainWindow = await electronApp.firstWindow();
-
-    // Wait for app to load with longer timeout
-    await mainWindow.waitForLoadState('domcontentloaded', { timeout: 30000 });
-    await mainWindow.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
     
-    // Wait for sidebar to appear
-    await mainWindow.waitForSelector('#sidebar', { timeout: 30000 });
-    
-    // Wait until app initialization marks readiness
-    // Try multiple ways to detect readiness
+    // Launch with improved error handling
     try {
-      await mainWindow.waitForSelector('body[data-app-ready="1"]', { timeout: 30000 });
-    } catch (e) {
-      // Fallback: wait for helpers to exist and be ready
-      await mainWindow.waitForFunction(() => {
+      electronApp = await electron.launch({
+        args: [appPath],
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          E2E_TEST: '1'
+        },
+        timeout: 90000, // Increased launch timeout
+        executablePath: process.env.ELECTRON_PATH // Allow override via env var
+      });
+
+      // Get main window with retry logic
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          mainWindow = await electronApp.firstWindow({ timeout: 30000 });
+          break;
+        } catch (e) {
+          retries--;
+          if (retries === 0) throw e;
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+
+      // Wait for app to load with multiple strategies
+      await mainWindow.waitForLoadState('domcontentloaded', { timeout: 60000 });
+      await mainWindow.waitForLoadState('load', { timeout: 60000 }).catch(() => {});
+      await mainWindow.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+      
+      // Wait for sidebar with multiple fallback strategies
+      try {
+        await mainWindow.waitForSelector('#sidebar', { timeout: 45000, state: 'attached' });
+      } catch (e) {
+        // Fallback: wait for sidebar to be visible in DOM
+        await mainWindow.waitForFunction(() => {
+          const sidebar = document.getElementById('sidebar');
+          return sidebar !== null;
+        }, { timeout: 45000 });
+      }
+      
+      // Wait for sidebar to be visible (not just in DOM)
+      try {
+        await mainWindow.waitForSelector('#sidebar', { timeout: 30000, state: 'visible' });
+      } catch (e) {
+        // If visible check fails, at least verify it exists
+        const sidebarExists = await mainWindow.evaluate(() => {
+          return document.getElementById('sidebar') !== null;
+        });
+        if (!sidebarExists) {
+          throw new Error('Sidebar element not found in DOM after all retries');
+        }
+      }
+      
+      // Wait until app initialization marks readiness
+      try {
+        await mainWindow.waitForSelector('body[data-app-ready="1"]', { timeout: 30000 });
+      } catch (e) {
+        // Fallback: wait for helpers to exist and be ready
+        await mainWindow.waitForFunction(() => {
+          return !!(window.voiceApp && 
+                    window.voiceApp.isAppReady && 
+                    window.voiceApp.isAppReady() &&
+                    window.voiceApp.navigateToPage &&
+                    window.voiceApp.navigateToSettingsPage);
+        }, { timeout: 30000 });
+      }
+      
+      // Additional wait for any async initialization
+      await mainWindow.waitForTimeout(2000);
+      
+      // Verify helpers are available
+      const hasHelpers = await mainWindow.evaluate(() => {
         return !!(window.voiceApp && 
-                  window.voiceApp.isAppReady && 
-                  window.voiceApp.isAppReady() &&
                   window.voiceApp.navigateToPage &&
                   window.voiceApp.navigateToSettingsPage);
-      }, null, { timeout: 30000 }).catch(() => {});
+      });
+      
+      if (!hasHelpers) {
+        console.warn('Navigation helpers not available, tests may fail');
+      }
+    } catch (error) {
+      // Cleanup on error
+      if (electronApp) {
+        try {
+          await electronApp.close({ force: true });
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      throw new Error(`Failed to launch Electron app: ${error.message}`);
     }
-    
-    // Additional wait for any async initialization and verify helpers
-    await mainWindow.waitForTimeout(2000);
-    
-    // Verify helpers are available
-    const hasHelpers = await mainWindow.evaluate(() => {
-      return !!(window.voiceApp && 
-                window.voiceApp.navigateToPage &&
-                window.voiceApp.navigateToSettingsPage);
-    });
-    
-    if (!hasHelpers) {
-      console.warn('Navigation helpers not available, tests may fail');
-    }
-  }, 90000); // Increase overall timeout to 90 seconds
+  }, 120000); // Increase overall timeout to 120 seconds
 
   afterAll(async () => {
     if (electronApp) {

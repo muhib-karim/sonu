@@ -42,6 +42,8 @@ let whisperStdoutBuffer = ''; // Buffer for incomplete stdout lines
 let isRecording = false;
 let robot;
 let robotType = null; // 'robot-js' or 'robotjs'
+let lastTypedText = ''; // Track what we've already typed for incremental typing
+let pendingTypingQueue = []; // Queue for typing operations to prevent overlap
 const isTestMode = String(process.env.NODE_ENV || '').toLowerCase() === 'test' ||
   String(process.env.E2E_TEST || '').toLowerCase() === '1' ||
   String(process.env.E2E_TEST || '').toLowerCase() === 'true';
@@ -208,7 +210,9 @@ function createWindow() {
 
   mainWindow.loadFile('index.html');
   if (!isShowcaseMode && !isTestMode) {
-    mainWindow.hide();
+    // Show window on startup for easier development/testing
+    // mainWindow.hide();
+    mainWindow.show();
   }
   if (isShowcaseMode) {
     mainWindow.setResizable(false);
@@ -445,6 +449,44 @@ function hideIndicator() {
   }
 }
 
+// Incremental typing: type only new words that haven't been typed yet
+function typeIncrementalText(newText, isPartial = false) {
+  if (!newText || !newText.trim()) return '';
+  
+  // Extract only the NEW words that haven't been typed yet
+  let textToType = '';
+  if (lastTypedText && newText.startsWith(lastTypedText)) {
+    // New text extends what we've already typed - type only the delta
+    textToType = newText.slice(lastTypedText.length).trim();
+  } else if (!lastTypedText || !newText.includes(lastTypedText)) {
+    // Completely new text or doesn't match - type everything
+    // For partials, be conservative and only type if we have clear word boundaries
+    if (isPartial) {
+      // Find the last complete word in lastTypedText
+      const lastWordMatch = lastTypedText.match(/(\S+\s*)$/);
+      if (lastWordMatch && newText.includes(lastTypedText.slice(0, -lastWordMatch[1].length))) {
+        // Type from after the last complete word
+        const lastCompletePos = lastTypedText.length - lastWordMatch[1].length;
+        textToType = newText.slice(lastCompletePos).trim();
+      } else {
+        // No match - type everything (might be correction)
+        textToType = newText;
+        lastTypedText = ''; // Reset since we're typing everything
+      }
+    } else {
+      // Final text - type everything
+      textToType = newText;
+    }
+  }
+  
+  if (textToType) {
+    typeStringRobot(textToType);
+    lastTypedText = newText; // Update what we've typed
+  }
+  
+  return textToType;
+}
+
 function typeStringRobot(text) {
   const startTime = Date.now();
   
@@ -460,12 +502,12 @@ function typeStringRobot(text) {
     robotAvailable: !!robot
   });
   
-  // CRITICAL: Completely hide and unfocus ALL windows
-  // This must happen synchronously before any typing
+  // CRITICAL: Completely hide and unfocus ALL windows IMMEDIATELY
+  // This must happen synchronously before any typing - NO DELAYS
   if (mainWindow) {
     mainWindow.setAlwaysOnTop(false);
-      mainWindow.hide();
-      mainWindow.minimize();
+    mainWindow.hide();
+    mainWindow.minimize();
     mainWindow.blur();
   }
   
@@ -474,22 +516,71 @@ function typeStringRobot(text) {
     indicatorWindow.hide();
   }
   
-  // OPTIMIZED: Use clipboard + paste as PRIMARY method (fastest and most reliable)
-  // Only use robotjs typeString as fallback for special characters
-  const useClipboardFirst = true; // Set to true for instant typing
+  // ULTRA-OPTIMIZED: Zero-delay typing for instant output
+  // Hide window is already done synchronously above, so we can type immediately
+  const useRobotjsFirst = true;
   
-  if (useClipboardFirst && robot && robot.keyTap) {
-    // FASTEST METHOD: Clipboard + Ctrl+V (near-instant)
+  if (useRobotjsFirst && robot && robotType === 'robotjs' && robot.typeString) {
+    // INSTANT METHOD: Direct robotjs.typeString with minimal delay (5ms for focus)
+    // Using setImmediate for fastest possible execution
     setImmediate(() => {
-      // Minimal delay for focus switching (50ms is enough on most systems)
+      // Absolute minimum delay - just enough for Windows focus switch
+      setTimeout(() => {
+        try {
+          robot.typeString(text);
+          const totalTime = Date.now() - startTime;
+          if (logger) logger.typing('✓ Typed with robotjs.typeString', { total_duration_ms: totalTime });
+          console.log(`✓ Typed successfully in ${totalTime}ms`);
+          return;
+        } catch (e) {
+          if (logger) logger.typingError('robotjs.typeString failed, falling back to clipboard', e);
+          // Fall through to clipboard method
+        }
+      }, 5); // Reduced to 5ms - absolute minimum for Windows focus
+    });
+    
+    // Also set up clipboard fallback in parallel (in case robotjs fails)
+    if (robot && robot.keyTap) {
+      setImmediate(() => {
+        setTimeout(() => {
+          try {
+            clipboard.writeText(text);
+            if (logger) logger.typing('Text copied to clipboard (backup)', { duration_ms: Date.now() - startTime });
+            // Don't auto-paste if robotjs succeeded
+          } catch (clipErr) {
+            if (logger) logger.typingError('Clipboard backup failed', clipErr);
+          }
+        }, 15);
+      });
+    }
+  } else if (useRobotjsFirst && robotType === 'robot-js' && robot && robot.Keyboard && robot.Keyboard.typeString) {
+    // FASTEST METHOD: Direct robot-js typing
+    process.nextTick(() => {
+      setTimeout(() => {
+        try {
+          robot.Keyboard.typeString(text);
+          const totalTime = Date.now() - startTime;
+          if (logger) logger.typing('✓ Typed with robot-js', { total_duration_ms: totalTime });
+          console.log(`✓ Typed successfully in ${totalTime}ms`);
+          return;
+        } catch (e) {
+          if (logger) logger.typingError('robot-js.Keyboard.typeString failed, falling back to clipboard', e);
+          // Fall through to clipboard method
+        }
+      }, 10); // Reduced to 10ms for faster response
+    });
+  } else if (robot && robot.keyTap) {
+    // FALLBACK: Clipboard + Ctrl+V (slower but reliable)
+    setImmediate(() => {
+      // Minimal delay for focus switching (reduced from 50ms to 15ms)
       setTimeout(() => {
         try {
           clipboard.writeText(text);
           if (logger) logger.typing('Text copied to clipboard', { duration_ms: Date.now() - startTime });
           
-          // Immediate paste
-    setTimeout(() => {
-      try {
+          // Immediate paste with minimal delay
+          setTimeout(() => {
+            try {
               robot.keyTap('v', 'control');
               const totalTime = Date.now() - startTime;
               if (logger) logger.typing('✓ Pasted successfully with Ctrl+V', { total_duration_ms: totalTime });
@@ -498,60 +589,26 @@ function typeStringRobot(text) {
               if (logger) logger.typingError('Paste failed', pasteErr);
               console.warn('Text is in clipboard, use Ctrl+V manually');
             }
-          }, 20); // 20ms delay before paste
+          }, 10); // Reduced from 20ms to 10ms
         } catch (clipErr) {
           if (logger) logger.typingError('Clipboard failed', clipErr);
           console.error('Failed to copy to clipboard:', clipErr);
         }
-      }, 50); // 50ms delay for focus switching (down from 500ms!)
+      }, 15); // Reduced from 50ms to 15ms
     });
   } else {
-    // FALLBACK: Use robotjs typeString (slower but works without clipboard)
+    // FINAL FALLBACK: Clipboard only (no robotjs available)
     setImmediate(() => {
-      setTimeout(() => {
-        try {
-          if (logger) logger.typing('Attempting typeString method', { robotType });
-          
-          if (robotType === 'robotjs' && robot && robot.typeString) {
-            try {
-            robot.typeString(text);
-              const totalTime = Date.now() - startTime;
-              if (logger) logger.typing('✓ Typed with robotjs.typeString', { total_duration_ms: totalTime });
-              console.log(`✓ Typed successfully in ${totalTime}ms`);
-              return;
-          } catch (e) {
-              if (logger) logger.typingError('robotjs.typeString failed', e);
-              console.error('robotjs.typeString failed:', e.message);
-            }
-          } else if (robotType === 'robot-js' && robot && robot.Keyboard && robot.Keyboard.typeString) {
-            try {
-              robot.Keyboard.typeString(text);
-              const totalTime = Date.now() - startTime;
-              if (logger) logger.typing('✓ Typed with robot-js', { total_duration_ms: totalTime });
-              console.log(`✓ Typed successfully in ${totalTime}ms`);
-              return;
-      } catch (e) {
-              if (logger) logger.typingError('robot-js.Keyboard.typeString failed', e);
-              console.error('robot-js.Keyboard.typeString failed:', e.message);
-            }
-        }
-          
-          // Final fallback: clipboard only
-        try {
-          clipboard.writeText(text);
-            if (logger) logger.typing('Text copied to clipboard (fallback)');
-            console.log('Text copied to clipboard (use Ctrl+V to paste)');
-        } catch (clipErr) {
-            if (logger) logger.typingError('All typing methods failed', clipErr);
-          console.error('Failed to copy to clipboard:', clipErr);
-        }
-  } catch (e) {
-          if (logger) logger.typingError('Typing error', e);
-    console.error('Typing error:', e);
-        }
-      }, 50); // 50ms delay (down from 500ms!)
+      try {
+        clipboard.writeText(text);
+        if (logger) logger.typing('Text copied to clipboard (fallback)');
+        console.log('Text copied to clipboard (use Ctrl+V to paste)');
+      } catch (clipErr) {
+        if (logger) logger.typingError('All typing methods failed', clipErr);
+        console.error('Failed to copy to clipboard:', clipErr);
+      }
     });
-    }
+  }
   
   return true;
 }
@@ -862,11 +919,28 @@ function ensureWhisperService() {
       const raw = line.trim();
       if (!raw) continue;
       
-      // Handle live partial updates (do not copy, do not history)
+      // Handle live partial updates - TYPE INCREMENTALLY FOR INSTANT OUTPUT
       if (raw.startsWith('PARTIAL:')) {
         const partial = raw.slice(8).trim();
         try { mainWindow.webContents.send('transcription-partial', partial); } catch (e) {}
-        // Don't type partials, only final text
+        
+        // INSTANT TYPING: Type partials incrementally as they arrive
+        // This gives Wispr Flow-like instant feedback while still recording
+        if (partial && partial.length > 0) {
+          // Hide window immediately when we get first partial (user is still speaking)
+          if (mainWindow && mainWindow.isVisible()) {
+            mainWindow.setAlwaysOnTop(false);
+            mainWindow.hide();
+            mainWindow.minimize();
+            mainWindow.blur();
+          }
+          if (indicatorWindow && !indicatorWindow.isDestroyed()) {
+            indicatorWindow.hide();
+          }
+          
+          // Type only the NEW words from this partial
+          typeIncrementalText(partial, true); // true = isPartial
+        }
         continue;
       }
       // Immediate release event: hide indicator INSTANTLY - ULTRA FAST
@@ -965,13 +1039,20 @@ function ensureWhisperService() {
           clearTimeout(holdRecordingTimeout);
           holdRecordingTimeout = null;
         }
-        // Type the text system-wide IMMEDIATELY - ULTRA FAST
-        // This happens for both TOGGLE and HOLD modes
-        // typeStringRobot handles window hiding internally
+        // INSTANT TYPING: Type only the delta (new words not in last partial)
+        // This ensures we don't retype what we already typed from partials
         try {
           if (text && text.trim()) {
-            // Call typing function immediately - it handles window hiding internally
-            typeStringRobot(text);
+            // Type incrementally - only new words compared to what we've already typed
+            const typedDelta = typeIncrementalText(text, false); // false = final text
+            
+            // If no delta (everything was already typed from partials), we're done
+            if (!typedDelta && lastTypedText === text) {
+              console.log('✓ All text already typed from partials');
+            }
+            
+            // Reset for next transcription
+            lastTypedText = '';
           }
         } catch (e) {
           console.error('Failed to type text:', e);
@@ -981,6 +1062,8 @@ function ensureWhisperService() {
           } catch (clipErr) {
             console.error('Failed to copy to clipboard:', clipErr);
           }
+          // Reset on error
+          lastTypedText = '';
         }
       }
     }
@@ -1148,6 +1231,7 @@ function startHoldRecording() {
       // Reset and execute actual recording
       isHoldKeyPressed = true;
       isRecording = true;
+  lastTypedText = ''; // Reset typing state for new recording
       typedSoFar = '';
       
       mainWindow.hide();
@@ -1187,6 +1271,7 @@ function startHoldRecording() {
   
   isHoldKeyPressed = true;
   isRecording = true;
+  lastTypedText = ''; // Reset typing state for new recording
   typedSoFar = '';
   
   // Hide window FIRST for ultra-fast response
@@ -1256,6 +1341,7 @@ function startToggleRecording() {
     // Queue the recording to start when model is ready
     pendingRecordingAction = () => {
       isRecording = true;
+  lastTypedText = ''; // Reset typing state for new recording
       typedSoFar = '';
       
       mainWindow.hide();
@@ -1274,6 +1360,7 @@ function startToggleRecording() {
   }
   
   isRecording = true;
+  lastTypedText = ''; // Reset typing state for new recording
   typedSoFar = '';
   
   // Hide window FIRST for ultra-fast response

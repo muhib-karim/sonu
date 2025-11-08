@@ -94,6 +94,11 @@ class AccessibilityManager {
     });
   }
 
+  setupLiveRegions() {
+    // Setup live regions for dynamic content announcements
+    this.addLiveRegions();
+  }
+
   addLiveRegions() {
     // Create live regions for dynamic content announcements
     const liveRegions = [

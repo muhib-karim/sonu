@@ -36,27 +36,27 @@ describe('Renderer Tests', () => {
     // Mock IPC
     mockIpcRenderer = {
       __handlers: {},
-      onTranscription: jest.fn((arg) => {
+      onTranscription: function(arg) {
         if (typeof arg === 'function') {
           mockIpcRenderer.__handlers.transcription = arg;
         } else if (mockIpcRenderer.__handlers.transcription) {
           mockIpcRenderer.__handlers.transcription(arg);
         }
-      }),
-      onRecordingStart: jest.fn((arg) => {
+      },
+      onRecordingStart: function(arg) {
         if (typeof arg === 'function') {
           mockIpcRenderer.__handlers.recordingStart = arg;
         } else if (mockIpcRenderer.__handlers.recordingStart) {
           mockIpcRenderer.__handlers.recordingStart();
         }
-      }),
-      onRecordingStop: jest.fn((arg) => {
+      },
+      onRecordingStop: function(arg) {
         if (typeof arg === 'function') {
           mockIpcRenderer.__handlers.recordingStop = arg;
         } else if (mockIpcRenderer.__handlers.recordingStop) {
           mockIpcRenderer.__handlers.recordingStop();
         }
-      }),
+      },
       toggleRecording: jest.fn(),
       getSettings: jest.fn(() => Promise.resolve({ holdHotkey: 'Ctrl+Space', toggleHotkey: 'Ctrl+Shift+Space' })),
       saveSettings: jest.fn(() => Promise.resolve({})),
@@ -69,13 +69,13 @@ describe('Renderer Tests', () => {
       onShowMessage: jest.fn(),
       onFocusHoldHotkey: jest.fn(),
       onFocusToggleHotkey: jest.fn(),
-      onTranscriptionPartial: jest.fn((arg) => {
+      onTranscriptionPartial: function(arg) {
         if (typeof arg === 'function') {
           mockIpcRenderer.__handlers.transcriptionPartial = arg;
         } else if (mockIpcRenderer.__handlers.transcriptionPartial) {
           mockIpcRenderer.__handlers.transcriptionPartial(arg);
         }
-      }),
+      },
       getSystemInfo: jest.fn(() => Promise.resolve({})),
       getSuggestedModel: jest.fn(() => Promise.resolve('base')),
       downloadModel: jest.fn(() => Promise.resolve({ success: false })),
@@ -203,23 +203,34 @@ describe('Renderer Tests', () => {
       });
     });
 
-    test('should handle recording stop', () => {
+    test('should handle recording stop', async () => {
       require('../../renderer.js');
 
-      return new Promise(resolve => setTimeout(resolve, 100)).then(() => {
-        // Start recording first
-        mockIpcRenderer.onRecordingStart();
+      // Wait for renderer to initialize and register handlers
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Start recording first - trigger the stored handler
+      if (mockIpcRenderer.__handlers.recordingStart) {
+        mockIpcRenderer.__handlers.recordingStart();
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Then stop
-        mockIpcRenderer.onRecordingStop();
+      const livePreview = document.getElementById('live-preview');
+      expect(livePreview.style.display).not.toBe('none');
 
-        const livePreview = document.getElementById('live-preview');
-        // Should hide after timeout
-        setTimeout(() => {
-          expect(livePreview.style.display).toBe('none');
-        }, 1100);
-      });
-    });
+      // Then stop - trigger the stored handler
+      if (mockIpcRenderer.__handlers.recordingStop) {
+        mockIpcRenderer.__handlers.recordingStop();
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Should hide after timeout (1000ms) - wait a bit longer to be safe
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      // Check if display is none (it should be after the timeout)
+      const finalDisplay = livePreview.style.display;
+      expect(finalDisplay).toBe('none');
+    }, 10000); // Increase test timeout
   });
 
   describe('Statistics', () => {
@@ -239,23 +250,38 @@ describe('Renderer Tests', () => {
       });
     });
 
-    test('should calculate WPM correctly', () => {
+    test('should calculate WPM correctly', async () => {
       require('../../renderer.js');
 
-      return new Promise(resolve => setTimeout(resolve, 100)).then(() => {
-        // Start recording
-        mockIpcRenderer.onRecordingStart();
+      // Wait for renderer to initialize and register handlers
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Start recording - trigger the stored handler to set recordingStartTime
+      if (mockIpcRenderer.__handlers.recordingStart) {
+        mockIpcRenderer.__handlers.recordingStart();
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
 
-        // Simulate 60 seconds of recording
-        setTimeout(() => {
-          mockIpcRenderer.onRecordingStop();
-          mockIpcRenderer.onTranscription('This is a test with ten words in it for calculation');
+      // Simulate recording duration by waiting a bit, then stopping
+      // We need at least 1 second for meaningful WPM calculation
+      await new Promise(resolve => setTimeout(resolve, 1100));
+      
+      // Stop recording - trigger the stored handler to calculate duration and push to recordingDurations
+      if (mockIpcRenderer.__handlers.recordingStop) {
+        mockIpcRenderer.__handlers.recordingStop();
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Now trigger transcription which will calculate WPM using the recorded duration
+      if (mockIpcRenderer.__handlers.transcription) {
+        mockIpcRenderer.__handlers.transcription('This is a test with ten words in it for calculation');
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-          const statWpm = document.getElementById('stat-wpm');
-          // Should calculate WPM based on duration and word count
-          expect(statWpm.textContent).not.toBe('0 WPM');
-        }, 100);
-      });
+      const statWpm = document.getElementById('stat-wpm');
+      // Should calculate WPM based on duration and word count
+      // With ~10 words in ~1 second, WPM should be around 600 (10 words * 60 seconds / 1 second)
+      expect(statWpm.textContent).not.toBe('0 WPM');
     });
   });
 
