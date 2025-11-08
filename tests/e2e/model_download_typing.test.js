@@ -50,9 +50,23 @@ describe('Model Download and Typing E2E Tests', () => {
 
   afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      try {
+        // Give it more time to close gracefully
+        await Promise.race([
+          electronApp.close(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+        ]);
+      } catch (e) {
+        // Force close if graceful close fails or times out
+        console.warn('Graceful close failed, forcing close:', e.message);
+        try {
+          await electronApp.close({ force: true }).catch(() => {});
+        } catch (e2) {
+          // Ignore force close errors
+        }
+      }
     }
-  });
+  }, 20000);
 
   describe('Model Download Workflow', () => {
     test('should navigate to model selector', async () => {

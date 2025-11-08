@@ -72,9 +72,23 @@ describe('SONU E2E Tests', () => {
 
   afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      try {
+        // Give it more time to close gracefully
+        await Promise.race([
+          electronApp.close(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+        ]);
+      } catch (e) {
+        // Force close if graceful close fails or times out
+        console.warn('Graceful close failed, forcing close:', e.message);
+        try {
+          await electronApp.close({ force: true }).catch(() => {});
+        } catch (e2) {
+          // Ignore force close errors
+        }
+      }
     }
-  });
+  }, 20000);
 
   // Helper to close any open modals
   async function closeModals() {
@@ -284,8 +298,11 @@ describe('SONU E2E Tests', () => {
       // Save
       await mainWindow.click('#save-shortcuts-btn');
 
-      // Modal should close
-      await mainWindow.waitForSelector('#shortcuts-modal:not(.active)', { timeout: 10000 });
+      // Modal should close - wait for modal to not have active class
+      await mainWindow.waitForFunction(() => {
+        const modal = document.getElementById('shortcuts-modal');
+        return modal && !modal.classList.contains('active');
+      }, { timeout: 10000 });
     }, 60000);
   });
 
