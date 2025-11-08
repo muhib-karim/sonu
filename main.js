@@ -207,7 +207,7 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
-  if (!isShowcaseMode) {
+  if (!isShowcaseMode && !isTestMode) {
     mainWindow.hide();
   }
   if (isShowcaseMode) {
