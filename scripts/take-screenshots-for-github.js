@@ -26,71 +26,164 @@ const rl = readline.createInterface({
 let mainWindow = null;
 const capturedScreenshots = [];
 
-// Screenshot tasks with descriptions
-const screenshotTasks = [
-  {
-    name: 'main-window',
-    description: 'Main application window showing the home page with modern glassmorphic design',
-    wait: 3000,
-    action: null // Already on home page
-  },
-  {
-    name: 'settings-page',
-    description: 'Settings page with comprehensive configuration options',
-    wait: 3000,
-    action: () => {
-      mainWindow.webContents.executeJavaScript(`
-        const settingsNav = document.querySelector('.nav-item[data-page="settings"]');
-        if (settingsNav) settingsNav.click();
-      `);
-    }
-  },
-  {
-    name: 'model-selector',
-    description: 'Model selector tab showing available Whisper models and download options',
-    wait: 3000,
-    action: () => {
-      mainWindow.webContents.executeJavaScript(`
-        const settingsNav = document.querySelector('.nav-item[data-page="settings"]');
-        if (settingsNav) {
-          settingsNav.click();
-          setTimeout(() => {
-            const modelTab = document.querySelector('.settings-nav-item[data-settings-page="model-selector"]');
-            if (modelTab) modelTab.click();
-          }, 1000);
-        }
-      `);
-    }
-  },
-  {
-    name: 'theme-light',
-    description: 'Light theme with clean, modern design',
-    wait: 2000,
-    action: () => {
-      mainWindow.webContents.executeJavaScript(`
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        if (currentTheme !== 'light') {
-          const themeToggle = document.querySelector('.theme-toggle');
-          if (themeToggle) themeToggle.click();
-        }
-      `);
-    }
-  },
-  {
-    name: 'theme-dark',
-    description: 'Dark theme with elegant, professional appearance',
-    wait: 2000,
-    action: () => {
-      mainWindow.webContents.executeJavaScript(`
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        if (currentTheme !== 'dark') {
-          const themeToggle = document.querySelector('.theme-toggle');
-          if (themeToggle) themeToggle.click();
-        }
-      `);
-    }
-  }
+// Main navigation tabs
+const MAIN_TABS = [
+  { name: 'home', label: 'Home', selector: '.nav-item[data-page="home"]' },
+  { name: 'dictionary', label: 'Dictionary', selector: '.nav-item[data-page="dictionary"]' },
+  { name: 'snippets', label: 'Snippets', selector: '.nav-item[data-page="snippets"]' },
+  { name: 'style', label: 'Style', selector: '.nav-item[data-page="style"]' },
+  { name: 'notes', label: 'Notes', selector: '.nav-item[data-page="notes"]' },
+  { name: 'settings', label: 'Settings', selector: '.nav-item[data-page="settings"]' }
 ];
+
+// Settings sub-tabs
+const SETTINGS_TABS = [
+  { name: 'general', label: 'General', selector: '.settings-nav-item[data-settings-page="general"]' },
+  { name: 'system', label: 'System', selector: '.settings-nav-item[data-settings-page="system"]' },
+  { name: 'model', label: 'Model Selector', selector: '.settings-nav-item[data-settings-page="model"]' },
+  { name: 'themes', label: 'Themes', selector: '.settings-nav-item[data-settings-page="themes"]' },
+  { name: 'vibe', label: 'Vibe Coding', selector: '.settings-nav-item[data-settings-page="vibe"]' },
+  { name: 'experimental', label: 'Experimental', selector: '.settings-nav-item[data-settings-page="experimental"]' }
+];
+
+// Theme variations
+const THEMES = [
+  { name: 'light', label: 'Light Theme' },
+  { name: 'dark', label: 'Dark Theme' }
+];
+
+// Generate screenshot tasks from tabs
+const screenshotTasks = [];
+
+// Add main tabs
+MAIN_TABS.forEach(tab => {
+  screenshotTasks.push({
+    name: tab.name,
+    label: tab.label,
+    description: `${tab.label} page`,
+    wait: 2000,
+    action: async () => {
+      if (mainWindow && mainWindow.webContents) {
+        await mainWindow.webContents.executeJavaScript(`
+          (function() {
+            if (window.voiceApp && window.voiceApp.navigateToPage) {
+              window.voiceApp.navigateToPage('${tab.name}');
+            } else {
+              const navItems = document.querySelectorAll('.nav-item[data-page]');
+              const pages = document.querySelectorAll('.page');
+              navItems.forEach(nav => {
+                if (nav && nav.dataset) {
+                  nav.classList.toggle('active', nav.dataset.page === '${tab.name}');
+                }
+              });
+              pages.forEach(p => {
+                if (p && p.id) {
+                  const expectedId = 'page-${tab.name}';
+                  p.classList.toggle('active', p.id === expectedId);
+                }
+              });
+            }
+          })();
+        `);
+      }
+    }
+  });
+});
+
+// Add settings sub-tabs (navigate to settings first)
+SETTINGS_TABS.forEach(tab => {
+  screenshotTasks.push({
+    name: `settings-${tab.name}`,
+    label: `Settings > ${tab.label}`,
+    description: `Settings > ${tab.label}`,
+    wait: 2000,
+    action: async () => {
+      if (mainWindow && mainWindow.webContents) {
+        // Navigate to settings first
+        await mainWindow.webContents.executeJavaScript(`
+          (function() {
+            if (window.voiceApp && window.voiceApp.navigateToPage) {
+              window.voiceApp.navigateToPage('settings');
+            } else {
+              const navItems = document.querySelectorAll('.nav-item[data-page]');
+              const pages = document.querySelectorAll('.page');
+              navItems.forEach(nav => {
+                if (nav && nav.dataset) {
+                  nav.classList.toggle('active', nav.dataset.page === 'settings');
+                }
+              });
+              pages.forEach(p => {
+                if (p && p.id) {
+                  p.classList.toggle('active', p.id === 'page-settings');
+                }
+              });
+            }
+          })();
+        `);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Navigate to settings sub-tab
+        await mainWindow.webContents.executeJavaScript(`
+          (function() {
+            if (window.voiceApp && window.voiceApp.navigateToSettingsPage) {
+              window.voiceApp.navigateToSettingsPage('${tab.name}');
+            } else {
+              const settingsNavItems = document.querySelectorAll('.settings-nav-item[data-settings-page]');
+              const settingsPages = document.querySelectorAll('.settings-page');
+              settingsNavItems.forEach(nav => {
+                if (nav && nav.dataset) {
+                  nav.classList.toggle('active', nav.dataset.settingsPage === '${tab.name}');
+                }
+              });
+              settingsPages.forEach(p => {
+                if (p && p.id) {
+                  const expectedId = 'settings-${tab.name}';
+                  p.classList.toggle('active', p.id === expectedId);
+                }
+              });
+            }
+          })();
+        `);
+      }
+    }
+  });
+});
+
+// Add theme variations (on home page)
+THEMES.forEach(theme => {
+  screenshotTasks.push({
+    name: `theme-${theme.name}`,
+    label: theme.label,
+    description: theme.label,
+    wait: 2000,
+    action: async () => {
+      if (mainWindow && mainWindow.webContents) {
+        // Navigate to home first
+        await mainWindow.webContents.executeJavaScript(`
+          (function() {
+            if (window.voiceApp && window.voiceApp.navigateToPage) {
+              window.voiceApp.navigateToPage('home');
+            }
+          })();
+        `);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Set theme
+        await mainWindow.webContents.executeJavaScript(`
+          (function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme !== '${theme.name}') {
+              const themeToggle = document.querySelector('.theme-toggle-btn, .theme-toggle');
+              if (themeToggle) {
+                themeToggle.click();
+              }
+            }
+          })();
+        `);
+      }
+    }
+  });
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -120,6 +213,11 @@ function createWindow() {
 }
 
 async function captureAllScreenshots() {
+  if (!mainWindow) {
+    console.error('❌ Main window not available!');
+    return;
+  }
+
   console.log(`📋 Will capture ${screenshotTasks.length} screenshots:\n`);
   screenshotTasks.forEach((task, index) => {
     console.log(`   ${index + 1}. ${task.name}.png - ${task.description}`);
@@ -133,18 +231,24 @@ async function captureAllScreenshots() {
     try {
       // Execute action if needed
       if (task.action) {
-        task.action();
+        await task.action();
       }
 
       // Wait for UI to update
       await new Promise(resolve => setTimeout(resolve, task.wait));
 
       // Capture screenshot
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        console.error(`   ❌ Window destroyed before capture`);
+        continue;
+      }
+
       const image = await mainWindow.webContents.capturePage();
       const buffer = image.toPNG();
 
-      // Save screenshot
-      const filename = `${task.name}.png`;
+      // Save screenshot with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const filename = `${task.name}_${timestamp}.png`;
       const filepath = path.join(SCREENSHOTS_DIR, filename);
       fs.writeFileSync(filepath, buffer);
 
@@ -161,6 +265,7 @@ async function captureAllScreenshots() {
 
     } catch (error) {
       console.error(`   ❌ Error: ${error.message}`);
+      console.error(`   Stack: ${error.stack}`);
     }
 
     // Delay between screenshots
@@ -186,11 +291,14 @@ function showSummary() {
   });
 
   console.log(`💡 Review the screenshots in: ${SCREENSHOTS_DIR}`);
-  console.log(`\n👉 Press Enter to confirm and upload to GitHub, or Ctrl+C to cancel...`);
+  console.log(`\n⏳ Waiting 5 seconds for review, then automatically uploading to GitHub...`);
+  console.log(`   (Press Ctrl+C to cancel if needed)\n`);
 
-  rl.question('', () => {
+  // Auto-confirm after 3 seconds and upload
+  setTimeout(() => {
+    console.log('✅ Auto-confirming and uploading to GitHub...\n');
     uploadToGitHub();
-  });
+  }, 3000);
 }
 
 async function uploadToGitHub() {

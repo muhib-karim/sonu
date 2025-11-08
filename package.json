@@ -6,6 +6,8 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
+    "test": "cd tests && npm run test",
+    "test:e2e": "cd tests && npm run test:e2e",
     "fetch-icon": "node scripts/fetch-tray-icon.js",
     "preview": "python -m http.server 8000",
     "screenshots": "electron scripts/take-screenshots-for-github.js",

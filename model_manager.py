@@ -105,6 +105,24 @@ def get_space():
 def is_downloaded(model, download_root=None):
     """Check if a model is already downloaded."""
     try:
+        # First check if download_root is a direct model directory (offline downloader format)
+        if download_root and os.path.isdir(download_root):
+            # Check if this directory contains the required model files directly
+            model_dir = Path(download_root)
+            required_files = ["config.json", "model.safetensors", "tokenizer.json"]
+            has_all_files = all((model_dir / f).exists() for f in required_files)
+            
+            if has_all_files:
+                # Calculate actual size
+                total_size = sum(f.stat().st_size for f in model_dir.rglob('*') if f.is_file())
+                size_mb = round(total_size / (1024 ** 2), 2)
+                return True, {
+                    "path": str(model_dir),
+                    "cache_path": str(model_dir),
+                    "size_mb": size_mb
+                }
+        
+        # Check traditional Hugging Face cache structure
         cache_path = get_model_path(model, download_root)
         if not cache_path.exists():
             return False, None

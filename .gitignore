@@ -90,8 +90,9 @@ versions/*/data/
 versions/*/logs/
 versions/*/*.bak
 
-# Screenshots (keep directory structure but ignore placeholder images)
-# Uncomment to ignore screenshots:
+# Screenshots and recordings (keep directory structure)
+# Uncomment to ignore:
 # screenshots/*.png
 # screenshots/*.jpg
+# recordings/*.mp4
 

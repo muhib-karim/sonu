@@ -175,6 +175,25 @@ Tests are designed to run in CI/CD pipelines:
 - **Network timeouts**: Increase timeout values in test files
 - **Mock failures**: Check mock configurations in `setup.js`
 
+### Known Issues
+
+- **Integration (model_download) timeouts**: Hugging Face or mirrors may respond slowly. Increase Jest timeouts (e.g., `jest.setTimeout(30000)`) or mock network requests for reliability in CI.
+- **Playwright/Electron `setImmediate` error**: Some environments lack `setImmediate` during Electron launch. Add a safe polyfill in `setup.js`:
+  ```js
+  global.setImmediate = global.setImmediate || ((fn, ...args) => setTimeout(fn, 0, ...args));
+  ```
+- **Renderer UI async updates**: Tests that depend on DOM updates should await small delays or use provided hooks.
+
+### Renderer Test Hooks
+
+Renderer exposes deterministic hooks to simplify unit testing:
+
+- `window.__rendererTestHooks.updateStats(stats)` – updates internal stats and UI immediately.
+- `window.__rendererTestHooks.addHistoryItem(text)` – appends to the history list.
+- `window.__rendererTestHooks.updateStatsDisplay(stats)` – refreshes display without side effects.
+
+Use these hooks in unit tests to avoid relying on IPC wiring or timing-sensitive callbacks.
+
 ## Best Practices
 
 1. **Keep tests independent**: Each test should be able to run alone

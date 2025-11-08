@@ -107,17 +107,28 @@ function writeFileSafe(filePath, content) {
 }
 
 function convertHtmlImgToMarkdown(content) {
-  // Convert <img ... src="..." alt="..."> to markdown
-  const before = content;
-  const replaced = content.replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
-    let altMatch = match.match(/alt=["']([^"']+)["']/i);
+  // Preserve images inside HTML tables; GitHub does not parse markdown inside table cells
+  const tableBlocks = [];
+  const TABLE_PLACEHOLDER = '__TABLE_BLOCK_' + Date.now() + '_';
+  let temp = content.replace(/<table[\s\S]*?<\/table>/gi, (m) => {
+    const idx = tableBlocks.push(m) - 1;
+    return TABLE_PLACEHOLDER + idx + '__';
+  });
+
+  // Convert <img ...> outside tables only
+  temp = temp.replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, src) => {
+    // If this match was within a table block, it won't exist in temp due to placeholder substitution
+    const altMatch = match.match(/alt=["']([^"']+)["']/i);
     const alt = altMatch ? altMatch[1] : path.basename(src);
-    const fixedSrc = ensureShowcasePath(src);
+    const fixedSrc = /^https?:\/\//i.test(src) ? src : ensureShowcasePath(src);
     summary.htmlImgConverted += 1;
-    summary.imagesFixed += 1;
+    if (!/^https?:\/\//i.test(src)) summary.imagesFixed += 1;
     return `![${alt}](${fixedSrc})`;
   });
-  return replaced;
+
+  // Restore table blocks unchanged
+  temp = temp.replace(new RegExp(TABLE_PLACEHOLDER + '(\\d+)__', 'g'), (_, i) => tableBlocks[Number(i)]);
+  return temp;
 }
 
 function fixMarkdownImages(filePath) {

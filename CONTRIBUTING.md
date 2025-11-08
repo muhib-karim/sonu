@@ -16,6 +16,24 @@ Thank you for your interest in contributing to SONU! This project was built by a
 4. Install Python dependencies: `pip install faster-whisper pyaudio keyboard`
 5. Create a branch: `git checkout -b feature/your-feature-name`
 
+### Testing Workflow
+
+- Run tests from the `tests` workspace:
+  ```bash
+  cd tests
+  npm install
+  npm run test:unit
+  npm run test:integration
+  npm run test:e2e
+  ```
+- From project root, you can also invoke Jest directly:
+  ```bash
+  npx jest tests/unit --runInBand
+  npx jest tests/integration --runInBand
+  npx jest tests/e2e --runInBand
+  ```
+- Renderer unit tests expose `window.__rendererTestHooks` to make UI assertions deterministic.
+
 ## Development Guidelines
 
 ### Code Style
@@ -38,6 +56,13 @@ Thank you for your interest in contributing to SONU! This project was built by a
 - Verify hotkey functionality
 - Test theme switching
 - Check system-wide typing
+- Ensure unit, integration, and E2E tests pass locally (see the commands above)
+
+### Documentation Updates
+
+- Update `README.md` when adding commands or changing setup.
+- Keep `AUTOMATION_README.md` / `AUTOMATION_SETUP.md` aligned with automation outputs.
+- Document known test issues or environment requirements in `tests/README.md`.
 
 ## Pull Request Process
 

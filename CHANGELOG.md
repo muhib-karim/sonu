@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.5.1] - 2025-01-XX
+
+### 🔧 Test Environment Improvements & Feature Verification
+
+This version focuses on comprehensive test environment fixes and feature verification to ensure all app functionality works correctly.
+
+#### Added
+
+- **Test Scripts**: Added `test` and `test:e2e` scripts to main package.json
+- **Comprehensive E2E Tests**: Added tests for all main tabs and settings sub-tabs
+- **Modal Handling**: Added `closeModals()` helper for reliable test execution
+- **Navigation Tests**: Comprehensive navigation tests for all tabs (home, dictionary, snippets, style, notes, settings)
+- **Settings Tab Tests**: Tests for all settings sub-tabs (general, system, model, themes, vibe, experimental)
+- **Test Documentation**: Created test report and autonomy log files
+
+#### Fixed
+
+- **Test Environment Mocks**: Fixed Tray mock missing `setToolTip` method
+- **BrowserWindow Mock**: Added all missing methods (`setIgnoreMouseEvents`, `setMovable`, `getBounds`, etc.)
+- **Fetch Mock**: Added global fetch mock for i18n module in test environment
+- **AudioContext Mock**: Added mock for audio visualization features
+- **IPC Handler Tests**: Made IPC handler tests more robust for test environment
+- **E2E Test Timeouts**: Increased timeouts from 30s to 60s and improved readiness detection
+- **App Readiness Detection**: Enhanced with multiple methods (data-app-ready attribute, navigation helpers)
+- **Modal Interference**: Fixed modals blocking clicks in tests
+- **Navigation Reliability**: Improved navigation with helper functions and fallback methods
+
+#### Improved
+
+- **Test Environment**: Enhanced test setup with comprehensive mocks
+- **E2E Tests**: Improved timeout handling and readiness detection
+- **Feature Testing**: Created comprehensive feature testing script
+- **Documentation**: Updated test report with detailed progress
+- **Showcase Generation**: Regenerated showcase screenshots and video
+- **Test Coverage**: Added tests for all major UI components and features
+
+#### Technical
+
+- **Test Mocks**: Complete Electron API mocks for unit tests
+- **Readiness Detection**: Multiple methods for detecting app initialization
+- **Feature Coverage**: All major UI tabs and settings verified
+- **Timeout Management**: Increased timeouts for slow operations (system info, model loading)
+- **Wait Conditions**: Improved wait conditions with proper selectors and timeouts
+
+---
+
 ## [3.5.0] - 2025-01-XX
 
 ### 🎉 Major Release - Faster-Whisper Architecture Alignment

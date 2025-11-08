@@ -441,6 +441,22 @@ window.accessibilityManager = accessibilityManager;
     }
   }
 
+  // Expose testing helpers to window.voiceApp for reliable automation
+  try {
+    if (typeof window !== 'undefined') {
+      window.voiceApp = window.voiceApp || {};
+      window.voiceApp.navigateToPage = (page) => {
+        try { navigateToPage(page); } catch (e) { console.warn('navigateToPage failed:', e.message); }
+      };
+      window.voiceApp.navigateToSettingsPage = (page) => {
+        try { navigateToSettingsPage(page); } catch (e) { console.warn('navigateToSettingsPage failed:', e.message); }
+      };
+      window.voiceApp.isAppReady = () => !!(navigationSetup && settingsNavigationSetup);
+    }
+  } catch (e) {
+    console.warn('Testing helpers not available:', e.message);
+  }
+
   // Modals
   const modals = document.querySelectorAll('.modal');
   const modalTriggers = {
@@ -1626,6 +1642,19 @@ window.accessibilityManager = accessibilityManager;
     }
   }
 
+  // Expose minimal test hooks for unit testing without impacting runtime behavior
+  try {
+    if (typeof window !== 'undefined') {
+      window.__rendererTestHooks = {
+        updateStats,
+        addHistoryItem,
+        updateStatsDisplay
+      };
+    }
+  } catch (e) {
+    // Ignore if window is not writable in certain environments
+  }
+
   // Utility functions
   function formatTime(date) {
     const hours = date.getHours();
@@ -1951,6 +1980,11 @@ window.accessibilityManager = accessibilityManager;
     updateStatsDisplay();
     updateDictationBoxHotkey();
     console.log('Initialization complete');
+    
+    // Mark app as ready for E2E tests
+    if (document.body) {
+      document.body.setAttribute('data-app-ready', '1');
+    }
   } catch (e) {
     console.error('Error during initialization:', e);
   }
@@ -2416,7 +2450,7 @@ window.accessibilityManager = accessibilityManager;
                   progressContainer.style.display = 'none';
                   progressContainer.classList.remove('active');
                 }
-              }, 3000);
+          }, 3000);
         } else {
           if (progressFill) progressFill.style.width = '0%';
           const errorMsg = (result && result.message) || (result && result.error) || 'Failed to import model';
@@ -2467,7 +2501,7 @@ window.accessibilityManager = accessibilityManager;
       if (progressText) progressText.textContent = `Checking model cache...`;
       if (progressSpeed) progressSpeed.style.display = 'none';
       // Don't update statusDesc here - keep it clean
-      
+
       downloadModelBtn.disabled = true;
 
       try {
@@ -2670,7 +2704,7 @@ window.accessibilityManager = accessibilityManager;
                   window.dispatchEvent(new CustomEvent('show-toast', { 
                     detail: { message, type: 'success' } 
                   }));
-                }, 1000);
+              }, 1000);
               }
             } else {
               if (progressFill) progressFill.style.width = '0%';
@@ -2760,9 +2794,9 @@ window.accessibilityManager = accessibilityManager;
             
             saveAppSettings({ selected_model: modelName });
           } else {
-              if (progressFill) progressFill.style.width = '0%';
-              if (progressText) progressText.textContent = `❌ Error: ${result.error || result.message || 'Unknown error'}`;
-            }
+            if (progressFill) progressFill.style.width = '0%';
+            if (progressText) progressText.textContent = `❌ Error: ${result.error || result.message || 'Unknown error'}`;
+          }
           
           setTimeout(() => {
             if (progressContainer) {
@@ -4020,6 +4054,8 @@ window.accessibilityManager = accessibilityManager;
       }
       
       console.log('All initialization complete');
+      // Flag app readiness for tests
+      try { document.body.dataset.appReady = '1'; } catch(_) {}
     } catch (e) {
       console.error('Error in comprehensive initialization:', e);
     }
@@ -4061,6 +4097,11 @@ window.accessibilityManager = accessibilityManager;
     if (!settingsNavigationSetup) {
       console.warn('Settings navigation not set up after delay, retrying...');
       setupSettingsNavigation();
+    }
+    
+    // Mark app as ready after navigation setup completes
+    if (document.body && navigationSetup && settingsNavigationSetup) {
+      document.body.setAttribute('data-app-ready', '1');
     }
   }, 1000);
   

@@ -45,9 +45,19 @@ def load_model():
     try:
         sys.stderr.write(f"Loading Whisper model '{model_size}'...\n")
         sys.stderr.flush()
-        model = WhisperModel(model_size, device="cpu")
+        
+        # Check if model_size is a path to a local directory (from offline downloader)
+        if os.path.isdir(model_size):
+            # Load model from local directory path
+            sys.stderr.write(f"Loading model from local directory: {model_size}\n")
+            sys.stderr.flush()
+            model = WhisperModel(model_size, device="cpu")
+        else:
+            # Load model using faster-whisper's built-in Hugging Face cache
+            model = WhisperModel(model_size, device="cpu")
+        
         model_ready = True
-        sys.stderr.write(f"Whisper model '{model_size}' loaded successfully\n")
+        sys.stderr.write(f"Whisper model loaded successfully\n")
         sys.stderr.flush()
         # Send ready signal to Electron
         print("EVENT: READY")

@@ -257,6 +257,16 @@ The command launches SONU in a special showcase mode, walks through Home, Dictio
 ffmpeg -y -framerate 1 -pattern_type glob -i "assets/showcase/*.png" -c:v libx264 -pix_fmt yuv420p assets/showcase/showcase.mp4
 ```
 
+### Alternative: Playwright Automation
+
+If you prefer Playwright-driven automation (video + screenshots), use:
+
+```bash
+npm run auto-screenshots
+```
+
+This runs `auto_screenshot.js`, capturing screenshots to `screenshots/` and a walkthrough video to `recordings/`. See `AUTOMATION_README.md` for details.
+
 ### Showcase Videos
 
 - HEVC (H.265) slideshow: `assets/showcase/showcase_slideshow_h265.mp4`
@@ -486,14 +496,30 @@ npm run build
 
 ### Running Tests
 
-```bash
-# Run all tests
-npm test
+Run tests from the dedicated `tests` workspace:
 
-# Run specific test suite
-npm test -- tests/unit/
-npm test -- tests/integration/
+```bash
+cd tests
+npm install
+
+# Unit / Integration / E2E
+npm run test:unit
+npm run test:integration
+npm run test:e2e
 ```
+
+Alternatively, from the project root using Jest directly:
+
+```bash
+npx jest tests/unit --runInBand
+npx jest tests/integration --runInBand
+npx jest tests/e2e --runInBand
+```
+
+Notes:
+- Integration `model_download` tests require network access and may need higher timeouts (e.g., `jest.setTimeout(30000)`) or mocked requests.
+- Playwright/Electron E2E may error with `setImmediate is not defined`; add a safe polyfill in test setup: `global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);`.
+- Renderer unit tests expose `window.__rendererTestHooks` to make UI updates deterministic in CI.
 
 ---
 

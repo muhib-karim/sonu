@@ -39,6 +39,12 @@ Or directly:
 node auto_screenshot.js
 ```
 
+### Alternative: Curated Showcase (Electron)
+```bash
+npm run showcase
+```
+Outputs are saved to `assets/showcase/` with curated app states.
+
 ## 📸 What It Captures
 
 ### Main Navigation (6 tabs)
@@ -66,14 +72,22 @@ node auto_screenshot.js
 ## 📁 Output Structure
 
 ```
-screenshots/
-  ├── home_2025-11-07_15-30-45.png
-  ├── dictionary_2025-11-07_15-30-45.png
-  ├── settings-model_2025-11-07_15-30-45.png
-  └── ...
+Playwright (auto_screenshot.js)
+  screenshots/
+    ├── home_2025-11-07_15-30-45.png
+    ├── dictionary_2025-11-07_15-30-45.png
+    ├── settings-model_2025-11-07_15-30-45.png
+    └── ...
 
-recordings/
-  └── app_walkthrough_2025-11-07_15-30-45.mp4
+  recordings/
+    └── app_walkthrough_2025-11-07_15-30-45.mp4
+
+Showcase script (run-showcase.js)
+  assets/showcase/
+    ├── 01_home.png
+    ├── 02_dictation_start.png
+    ├── ...
+    └── showcase.mp4 (created via ffmpeg)
 ```
 
 ## 🔄 GitHub Integration
@@ -135,6 +149,12 @@ ls main.js
 - Check that selectors match your HTML
 - Increase wait times
 - Verify app window is visible
+
+### Playwright Electron Error: `setImmediate is not defined`
+Add a safe polyfill in your test setup to avoid crashes:
+```js
+global.setImmediate = global.setImmediate || ((fn, ...args) => setTimeout(fn, 0, ...args));
+```
 
 ### Git Upload Fails
 ```bash

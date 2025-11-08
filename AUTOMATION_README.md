@@ -32,6 +32,16 @@ Or directly:
 node auto_screenshot.js
 ```
 
+### Alternative: Showcase Script (Electron)
+
+If you want curated screenshots saved to `assets/showcase/` with a simple MP4 montage, use:
+
+```bash
+npm run showcase
+```
+
+This runs `scripts/run-showcase.js` (Electron) and places outputs in `assets/showcase/`.
+
 ## 📸 What It Captures
 
 ### Main Navigation Tabs
@@ -57,12 +67,14 @@ node auto_screenshot.js
 ## 📁 Output
 
 ### Screenshots
-- Location: `screenshots/`
+- Playwright: `screenshots/`
+- Showcase script: `assets/showcase/`
 - Format: `{tab_name}_{YYYY-MM-DD_HH-mm-ss}.png`
 - Example: `home_2025-01-07_15-30-45.png`
 
 ### Video
-- Location: `recordings/`
+- Playwright: `recordings/`
+- Showcase script: `assets/showcase/showcase.mp4` (via ffmpeg command)
 - Format: `app_walkthrough_{YYYY-MM-DD_HH-mm-ss}.mp4`
 - Example: `app_walkthrough_2025-01-07_15-30-45.mp4`
 
@@ -96,6 +108,14 @@ npx playwright install chromium
 - Ensure all dependencies are installed: `npm install`
 - Check that `main.js` is in the root directory
 - Verify Electron is installed: `npm list electron`
+
+### Playwright Electron Error: `setImmediate is not defined`
+- Some environments lack `setImmediate` during Electron launch via Playwright.
+- Add a safe polyfill in your test setup or injected script:
+  ```js
+  global.setImmediate = global.setImmediate || ((fn, ...args) => setTimeout(fn, 0, ...args));
+  ```
+  This prevents crashes without affecting app behavior.
 
 ### Screenshots Not Capturing
 - Check that the app window is visible
