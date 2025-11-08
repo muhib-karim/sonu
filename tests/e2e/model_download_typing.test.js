@@ -1,3 +1,4 @@
+/** @jest-environment node */
 /**
  * End-to-end tests for model download and typing functionality
  * Tests the complete workflow from download to typing

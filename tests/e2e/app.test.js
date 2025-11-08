@@ -1,3 +1,4 @@
+/** @jest-environment node */
 /**
  * End-to-end tests for SONU application
  */
