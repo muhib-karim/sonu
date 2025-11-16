@@ -381,6 +381,27 @@ function saveWidgetPosition(x, y) {
 function showIndicator() {
   if (!indicatorWindow) return;
   if (indicatorState === 'visible' || indicatorState === 'fading_in') return;
+  
+  // CRITICAL: Check waveform animation setting - don't show widget if disabled
+  const settingsPath = path.join(__dirname, 'data', 'settings.json');
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const raw = fs.readFileSync(settingsPath, 'utf8');
+      const settings = JSON.parse(raw);
+      console.log('Checking waveform_animation setting:', settings.waveform_animation);
+      if (settings.waveform_animation === false) {
+        console.log('Widget NOT shown - waveform animation is disabled');
+        indicatorState = 'hidden'; // Keep state as hidden
+        return;
+      }
+      console.log('Widget WILL be shown - waveform animation is enabled or not set (default true)');
+    } else {
+      console.log('Settings file not found - widget will be shown (default behavior)');
+    }
+  } catch (e) {
+    console.error('Error reading waveform setting for widget:', e);
+  }
+  
   if (fadeTimer) { clearInterval(fadeTimer); fadeTimer = null; }
   indicatorState = 'visible';
   try { 
@@ -450,28 +471,44 @@ function hideIndicator() {
 }
 
 // Incremental typing: type only new words that haven't been typed yet
+// Optimized for instant output like Wispr Flow and Typeless
 function typeIncrementalText(newText, isPartial = false) {
   if (!newText || !newText.trim()) return '';
   
   // Extract only the NEW words that haven't been typed yet
   let textToType = '';
+  
   if (lastTypedText && newText.startsWith(lastTypedText)) {
-    // New text extends what we've already typed - type only the delta
-    textToType = newText.slice(lastTypedText.length).trim();
+    // New text extends what we've already typed - type only the delta (fastest path)
+    textToType = newText.slice(lastTypedText.length);
+    // Don't trim - preserve leading spaces for natural typing
+  } else if (lastTypedText && newText.length > lastTypedText.length) {
+    // Text has grown - find the longest common prefix for instant typing
+    let commonLength = 0;
+    const minLen = Math.min(lastTypedText.length, newText.length);
+    for (let i = 0; i < minLen && lastTypedText[i] === newText[i]; i++) {
+      commonLength = i + 1;
+    }
+    // Type everything after the common prefix (more aggressive for instant output)
+    textToType = newText.slice(commonLength);
   } else if (!lastTypedText || !newText.includes(lastTypedText)) {
     // Completely new text or doesn't match - type everything
-    // For partials, be conservative and only type if we have clear word boundaries
     if (isPartial) {
-      // Find the last complete word in lastTypedText
-      const lastWordMatch = lastTypedText.match(/(\S+\s*)$/);
-      if (lastWordMatch && newText.includes(lastTypedText.slice(0, -lastWordMatch[1].length))) {
-        // Type from after the last complete word
-        const lastCompletePos = lastTypedText.length - lastWordMatch[1].length;
-        textToType = newText.slice(lastCompletePos).trim();
+      // For partials, be more aggressive - type new words immediately
+      // Find the last word boundary in lastTypedText for smoother typing
+      if (lastTypedText) {
+        const lastSpaceIndex = lastTypedText.lastIndexOf(' ');
+        if (lastSpaceIndex > 0 && newText.includes(lastTypedText.substring(0, lastSpaceIndex + 1))) {
+          // Type from after the last complete word
+          textToType = newText.slice(lastSpaceIndex + 1);
+        } else {
+          // No match - type everything (might be correction or new sentence)
+          textToType = newText;
+          lastTypedText = ''; // Reset since we're typing everything
+        }
       } else {
-        // No match - type everything (might be correction)
+        // First partial - type everything
         textToType = newText;
-        lastTypedText = ''; // Reset since we're typing everything
       }
     } else {
       // Final text - type everything
@@ -479,7 +516,8 @@ function typeIncrementalText(newText, isPartial = false) {
     }
   }
   
-  if (textToType) {
+  // Type immediately if there's new text to type
+  if (textToType && textToType.trim().length > 0) {
     typeStringRobot(textToType);
     lastTypedText = newText; // Update what we've typed
   }
@@ -516,98 +554,73 @@ function typeStringRobot(text) {
     indicatorWindow.hide();
   }
   
-  // ULTRA-OPTIMIZED: Zero-delay typing for instant output
-  // Hide window is already done synchronously above, so we can type immediately
-  const useRobotjsFirst = true;
-  
-  if (useRobotjsFirst && robot && robotType === 'robotjs' && robot.typeString) {
-    // INSTANT METHOD: Direct robotjs.typeString with minimal delay (5ms for focus)
-    // Using setImmediate for fastest possible execution
-    setImmediate(() => {
-      // Absolute minimum delay - just enough for Windows focus switch
-      setTimeout(() => {
+  // INSTANT TYPING: Use clipboard+paste for ALL text (fastest method, no character delays)
+  // This is how Wispr Flow, Typeless, and MacWhisper achieve instant output
+  if (robot && robot.keyTap) {
+    // Write to clipboard synchronously (fast)
+    try {
+      clipboard.writeText(text);
+      if (logger) logger.typing('Text copied to clipboard', { duration_ms: Date.now() - startTime });
+      
+      // Paste immediately using process.nextTick (faster than setImmediate/setTimeout)
+      // Window is already hidden synchronously above, so we can paste with minimal delay
+      process.nextTick(() => {
         try {
-          robot.typeString(text);
+          robot.keyTap('v', 'control');
           const totalTime = Date.now() - startTime;
-          if (logger) logger.typing('✓ Typed with robotjs.typeString', { total_duration_ms: totalTime });
-          console.log(`✓ Typed successfully in ${totalTime}ms`);
-          return;
-        } catch (e) {
-          if (logger) logger.typingError('robotjs.typeString failed, falling back to clipboard', e);
-          // Fall through to clipboard method
+          if (logger) logger.typing('✓ Pasted instantly with Ctrl+V', { total_duration_ms: totalTime });
+          console.log(`✓ Typed instantly in ${totalTime}ms (clipboard method)`);
+        } catch (pasteErr) {
+          if (logger) logger.typingError('Paste failed', pasteErr);
+          console.warn('Text is in clipboard, use Ctrl+V manually');
         }
-      }, 5); // Reduced to 5ms - absolute minimum for Windows focus
-    });
-    
-    // Also set up clipboard fallback in parallel (in case robotjs fails)
-    if (robot && robot.keyTap) {
-      setImmediate(() => {
-        setTimeout(() => {
-          try {
-            clipboard.writeText(text);
-            if (logger) logger.typing('Text copied to clipboard (backup)', { duration_ms: Date.now() - startTime });
-            // Don't auto-paste if robotjs succeeded
-          } catch (clipErr) {
-            if (logger) logger.typingError('Clipboard backup failed', clipErr);
-          }
-        }, 15);
       });
+      return true;
+    } catch (clipErr) {
+      if (logger) logger.typingError('Clipboard failed', clipErr);
+      console.error('Failed to copy to clipboard:', clipErr);
+      // Fall through to alternative methods
     }
-  } else if (useRobotjsFirst && robotType === 'robot-js' && robot && robot.Keyboard && robot.Keyboard.typeString) {
-    // FASTEST METHOD: Direct robot-js typing
+  }
+  
+  // FALLBACK: Try robot-js if clipboard method failed
+  if (robot && robotType === 'robot-js' && robot.Keyboard && robot.Keyboard.typeString) {
     process.nextTick(() => {
-      setTimeout(() => {
-        try {
-          robot.Keyboard.typeString(text);
-          const totalTime = Date.now() - startTime;
-          if (logger) logger.typing('✓ Typed with robot-js', { total_duration_ms: totalTime });
-          console.log(`✓ Typed successfully in ${totalTime}ms`);
-          return;
-        } catch (e) {
-          if (logger) logger.typingError('robot-js.Keyboard.typeString failed, falling back to clipboard', e);
-          // Fall through to clipboard method
-        }
-      }, 10); // Reduced to 10ms for faster response
-    });
-  } else if (robot && robot.keyTap) {
-    // FALLBACK: Clipboard + Ctrl+V (slower but reliable)
-    setImmediate(() => {
-      // Minimal delay for focus switching (reduced from 50ms to 15ms)
-      setTimeout(() => {
-        try {
-          clipboard.writeText(text);
-          if (logger) logger.typing('Text copied to clipboard', { duration_ms: Date.now() - startTime });
-          
-          // Immediate paste with minimal delay
-          setTimeout(() => {
-            try {
-              robot.keyTap('v', 'control');
-              const totalTime = Date.now() - startTime;
-              if (logger) logger.typing('✓ Pasted successfully with Ctrl+V', { total_duration_ms: totalTime });
-              console.log(`✓ Typed successfully in ${totalTime}ms`);
-            } catch (pasteErr) {
-              if (logger) logger.typingError('Paste failed', pasteErr);
-              console.warn('Text is in clipboard, use Ctrl+V manually');
-            }
-          }, 10); // Reduced from 20ms to 10ms
-        } catch (clipErr) {
-          if (logger) logger.typingError('Clipboard failed', clipErr);
-          console.error('Failed to copy to clipboard:', clipErr);
-        }
-      }, 15); // Reduced from 50ms to 15ms
-    });
-  } else {
-    // FINAL FALLBACK: Clipboard only (no robotjs available)
-    setImmediate(() => {
       try {
-        clipboard.writeText(text);
-        if (logger) logger.typing('Text copied to clipboard (fallback)');
-        console.log('Text copied to clipboard (use Ctrl+V to paste)');
-      } catch (clipErr) {
-        if (logger) logger.typingError('All typing methods failed', clipErr);
-        console.error('Failed to copy to clipboard:', clipErr);
+        robot.Keyboard.typeString(text);
+        const totalTime = Date.now() - startTime;
+        if (logger) logger.typing('✓ Typed with robot-js', { total_duration_ms: totalTime });
+        console.log(`✓ Typed successfully in ${totalTime}ms`);
+      } catch (e) {
+        if (logger) logger.typingError('robot-js.Keyboard.typeString failed', e);
       }
     });
+    return true;
+  }
+  
+  // FALLBACK: Try typeStringDelayed with 0 delay (for very short text only)
+  if (robot && robotType === 'robotjs' && robot.typeStringDelayed && text.length < 10) {
+    process.nextTick(() => {
+      try {
+        robot.typeStringDelayed(text, 0); // 0 delay = maximum speed
+        const totalTime = Date.now() - startTime;
+        if (logger) logger.typing('✓ Typed with robotjs.typeStringDelayed (0ms)', { total_duration_ms: totalTime });
+        console.log(`✓ Typed successfully in ${totalTime}ms`);
+      } catch (e) {
+        if (logger) logger.typingError('robotjs.typeStringDelayed failed', e);
+      }
+    });
+    return true;
+  }
+  
+  // FINAL FALLBACK: Clipboard only (no robotjs available)
+  try {
+    clipboard.writeText(text);
+    if (logger) logger.typing('Text copied to clipboard (fallback)');
+    console.log('Text copied to clipboard (use Ctrl+V to paste)');
+  } catch (clipErr) {
+    if (logger) logger.typingError('All typing methods failed', clipErr);
+    console.error('Failed to copy to clipboard:', clipErr);
   }
   
   return true;
@@ -926,20 +939,32 @@ function ensureWhisperService() {
         
         // INSTANT TYPING: Type partials incrementally as they arrive
         // This gives Wispr Flow-like instant feedback while still recording
+        // Window is already hidden when recording starts, so we can type immediately
+        // CRITICAL: This also handles the instant partial sent on RELEASE/STOP for instant output
         if (partial && partial.length > 0) {
-          // Hide window immediately when we get first partial (user is still speaking)
-          if (mainWindow && mainWindow.isVisible()) {
-            mainWindow.setAlwaysOnTop(false);
-            mainWindow.hide();
-            mainWindow.minimize();
-            mainWindow.blur();
-          }
-          if (indicatorWindow && !indicatorWindow.isDestroyed()) {
-            indicatorWindow.hide();
-          }
+          // Check if this is a release partial (comes right after RELEASE event)
+          // For release partials, type immediately without complex delta calculations
+          const isReleasePartial = !isRecording; // If recording stopped, this is a release partial
           
-          // Type only the NEW words from this partial
-          typeIncrementalText(partial, true); // true = isPartial
+          if (isReleasePartial) {
+            // RELEASE PARTIAL: Type immediately for instant output (like Wispr Flow)
+            // Don't do complex delta - just type what's new or type everything if needed
+            if (!lastTypedText || !partial.startsWith(lastTypedText)) {
+              // Type everything for instant output on release
+              typeStringRobot(partial);
+              lastTypedText = partial;
+            } else {
+              // Type only the delta
+              const delta = partial.slice(lastTypedText.length);
+              if (delta && delta.trim().length > 0) {
+                typeStringRobot(delta);
+                lastTypedText = partial;
+              }
+            }
+          } else {
+            // Regular partial during recording - use incremental typing
+            typeIncrementalText(partial, true); // true = isPartial
+          }
         }
         continue;
       }
@@ -1011,18 +1036,21 @@ function ensureWhisperService() {
           
           // Send UI updates (non-blocking)
           try { 
-          mainWindow.webContents.send('recording-stop');
-          mainWindow.webContents.send('play-sound', 'stop');
-        } catch (e) {}
+            mainWindow.webContents.send('recording-stop');
+            mainWindow.webContents.send('play-sound', 'stop');
+          } catch (e) {}
           
-          // Text will come after this event - don't wait for it
+          // INSTANT TYPING: If we have partial text, type it immediately on release
+          // This gives Wispr Flow-like instant output while final transcription processes
+          // The partial will come right after RELEASE event, so we'll type it then
+          // Don't wait - partial typing happens in the PARTIAL handler below
         }
         continue;
       }
-      // Regular transcription text
+      // Regular transcription text (final text after release/stop)
       const text = raw;
       if (text) {
-        console.log('Received transcription text:', text);
+        console.log('Received final transcription text:', text);
         // Ensure text is available for manual paste as a fallback
         try { clipboard.writeText(text); } catch (e) {}
         appendHistory(text);
@@ -1041,14 +1069,20 @@ function ensureWhisperService() {
         }
         // INSTANT TYPING: Type only the delta (new words not in last partial)
         // This ensures we don't retype what we already typed from partials
+        // Since partial was already typed on release, this should be instant delta typing
         try {
           if (text && text.trim()) {
             // Type incrementally - only new words compared to what we've already typed
+            // This is typically empty or very small delta since partial was typed on release
             const typedDelta = typeIncrementalText(text, false); // false = final text
             
             // If no delta (everything was already typed from partials), we're done
-            if (!typedDelta && lastTypedText === text) {
-              console.log('✓ All text already typed from partials');
+            if (!typedDelta || typedDelta.trim().length === 0) {
+              if (lastTypedText === text) {
+                console.log('✓ All text already typed from partials - instant output!');
+              }
+            } else {
+              console.log(`✓ Typed final delta: "${typedDelta}"`);
             }
             
             // Reset for next transcription
@@ -1495,6 +1529,18 @@ function appendHistory(text) {
           mainWindow.webContents.send('play-sound', 'stop');
         } catch (e) {}
         setTimeout(() => mainWindow.hide(), 150);
+      }
+    });
+    
+    // Listen for setting changes to hide/show widget
+    ipcMain.on('notify-widget-waveform-change', (event, isEnabled) => {
+      if (indicatorWindow && !indicatorWindow.isDestroyed()) {
+        indicatorWindow.webContents.send('widget-waveform-setting-changed', isEnabled);
+        
+        // If setting is turned off while widget is visible, hide it
+        if (!isEnabled && indicatorState === 'visible') {
+          hideIndicator();
+        }
       }
     });
 
@@ -2803,31 +2849,69 @@ function appendHistory(text) {
       if (activeDownloadProcess && !activeDownloadProcess.killed) {
         console.log('🛑 Cancelling active download...');
         
-        // Force kill the process immediately
+        const processToKill = activeDownloadProcess;
+        const processPid = processToKill.pid;
+        
+        // Clear reference immediately to prevent race conditions
+        activeDownloadProcess = null;
+        
+        // Force kill the process and all its children
         if (process.platform === 'win32') {
-          // Windows: Use taskkill for forceful termination
+          // Windows: Use taskkill with /T to kill process tree (all child processes)
           try {
-            const { exec } = require('child_process');
-            exec(`taskkill /F /PID ${activeDownloadProcess.pid}`, (error) => {
-              if (error) {
-                console.error('taskkill error:', error);
+            const { execSync } = require('child_process');
+            try {
+              // Kill the entire process tree
+              execSync(`taskkill /F /T /PID ${processPid}`, { stdio: 'ignore', timeout: 5000 });
+              console.log('✓ Process tree killed with taskkill');
+            } catch (taskkillError) {
+              // If taskkill fails, try killing just the process
+              try {
+                execSync(`taskkill /F /PID ${processPid}`, { stdio: 'ignore', timeout: 5000 });
+                console.log('✓ Process killed with taskkill (no tree)');
+              } catch (e) {
+                console.warn('taskkill failed, using Node.js kill:', e.message);
                 // Fallback to Node.js kill
-                activeDownloadProcess.kill('SIGKILL');
-              } else {
-                console.log('✓ Process killed with taskkill');
+                try {
+                  processToKill.kill('SIGKILL');
+                } catch (killError) {
+                  console.error('Failed to kill process:', killError);
+                }
               }
-            });
+            }
           } catch (e) {
+            console.warn('taskkill execution failed, using Node.js kill:', e.message);
             // Fallback to SIGKILL
-            activeDownloadProcess.kill('SIGKILL');
+            try {
+              processToKill.kill('SIGKILL');
+            } catch (killError) {
+              console.error('Failed to kill process:', killError);
+            }
           }
         } else {
-          // Unix: Send SIGKILL for immediate termination
-          activeDownloadProcess.kill('SIGKILL');
+          // Unix: Try to kill process group, then fallback to direct kill
+          try {
+            // First try to kill the process directly (this should also kill children if they're in the same group)
+            processToKill.kill('SIGKILL');
+            console.log('✓ Process killed with SIGKILL');
+            
+            // Also try to kill any child processes using pkill (if available)
+            // This is a best-effort attempt to clean up any orphaned processes
+            try {
+              const { exec } = require('child_process');
+              exec(`pkill -P ${processPid} 2>/dev/null || true`, (error) => {
+                if (!error) {
+                  console.log('✓ Child processes cleaned up');
+                }
+              });
+            } catch (pkillError) {
+              // pkill not available or failed, that's okay
+            }
+          } catch (e) {
+            console.error('Failed to kill process:', e);
+          }
         }
         
-        // Clear immediately
-        activeDownloadProcess = null;
         console.log('🛑 Download process terminated');
         
         if (mainWindow && !mainWindow.isDestroyed()) {

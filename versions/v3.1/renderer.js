@@ -773,8 +773,22 @@ window.accessibilityManager = accessibilityManager;
   let waveformAnimationId = null;
   let waveformData = [];
   
+  // Helper function to check if waveform should be enabled
+  function isWaveformEnabled() {
+    const waveformToggle = document.getElementById('waveform-toggle');
+    // Must check: toggle exists, toggle is checked, AND appSettings is explicitly true
+    return waveformToggle && 
+           waveformToggle.checked === true && 
+           appSettings.waveform_animation === true;
+  }
+  
   function drawWaveform() {
     if (!waveformCanvas || !waveformContainer) return;
+    
+    // CRITICAL: Don't draw if waveform is not enabled
+    if (!isWaveformEnabled()) {
+      return;
+    }
     
     const ctx = waveformCanvas.getContext('2d', { alpha: true });
     const width = waveformCanvas.width;
@@ -848,16 +862,37 @@ window.accessibilityManager = accessibilityManager;
   }
   
   function startWaveformAnimation() {
+    // Always check first - if not enabled, stop and hide immediately
+    if (!isWaveformEnabled()) {
+      stopWaveformAnimation();
+      return;
+    }
+    
+    // Don't start if already running
     if (waveformAnimationId) return;
     
-    const waveformToggle = document.getElementById('waveform-toggle');
-    if (!waveformToggle || !waveformToggle.checked) return;
-    
-    if (waveformContainer) {
+    // Show container only if enabled - use multiple methods to ensure it's visible
+    if (waveformContainer && isWaveformEnabled()) {
       waveformContainer.style.display = 'flex';
+      waveformContainer.style.visibility = 'visible';
+      waveformContainer.removeAttribute('hidden');
+    } else {
+      // Double-check: if somehow we got here but it's not enabled, hide it
+      if (waveformContainer) {
+        waveformContainer.style.display = 'none';
+        waveformContainer.style.visibility = 'hidden';
+        waveformContainer.setAttribute('hidden', '');
+      }
+      return;
     }
     
     function animate() {
+      // Check on every frame - if disabled, stop immediately
+      if (!isWaveformEnabled()) {
+        stopWaveformAnimation();
+        return;
+      }
+      
       drawWaveform();
       waveformAnimationId = requestAnimationFrame(animate);
     }
@@ -871,13 +906,31 @@ window.accessibilityManager = accessibilityManager;
       waveformAnimationId = null;
     }
     
+    // Immediately hide the container - use multiple methods to ensure it's hidden
     if (waveformContainer) {
       waveformContainer.style.display = 'none';
+      waveformContainer.style.visibility = 'hidden';
+      waveformContainer.setAttribute('hidden', '');
     }
     
     // Reset waveform data
     waveformData = [];
   }
+  
+  // Continuous monitor to ensure container stays hidden when toggle is off
+  // This runs every 100ms to catch any cases where it might be shown
+  setInterval(() => {
+    if (waveformContainer && !isWaveformEnabled()) {
+      // Force hide if toggle is off
+      waveformContainer.style.display = 'none';
+      waveformContainer.style.visibility = 'hidden';
+      waveformContainer.setAttribute('hidden', '');
+      // Also stop animation if it's running
+      if (waveformAnimationId) {
+        stopWaveformAnimation();
+      }
+    }
+  }, 100);
 
   // Recording handlers
   ipc.onRecordingStart(() => {
@@ -886,8 +939,18 @@ window.accessibilityManager = accessibilityManager;
     livePreview.style.display = 'block';
     livePreviewText.textContent = 'Listening...';
     
-    // Start waveform animation if enabled
-    startWaveformAnimation();
+    // Always ensure container state matches toggle - hide first if disabled
+    if (!isWaveformEnabled()) {
+      if (waveformContainer) {
+        waveformContainer.style.display = 'none';
+        waveformContainer.style.visibility = 'hidden';
+        waveformContainer.setAttribute('hidden', '');
+      }
+      stopWaveformAnimation();
+    } else {
+      // Only start if explicitly enabled
+      startWaveformAnimation();
+    }
   });
 
   ipc.onRecordingStop(() => {
@@ -2016,6 +2079,19 @@ window.accessibilityManager = accessibilityManager;
         toggle.checked = value === true;
       }
     });
+    
+    // CRITICAL: Always ensure waveform container visibility matches toggle state
+    // This runs whenever settings are applied, so we must enforce the toggle state
+    if (waveformContainer) {
+      if (!isWaveformEnabled()) {
+        // Toggle is off - ALWAYS hide and stop (use multiple methods)
+        waveformContainer.style.display = 'none';
+        waveformContainer.style.visibility = 'hidden';
+        waveformContainer.setAttribute('hidden', '');
+        stopWaveformAnimation();
+      }
+      // Note: We don't show it here even if enabled, because it should only show during recording
+    }
 
     // Apply selects
     if (appSettings.selected_model) {
@@ -2830,14 +2906,29 @@ window.accessibilityManager = accessibilityManager;
   const waveformToggle = document.getElementById('waveform-toggle');
   if (waveformToggle) {
     waveformToggle.addEventListener('change', (e) => {
-      saveAppSettings({ waveform_animation: e.target.checked });
+      // Immediately update appSettings before saving
+      const newValue = e.target.checked === true;
+      appSettings.waveform_animation = newValue;
+      saveAppSettings({ waveform_animation: newValue });
       
-      // If recording is active and toggle is turned on, start animation
-      if (e.target.checked && isListening) {
-        startWaveformAnimation();
-      } else if (!e.target.checked) {
-        // If toggle is turned off, stop animation
+      // CRITICAL: Always hide container and stop animation when toggle is off
+      if (!newValue) {
+        if (waveformContainer) {
+          waveformContainer.style.display = 'none';
+          waveformContainer.style.visibility = 'hidden';
+          waveformContainer.setAttribute('hidden', '');
+        }
         stopWaveformAnimation();
+      } else if (newValue && isListening) {
+        // If recording is active and toggle is turned on, start animation
+        startWaveformAnimation();
+      } else {
+        // If not recording, just ensure container is hidden
+        if (waveformContainer) {
+          waveformContainer.style.display = 'none';
+          waveformContainer.style.visibility = 'hidden';
+          waveformContainer.setAttribute('hidden', '');
+        }
       }
     });
   }

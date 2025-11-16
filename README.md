@@ -319,6 +319,11 @@ This runs `auto_screenshot.js`, capturing screenshots to `screenshots/` and a wa
 - **Change Themes**: Toggle between light and dark themes via the header switch
 - **Customize Settings**: Access comprehensive settings via the sidebar
 - **Dictionary Management**: Add custom words to improve transcription accuracy
+- **Waveform Animation**: Control the visual waveform indicator during dictation
+  - Go to Settings → Vibe Coding → "Show Live Waveform Animation"
+  - When **ON**: The floating widget with animated waveform bars appears during dictation
+  - When **OFF**: Dictation works normally but the widget is completely hidden
+  - The setting applies immediately - toggle it on/off while dictating to see the change
 
 ---
 
@@ -346,6 +351,7 @@ Settings are stored in `data/settings.json`:
   "selected_model": "base",
   "dictation_hotkey": "Ctrl+Space",
   "sound_feedback": true,
+  "waveform_animation": true,
   "model_download_path": ""
 }
 ```

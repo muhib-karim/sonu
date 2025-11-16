@@ -85,5 +85,7 @@ contextBridge.exposeInMainWorld('voiceApp', {
   // Logging
   getLogsDirectory: () => ipcRenderer.invoke('logs:get-directory'),
   getRecentLogs: (category, lines) => ipcRenderer.invoke('logs:get-recent', category, lines),
-  openLogsDirectory: () => ipcRenderer.invoke('logs:open-directory')
+  openLogsDirectory: () => ipcRenderer.invoke('logs:open-directory'),
+  // Widget waveform setting
+  notifyWidgetWaveformChange: (isEnabled) => ipcRenderer.send('notify-widget-waveform-change', isEnabled)
 });

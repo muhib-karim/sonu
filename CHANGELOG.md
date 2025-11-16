@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This version focuses on comprehensive test environment fixes and feature verification to ensure all app functionality works correctly. E2E tests now pass reliably with improved launch stability.
 
+#### Fixed
+
+- **Waveform Animation Toggle**: Fixed the "Show Live Waveform Animation" toggle not properly controlling widget visibility
+  - When toggle is **OFF**: The entire widget window (floating indicator) is now completely hidden during dictation
+  - When toggle is **ON**: The widget appears normally with animated waveform bars
+  - The setting is now properly checked before showing the widget, and changes apply immediately
+  - Fixed issue where widget would still appear even when toggle was disabled
+
 #### Added
 
 - **Test Scripts**: Added `test` and `test:e2e` scripts to main package.json
