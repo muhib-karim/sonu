@@ -5452,6 +5452,21 @@ window.accessibilityManager = accessibilityManager;
     });
   }
   
+  // Listen for whisper-loading event (model is loading)
+  // Note: modelLoadStartTime is already declared at the top of the file
+  if (window.voiceApp.onWhisperLoading) {
+    window.voiceApp.onWhisperLoading((data) => {
+      console.log('🔄 Whisper model loading...', data);
+      whisperModelReady = false;
+      modelLoadStartTime = Date.now();
+      const activeModelStatus = document.getElementById('active-model-status');
+      if (activeModelStatus) {
+        const modelName = data?.model || 'model';
+        activeModelStatus.innerHTML = `<span style="color: #f59e0b; font-weight: 600;">⏳ Loading ${modelName.toUpperCase()}...</span>`;
+      }
+    });
+  }
+  
   // Listen for whisper-ready event
   window.voiceApp.onWhisperReady((data) => {
     console.log('Whisper model ready:', data);

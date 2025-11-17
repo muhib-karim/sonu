@@ -1,6 +1,28 @@
 // Electron imports - must be first
 const electron = require('electron');
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, clipboard, screen, shell, nativeTheme, dialog } = electron;
+
+if (!electron) {
+  console.error('Failed to require electron');
+  process.exit(1);
+}
+
+if (!electron.app) {
+  console.error('electron.app is undefined');
+  process.exit(1);
+}
+
+const app = electron.app;
+const BrowserWindow = electron.BrowserWindow;
+const globalShortcut = electron.globalShortcut;
+const ipcMain = electron.ipcMain;
+const Tray = electron.Tray;
+const Menu = electron.Menu;
+const nativeImage = electron.nativeImage;
+const clipboard = electron.clipboard;
+const screen = electron.screen;
+const shell = electron.shell;
+const nativeTheme = electron.nativeTheme;
+const dialog = electron.dialog;
 
 // Model downloader integration
 const { ModelDownloader } = require('./src/model_downloader.js');
@@ -55,7 +77,8 @@ let llmProcess = null; // LLM service process
 let llmProcessReady = false; // Whether LLM service is ready
 let isRecording = false;
 let robot;
-let robotType = null; // 'robot-js' or 'robotjs'
+let robotType = null; // 'insert-text', 'robot-js', or 'robotjs'
+let insertTextNative = null; // Modern native addon for instant typing
 let lastTypedText = ''; // Track what we've already typed for incremental typing
 let pendingTypingQueue = []; // Queue for typing operations to prevent overlap
 const isTestMode = String(process.env.NODE_ENV || '').toLowerCase() === 'test' ||
@@ -78,29 +101,42 @@ let whisperModelReady = false; // Track if whisper model is loaded
 let activeDownloadProcess = null; // Track active download process for cancellation
 let pendingRecordingAction = null; // Queue recording action if model not ready yet
 
+// Load typing libraries in order of preference (fastest/most reliable first)
 if (!isTestMode) {
+  // Method 1: Modern native addon (fastest, most reliable - like Wispr Flow)
   try {
-    robot = require('robot-js');
-    robotType = 'robot-js';
-    console.log('✓ robot-js loaded successfully');
-  } catch (e1) {
+    insertTextNative = require('@xitanggg/node-insert-text');
+    robotType = 'insert-text';
+    console.log('✓ @xitanggg/node-insert-text loaded successfully (modern native addon - fastest method)');
+  } catch (e0) {
+    // Method 2: robot-js
     try {
-      robot = require('robotjs');
-      robotType = 'robotjs';
-      console.log('✓ robotjs loaded successfully');
-    } catch (e2) {
-      robot = null;
-      robotType = null;
-      console.warn('⚠ robot automation library not available; auto-typing disabled.');
-      console.warn('Install robotjs: npm install robotjs');
-      console.error('robot-js error:', e1.message);
-      console.error('robotjs error:', e2.message);
+      robot = require('robot-js');
+      robotType = 'robot-js';
+      console.log('✓ robot-js loaded successfully');
+    } catch (e1) {
+      // Method 3: robotjs (fallback)
+      try {
+        robot = require('robotjs');
+        robotType = 'robotjs';
+        console.log('✓ robotjs loaded successfully');
+      } catch (e2) {
+        robot = null;
+        robotType = null;
+        insertTextNative = null;
+        console.warn('⚠ No typing library available; auto-typing will use clipboard only.');
+        console.warn('Install one of: npm install @xitanggg/node-insert-text (recommended) or npm install robotjs');
+        console.error('insert-text error:', e0.message);
+        console.error('robot-js error:', e1.message);
+        console.error('robotjs error:', e2.message);
+      }
     }
   }
 } else {
   robot = null;
   robotType = null;
-  console.log('Test mode detected: skipping robot libraries for E2E stability');
+  insertTextNative = null;
+  console.log('Test mode detected: skipping typing libraries for E2E stability');
 }
 
 // Helper function to find Python executable
@@ -233,16 +269,32 @@ function createWindow() {
       // Use setImmediate to ensure this runs after the window is fully shown
       setImmediate(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
+          // Ensure window is focusable
+          mainWindow.setFocusable(true);
           mainWindow.focus();
-          // Bring to front
+          // Temporarily bring to front, then set back to normal
           mainWindow.setAlwaysOnTop(true);
           setTimeout(() => {
             if (mainWindow && !mainWindow.isDestroyed()) {
               mainWindow.setAlwaysOnTop(false);
+              // Ensure it's still focusable
+              mainWindow.setFocusable(true);
+              mainWindow.focus();
             }
           }, 100);
         }
       });
+    });
+    
+    // Also handle when window is requested to be shown (from taskbar)
+    mainWindow.on('restore', () => {
+      console.log('Window restore event - ensuring focus');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.setFocusable(true);
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.setAlwaysOnTop(false);
+      }
     });
   }
   
@@ -630,7 +682,12 @@ function createIndicatorWindow() {
       contextIsolation: true
     }
   });
-  indicatorWindow.loadFile('widget.html');
+  const widgetPath = path.join(__dirname, 'widget.html');
+  if (!fs.existsSync(widgetPath)) {
+    console.error('Widget file not found at:', widgetPath);
+    return;
+  }
+  indicatorWindow.loadFile(widgetPath);
   
   // CRITICAL: Allow mouse events so the window can be dragged
   // The CSS -webkit-app-region: drag in widget.html will handle dragging
@@ -783,13 +840,18 @@ function showIndicator() {
     indicatorWindow.setAlwaysOnTop(true);
     indicatorWindow.setMovable(true);
     
-    // Show the window
-    indicatorWindow.showInactive(); 
+    // INSTANT SHOW - No delays, show immediately
+    indicatorWindow.show(); // Use show() instead of showInactive() for instant display
     indicatorWindow.setOpacity(1); // Show instantly - no fade
+    indicatorWindow.setVisibleOnAllWorkspaces(true); // Ensure visible on all workspaces
     
-    // Force window to be movable and ensure drag works
-    // Wait for window to be fully rendered
-    setTimeout(() => {
+    // Send waveform start event IMMEDIATELY (waveform is already in HTML, just ensure it's visible)
+    if (indicatorWindow && !indicatorWindow.isDestroyed()) {
+      indicatorWindow.webContents.send('start-waveform');
+    }
+    
+    // Force window to be movable and ensure drag works (non-blocking)
+    setImmediate(() => {
       if (indicatorWindow && !indicatorWindow.isDestroyed()) {
         indicatorWindow.setMovable(true);
         indicatorWindow.setIgnoreMouseEvents(false);
@@ -798,9 +860,8 @@ function showIndicator() {
           document.body.style.pointerEvents = 'auto';
           document.body.style.cursor = 'default';
         `).catch(() => {});
-        console.log('Widget shown and should be draggable');
       }
-    }, 50);
+    });
   } catch (e) {
     console.error('Error showing indicator:', e);
   }
@@ -898,6 +959,14 @@ function typeIncrementalText(newText, isPartial = false) {
 function typeStringRobot(text) {
   const startTime = Date.now();
   
+  // CRITICAL: Never type or hide window for notes recording
+  // Notes recording text should only go to Notes UI, not be typed system-wide
+  if (isNotesRecording) {
+    console.log('⚠ typeStringRobot called during notes recording - skipping typing and window hiding');
+    if (logger) logger.typing('Skipped typing - notes recording active');
+    return false;
+  }
+  
   if (!text || text.trim() === '') {
     if (logger) logger.typing('Empty text, skipping');
     return false;
@@ -912,19 +981,46 @@ function typeStringRobot(text) {
   
   // CRITICAL: Completely hide and unfocus ALL windows IMMEDIATELY
   // This must happen synchronously before any typing - NO DELAYS
-  if (mainWindow) {
+  // BUT: Only if not notes recording (checked above)
+  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.setAlwaysOnTop(false);
+    mainWindow.blur();
     mainWindow.hide();
     mainWindow.minimize();
-    mainWindow.blur();
+    // Force window to lose focus
+    if (process.platform === 'win32') {
+      // On Windows, minimize ensures focus is released
+      mainWindow.minimize();
+    }
   }
   
   // Also hide indicator window to prevent focus stealing
   if (indicatorWindow && !indicatorWindow.isDestroyed()) {
     indicatorWindow.hide();
+    indicatorWindow.setAlwaysOnTop(false);
   }
   
-  // INSTANT TYPING: Use clipboard+paste for ALL text (fastest method, no character delays)
+  // INSTANT TYPING: Multiple methods in order of preference
+  // Method 1: Modern native addon (fastest, most reliable - like Wispr Flow)
+  if (insertTextNative && insertTextNative.insertText) {
+    // Hide window first
+    setTimeout(() => {
+      try {
+        insertTextNative.insertText(text);
+        const totalTime = Date.now() - startTime;
+        if (logger) logger.typing('✓ Typed instantly with native insertText', { total_duration_ms: totalTime });
+        console.log(`✓ Typed instantly in ${totalTime}ms (native insertText method)`);
+      } catch (insertErr) {
+        if (logger) logger.typingError('Native insertText failed', insertErr);
+        console.error('❌ Native insertText failed:', insertErr.message || insertErr);
+        // Fall through to clipboard method
+        typeStringRobotClipboard(text, startTime);
+      }
+    }, 100); // Minimal delay for window hiding
+    return true;
+  }
+  
+  // Method 2: Clipboard + Ctrl+V (fast, reliable - what Wispr Flow uses)
   // This is how Wispr Flow, Typeless, and MacWhisper achieve instant output
   if (robot && robot.keyTap) {
     // Write to clipboard synchronously (fast)
@@ -932,19 +1028,43 @@ function typeStringRobot(text) {
       clipboard.writeText(text);
       if (logger) logger.typing('Text copied to clipboard', { duration_ms: Date.now() - startTime });
       
-      // Paste immediately using process.nextTick (faster than setImmediate/setTimeout)
-      // Window is already hidden synchronously above, so we can paste with minimal delay
-      process.nextTick(() => {
+      // CRITICAL: Small delay to ensure window is fully hidden and focus has switched
+      // Windows needs a moment to switch focus to the previous application
+      setTimeout(() => {
         try {
-          robot.keyTap('v', 'control');
+          // Use correct robotjs syntax for Ctrl+V on Windows
+          // robotjs keyTap syntax: keyTap(key, [modifier1, modifier2])
+          if (process.platform === 'win32') {
+            // Try Ctrl+V - robotjs uses 'control' or 'ctrl' as modifier
+            robot.keyTap('v', 'control');
+            console.log('✓ Sent Ctrl+V paste command');
+          } else if (process.platform === 'darwin') {
+            // Mac uses Command
+            robot.keyTap('v', 'command');
+            console.log('✓ Sent Cmd+V paste command');
+          } else {
+            // Linux uses Ctrl
+            robot.keyTap('v', 'control');
+            console.log('✓ Sent Ctrl+V paste command');
+          }
           const totalTime = Date.now() - startTime;
           if (logger) logger.typing('✓ Pasted instantly with Ctrl+V', { total_duration_ms: totalTime });
           console.log(`✓ Typed instantly in ${totalTime}ms (clipboard method)`);
         } catch (pasteErr) {
           if (logger) logger.typingError('Paste failed', pasteErr);
+          console.error('❌ Paste failed:', pasteErr.message || pasteErr);
           console.warn('Text is in clipboard, use Ctrl+V manually');
+          // Try alternative syntax if first attempt failed
+          try {
+            console.log('Trying alternative robotjs syntax...');
+            if (process.platform === 'win32') {
+              robot.keyTap('v', ['control']);
+            }
+          } catch (altErr) {
+            console.error('Alternative syntax also failed:', altErr.message || altErr);
+          }
         }
-      });
+      }, 200); // 200ms delay to ensure focus has switched and window is fully hidden
       return true;
     } catch (clipErr) {
       if (logger) logger.typingError('Clipboard failed', clipErr);
@@ -955,7 +1075,7 @@ function typeStringRobot(text) {
   
   // FALLBACK: Try robot-js if clipboard method failed
   if (robot && robotType === 'robot-js' && robot.Keyboard && robot.Keyboard.typeString) {
-    process.nextTick(() => {
+    setTimeout(() => {
       try {
         robot.Keyboard.typeString(text);
         const totalTime = Date.now() - startTime;
@@ -964,13 +1084,13 @@ function typeStringRobot(text) {
       } catch (e) {
         if (logger) logger.typingError('robot-js.Keyboard.typeString failed', e);
       }
-    });
+    }, 150);
     return true;
   }
   
   // FALLBACK: Try typeStringDelayed with 0 delay (for very short text only)
   if (robot && robotType === 'robotjs' && robot.typeStringDelayed && text.length < 10) {
-    process.nextTick(() => {
+    setTimeout(() => {
       try {
         robot.typeStringDelayed(text, 0); // 0 delay = maximum speed
         const totalTime = Date.now() - startTime;
@@ -979,21 +1099,74 @@ function typeStringRobot(text) {
       } catch (e) {
         if (logger) logger.typingError('robotjs.typeStringDelayed failed', e);
       }
-    });
+    }, 150);
     return true;
   }
   
   // FINAL FALLBACK: Clipboard only (no robotjs available)
-  try {
-    clipboard.writeText(text);
-    if (logger) logger.typing('Text copied to clipboard (fallback)');
-    console.log('Text copied to clipboard (use Ctrl+V to paste)');
-  } catch (clipErr) {
-    if (logger) logger.typingError('All typing methods failed', clipErr);
-    console.error('Failed to copy to clipboard:', clipErr);
+  // Text is already in clipboard from the first attempt, but log a message
+  if (!robot) {
+    console.warn('⚠ robotjs not available - Text is in clipboard (use Ctrl+V to paste manually)');
+    console.warn('To enable auto-typing, install robotjs: npm install robotjs');
+  } else {
+    try {
+      clipboard.writeText(text);
+      if (logger) logger.typing('Text copied to clipboard (fallback)');
+      console.log('Text copied to clipboard (use Ctrl+V to paste)');
+    } catch (clipErr) {
+      if (logger) logger.typingError('All typing methods failed', clipErr);
+      console.error('Failed to copy to clipboard:', clipErr);
+    }
   }
   
   return true;
+}
+
+// Clipboard + Ctrl+V method (extracted for reuse)
+function typeStringRobotClipboard(text, startTime = Date.now()) {
+  if (!text || text.trim() === '') {
+    return false;
+  }
+  
+  // Write to clipboard synchronously (fast)
+  try {
+    clipboard.writeText(text);
+    if (logger) logger.typing('Text copied to clipboard', { duration_ms: Date.now() - startTime });
+    
+    // CRITICAL: Small delay to ensure window is fully hidden and focus has switched
+    // Windows needs a moment to switch focus to the previous application
+    setTimeout(() => {
+      try {
+        // Use correct robotjs syntax for Ctrl+V on Windows
+        if (robot && robot.keyTap) {
+          if (process.platform === 'win32') {
+            robot.keyTap('v', 'control');
+            console.log('✓ Sent Ctrl+V paste command');
+          } else if (process.platform === 'darwin') {
+            robot.keyTap('v', 'command');
+            console.log('✓ Sent Cmd+V paste command');
+          } else {
+            robot.keyTap('v', 'control');
+            console.log('✓ Sent Ctrl+V paste command');
+          }
+          const totalTime = Date.now() - startTime;
+          if (logger) logger.typing('✓ Pasted instantly with Ctrl+V', { total_duration_ms: totalTime });
+          console.log(`✓ Typed instantly in ${totalTime}ms (clipboard method)`);
+        } else {
+          console.warn('⚠ robotjs not available - Text is in clipboard (use Ctrl+V manually)');
+        }
+      } catch (pasteErr) {
+        if (logger) logger.typingError('Paste failed', pasteErr);
+        console.error('❌ Paste failed:', pasteErr.message || pasteErr);
+        console.warn('Text is in clipboard, use Ctrl+V manually');
+      }
+    }, 200); // 200ms delay to ensure focus has switched
+    return true;
+  } catch (clipErr) {
+    if (logger) logger.typingError('Clipboard failed', clipErr);
+    console.error('Failed to copy to clipboard:', clipErr);
+    return false;
+  }
 }
 
 // Removed typeDelta - we now type the full final text instead of deltas
@@ -1272,6 +1445,12 @@ function createTray() {
 }
 
 function ensureWhisperService() {
+  // CRITICAL: Don't restart service if recording is active - this causes interruptions
+  if (isRecording) {
+    console.log('⚠ Recording active - skipping service restart to prevent interruption');
+    return;
+  }
+  
   if (whisperProcess && !whisperProcess.killed) {
     // Service is ready - pre-configure hold keys if needed
     if (logger) logger.whisper('Whisper service already running');
@@ -1279,6 +1458,18 @@ function ensureWhisperService() {
   }
 
   const pythonScript = path.join(__dirname, 'whisper_service.py');
+  
+  // Verify the script exists
+  if (!fs.existsSync(pythonScript)) {
+    const errorMsg = `Whisper service script not found at: ${pythonScript}`;
+    console.error(errorMsg);
+    if (logger) logger.whisperError(errorMsg);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('whisper-error', errorMsg);
+    }
+    return;
+  }
+  
   const pythonCmd = findPythonExecutable() || 'python';
   
   if (logger) logger.whisper('Starting whisper service', { 
@@ -1287,18 +1478,46 @@ function ensureWhisperService() {
     model: settings.activeModel 
   });
   
+  // Notify UI that model is starting to load (if window exists)
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('whisper-loading', { model: settings.activeModel || 'tiny' });
+  }
+  
   // Set WHISPER_MODEL environment variable
   const env = { ...process.env };
   env.WHISPER_MODEL = settings.activeModel || 'tiny';
   
-  whisperProcess = spawn(pythonCmd, [pythonScript], { 
-    stdio: ['pipe', 'pipe', 'pipe'],
-    shell: process.platform === 'win32',
-    env: env
-  });
+  try {
+    whisperProcess = spawn(pythonCmd, [pythonScript], { 
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
+      env: env,
+      cwd: __dirname  // Set working directory to ensure relative paths work
+    });
+  } catch (error) {
+    const errorMsg = `Failed to spawn whisper service: ${error.message}`;
+    console.error(errorMsg);
+    if (logger) logger.whisperError(errorMsg);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('whisper-error', errorMsg);
+    }
+    whisperProcess = null;
+    return;
+  }
   
   // Reset buffer when creating new process
   whisperStdoutBuffer = '';
+  
+  // Add error handler for spawn failures
+  whisperProcess.on('error', (error) => {
+    const errorMsg = `Whisper service spawn error: ${error.message}`;
+    console.error(errorMsg);
+    if (logger) logger.whisperError(errorMsg);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('whisper-error', errorMsg);
+    }
+    whisperProcess = null;
+  });
   
   // Pre-configure hold keys and experimental settings immediately when service starts
   setImmediate(() => {
@@ -1323,6 +1542,10 @@ function ensureWhisperService() {
       
       // Handle live partial updates - TYPE INCREMENTALLY FOR INSTANT OUTPUT
       if (raw.startsWith('PARTIAL:')) {
+        // CRITICAL: Capture isNotesRecording state IMMEDIATELY (before any async operations)
+        // This ensures we know if it was notes recording even if flag gets reset
+        const wasNotesRecordingPartial = isNotesRecording;
+        
         const partial = raw.slice(8).trim();
         try { mainWindow.webContents.send('transcription-partial', partial); } catch (e) {}
         
@@ -1339,7 +1562,8 @@ function ensureWhisperService() {
           const transformedPartial = applyStyle(partial, getTextStyle(), getTextStyleCategory());
           
           // Don't type if this is Notes tab recording - text should only go to Notes UI
-          if (isNotesRecording) {
+          // Use wasNotesRecordingPartial (captured at start) instead of isNotesRecording
+          if (wasNotesRecordingPartial) {
             // Notes recording: Don't type, just send to UI
             console.log('Notes recording: skipping auto-type, sending to Notes UI');
           } else if (continuousDictationEnabled && isRecording) {
@@ -1351,25 +1575,25 @@ function ensureWhisperService() {
             console.log('Normal mode: storing partial, waiting for final transcription');
             // Don't type - wait for final transcription
           } else {
-            // Release partial (recording stopped): Type immediately
-            // Check if this is a release partial (comes right after RELEASE event)
+            // Release partial (recording stopped): Type immediately for instant output
+            // This handles both HOLD release and TOGGLE off scenarios
+            // The partial comes right after STOP command for instant typing
             const isReleasePartial = !isRecording; // If recording stopped, this is a release partial
             
-            if (isReleasePartial) {
-              // RELEASE PARTIAL: Type immediately for instant output (like Wispr Flow)
-              // Don't do complex delta - just type what's new or type everything if needed
-              if (!lastTypedText || !transformedPartial.startsWith(lastTypedText)) {
-                // Type everything for instant output on release
-                typeStringRobot(transformedPartial);
-                lastTypedText = transformedPartial;
-              } else {
-                // Type only the delta
-                const delta = transformedPartial.slice(lastTypedText.length);
-                if (delta && delta.trim().length > 0) {
-                  typeStringRobot(delta);
-                  lastTypedText = transformedPartial;
-                }
-              }
+            // CRITICAL: Don't type release partials for notes recording - text should only go to Notes UI
+            // Use wasNotesRecordingPartial (captured at start) instead of isNotesRecording
+            if (isReleasePartial && transformedPartial && transformedPartial.trim() && !wasNotesRecordingPartial) {
+              // RELEASE/STOP PARTIAL: Type immediately for instant output (like Wispr Flow)
+              // This gives instant feedback while final transcription processes in background
+              console.log('⚡ Instant typing release partial:', transformedPartial.substring(0, 50));
+              
+              // Type everything for instant output - don't worry about deltas
+              // The final transcription will handle any corrections
+              typeStringRobot(transformedPartial);
+              lastTypedText = transformedPartial;
+            } else if (isReleasePartial && wasNotesRecordingPartial) {
+              // Notes recording: Don't type partials, just log
+              console.log('Notes recording: skipping release partial typing, text will go to Notes UI');
             }
           }
         }
@@ -1382,13 +1606,23 @@ function ensureWhisperService() {
           // Model is loaded and ready
           whisperModelReady = true;
           if (logger) logger.whisper('Whisper model loaded and ready', { model: settings.activeModel });
-          console.log('✓ Whisper model ready');
+          console.log('✓ Whisper model ready and ready for dictation');
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('whisper-ready', { model: settings.activeModel });
           }
           
           // Send experimental settings when model is ready
           sendExperimentalSettings();
+          
+          // Pre-configure hold keys now that model is ready
+          // Small delay to ensure service is fully initialized before configuring keys
+          setTimeout(() => {
+            if (whisperProcess && !whisperProcess.killed) {
+              const pyCombo = electronToPythonCombo(settings.holdHotkey);
+              writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
+              console.log('✓ Hold keys pre-configured:', pyCombo);
+            }
+          }, 100);
           
           // Execute any pending recording action
           if (pendingRecordingAction) {
@@ -1430,13 +1664,38 @@ function ensureWhisperService() {
           continue;
         }
         if (evt === 'RELEASE') {
-          // CRITICAL: Hide indicator FIRST, before any other operations
-          // This must be synchronous and immediate - no async operations
-          hideIndicator();
+          // CRITICAL: Check if this is notes recording BEFORE hiding anything
+          const wasNotesRecording = isNotesRecording;
           
-          // Reset state immediately
-          isRecording = false;
-          isHoldKeyPressed = false;
+          // CRITICAL: Hide indicator FIRST, before any other operations
+          // BUT: Don't hide indicator for notes recording (it was never shown)
+          // This must be synchronous and immediate - no async operations
+          if (!wasNotesRecording) {
+            hideIndicator();
+          }
+          
+          // CRITICAL: Only reset isRecording if it wasn't notes recording
+          // For notes recording, keep the flag so transcription handler knows it was notes
+          if (!wasNotesRecording) {
+            isRecording = false;
+            isHoldKeyPressed = false;
+          } else {
+            // Notes recording: Keep isRecording true - stopNotesRecording() will reset it
+            console.log('📝 Notes recording RELEASE: Keeping isRecording=true for transcription handler');
+          }
+          
+          // CRITICAL: For notes recording, ensure window stays visible and focused
+          if (wasNotesRecording && mainWindow && !mainWindow.isDestroyed()) {
+            if (!mainWindow.isVisible()) {
+              console.log('🔍 Notes recording RELEASE: Window not visible, showing now');
+              mainWindow.show();
+            }
+            mainWindow.setFocusable(true);
+            mainWindow.focus();
+            mainWindow.setAlwaysOnTop(false);
+            mainWindow.moveTop();
+            console.log('✅ Notes recording RELEASE: Window kept visible and focused');
+          }
           
           // Clear timeout immediately
           if (holdRecordingTimeout) {
@@ -1462,10 +1721,21 @@ function ensureWhisperService() {
       if (text) {
         console.log('Received final transcription text:', text);
         
+        // CRITICAL: Capture isNotesRecording state IMMEDIATELY (before any async operations)
+        // This must be done synchronously because stopNotesRecording() resets the flag
+        // before transcription completes, causing the flag to be false when we check it later
+        const wasNotesRecording = isNotesRecording;
+        console.log('📝 Transcription received - wasNotesRecording:', wasNotesRecording, 'isNotesRecording:', isNotesRecording);
+        
         // Apply style transformation to final text (async - may use LLM if enabled)
         transformText(text).then(transformedText => {
+          // Use the captured wasNotesRecording value (don't check isNotesRecording again)
+          
           // Ensure text is available for manual paste as a fallback (use transformed text)
-          try { clipboard.writeText(transformedText); } catch (e) {}
+          // BUT: Don't copy to clipboard for notes recording (text should stay in Notes UI)
+          if (!wasNotesRecording) {
+            try { clipboard.writeText(transformedText); } catch (e) {}
+          }
           appendHistory(transformedText);
           mainWindow.webContents.send('transcription', transformedText);
           
@@ -1473,13 +1743,28 @@ function ensureWhisperService() {
           const continuousDictationEnabled = isContinuousDictationEnabled();
           
           // Update UI state after a transcription completes (covers HOLD release)
+          // Note: wasNotesRecording is already declared above (line 1706)
           try { 
             mainWindow.webContents.send('recording-stop');
             mainWindow.webContents.send('play-sound', 'stop');
           } catch (e) {}
-          hideIndicator();
-          isRecording = false;
-          isHoldKeyPressed = false;
+          
+          // CRITICAL: Don't hide indicator or window for notes recording
+          if (!wasNotesRecording) {
+            hideIndicator();
+          }
+          
+          // CRITICAL: Only reset isRecording if it wasn't notes recording
+          // For notes recording, the flag will be reset in stopNotesRecording()
+          // This prevents race conditions where transcription arrives after flag is reset
+          if (!wasNotesRecording) {
+            isRecording = false;
+            isHoldKeyPressed = false;
+          } else {
+            // Notes recording: Keep isRecording true until stopNotesRecording() explicitly resets it
+            // This ensures transcription handler knows it was notes recording
+            console.log('📝 Notes recording: Keeping isRecording=true until stopNotesRecording() resets it');
+          }
           if (holdRecordingTimeout) {
             clearTimeout(holdRecordingTimeout);
             holdRecordingTimeout = null;
@@ -1489,41 +1774,86 @@ function ensureWhisperService() {
           // Don't type if this is Notes tab recording - text should only go to Notes UI
           try {
             if (transformedText && transformedText.trim()) {
-              if (isNotesRecording) {
+              if (wasNotesRecording) {
                 // Notes recording: Don't type, just send to UI (already sent above)
                 console.log('Notes recording: skipping auto-type, text sent to Notes UI');
                 // Reset for next transcription
                 lastTypedText = '';
-                // Ensure app stays in foreground after notes dictation completes
+                // CRITICAL: Ensure app stays visible and focused after notes dictation completes
+                // This prevents window from being hidden or becoming unclickable
                 if (mainWindow && !mainWindow.isDestroyed()) {
+                  // Ensure window is visible and focusable
                   if (!mainWindow.isVisible()) {
+                    console.log('🔍 Notes recording: Window not visible, showing now');
                     mainWindow.show();
                   }
+                  // Ensure window is focusable and focused
+                  mainWindow.setFocusable(true);
                   mainWindow.focus();
                   mainWindow.setAlwaysOnTop(false);
+                  // Force window to front
+                  mainWindow.moveTop();
+                  console.log('✅ Notes recording: Window kept visible and focused');
                 }
+                
+                // CRITICAL: Now that transcription is processed, reset the flags immediately
+                // This allows the next notes recording to start properly
+                // Use setImmediate to reset as soon as current execution completes
+                setImmediate(() => {
+                  // Only reset if flag hasn't changed (i.e., not restarted)
+                  if (isNotesRecording === wasNotesRecording) {
+                    console.log('📝 Notes recording: Transcription processed, resetting flags');
+                    isNotesRecording = false;
+                    isRecording = false;
+                  } else {
+                    console.log('📝 Notes recording: Flag changed (recording restarted), not resetting');
+                  }
+                });
               } else if (continuousDictationEnabled) {
                 // Continuous dictation mode: We already typed partials live, so just type any remaining delta
                 // This handles the case where final transcription might have slight differences
-                const typedDelta = typeIncrementalText(transformedText, false); // false = final text
-                
-                // If no delta (everything was already typed from partials), we're done
-                if (!typedDelta || typedDelta.trim().length === 0) {
-                  if (lastTypedText === transformedText) {
-                    console.log('✓ Continuous dictation: All text already typed from live partials');
+                // CRITICAL: Don't type for notes recording - text should only go to Notes UI
+                if (!wasNotesRecording) {
+                  const typedDelta = typeIncrementalText(transformedText, false); // false = final text
+                  
+                  // If no delta (everything was already typed from partials), we're done
+                  if (!typedDelta || typedDelta.trim().length === 0) {
+                    if (lastTypedText === transformedText) {
+                      console.log('✓ Continuous dictation: All text already typed from live partials');
+                    }
+                  } else {
+                    console.log(`✓ Continuous dictation: Typed final delta: "${typedDelta}"`);
                   }
                 } else {
-                  console.log(`✓ Continuous dictation: Typed final delta: "${typedDelta}"`);
+                  console.log('Notes recording: skipping continuous dictation typing, text will go to Notes UI');
                 }
                 
                 // Reset for next transcription
                 lastTypedText = '';
               } else {
                 // Normal mode (continuous dictation OFF): Type the complete final transcription
-                // We didn't type any partials, so type everything now
-                console.log('Normal mode: typing complete final transcription');
-                typeStringRobot(transformedText);
-                lastTypedText = transformedText;
+                // BUT: If we already typed a partial on STOP, only type the delta
+                // CRITICAL: Don't type for notes recording - text should only go to Notes UI
+                if (!wasNotesRecording) {
+                  if (lastTypedText && transformedText.startsWith(lastTypedText)) {
+                    // We already typed a partial, just type the delta
+                    const delta = transformedText.slice(lastTypedText.length);
+                    if (delta && delta.trim().length > 0) {
+                      console.log('Normal mode: typing final delta:', delta.substring(0, 50));
+                      typeStringRobot(delta);
+                      lastTypedText = transformedText;
+                    } else {
+                      console.log('Normal mode: All text already typed from partial');
+                    }
+                  } else {
+                    // No partial was typed, type everything
+                    console.log('Normal mode: typing complete final transcription');
+                    typeStringRobot(transformedText);
+                    lastTypedText = transformedText;
+                  }
+                } else {
+                  console.log('Notes recording: skipping normal mode typing, text will go to Notes UI');
+                }
                 
                 // Reset for next transcription
                 lastTypedText = '';
@@ -1544,23 +1874,34 @@ function ensureWhisperService() {
           }
         }).catch(error => {
           console.error('Error transforming text:', error);
+          // Check if this was notes recording BEFORE processing fallback
+          const wasNotesRecording = isNotesRecording;
+          
           // Fallback to rule-based transformation
           const fallbackText = applyStyle(text, getTextStyle(), getTextStyleCategory());
-          try { clipboard.writeText(fallbackText); } catch (e) {}
+          
+          // Don't copy to clipboard for notes recording
+          if (!wasNotesRecording) {
+            try { clipboard.writeText(fallbackText); } catch (e) {}
+          }
           appendHistory(fallbackText);
           mainWindow.webContents.send('transcription', fallbackText);
+          
           // Don't type if this is Notes tab recording - keep window visible
-          if (isNotesRecording) {
+          if (wasNotesRecording) {
             console.log('Notes recording: skipping auto-type in error handler, keeping window visible');
             // Ensure app stays in foreground after notes dictation completes
             if (mainWindow && !mainWindow.isDestroyed()) {
               if (!mainWindow.isVisible()) {
                 mainWindow.show();
               }
+              mainWindow.setFocusable(true);
               mainWindow.focus();
               mainWindow.setAlwaysOnTop(false);
+              mainWindow.moveTop();
             }
           } else {
+            // Type the fallback text (only for non-notes recording)
             typeStringRobot(fallbackText);
           }
         });
@@ -1579,39 +1920,103 @@ function ensureWhisperService() {
 
   whisperProcess.on('exit', (code) => {
     console.log('Whisper service exited with code', code);
+    const wasRecording = isRecording; // Capture state before resetting
+    const wasNotesRecording = isNotesRecording; // Capture notes recording state
     whisperProcess = null;
     whisperStdoutBuffer = '';
+    whisperModelReady = false; // Reset model ready state
+    
     // If recording was active, stop it and hide indicator
-    if (isRecording) {
-      isRecording = false;
-      isHoldKeyPressed = false;
+    if (wasRecording) {
+      // CRITICAL: Only reset isRecording if it wasn't notes recording
+      // Notes recording has its own cleanup in stopNotesRecording()
+      if (!wasNotesRecording) {
+        isRecording = false;
+        isHoldKeyPressed = false;
+      } else {
+        // Notes recording: Let stopNotesRecording() handle cleanup
+        console.log('📝 Notes recording: Service exit - keeping state for cleanup');
+      }
       if (holdRecordingTimeout) {
         clearTimeout(holdRecordingTimeout);
         holdRecordingTimeout = null;
       }
       try { mainWindow.webContents.send('recording-stop'); } catch (e) {}
       hideIndicator();
+      
+      // Show error notification if service crashed during recording
+      if (code !== 0 && code !== null) {
+        console.error('⚠ Whisper service crashed during recording (exit code:', code, ')');
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('show-message', {
+            type: 'error',
+            message: 'Dictation service disconnected. Restarting...',
+            duration: 3000
+          });
+        }
+      }
+    }
+    
+    // Auto-restart service if it exited unexpectedly (not a clean shutdown)
+    // CRITICAL: Don't restart if recording was active - this causes interruptions
+    // Only restart if app is still running, not in test mode, and NOT during recording
+    if (code !== 0 && code !== null && !isTestMode && !wasRecording) {
+      console.log('🔄 Auto-restarting whisper service...');
+      // Small delay before restart to avoid rapid restart loops
+      setTimeout(() => {
+        if (!whisperProcess && !isRecording) { // Only restart if still not running and not recording
+          ensureWhisperService();
+        }
+      }, 1000);
+    } else if (wasRecording && code !== 0 && code !== null) {
+      // Service crashed during recording - restart immediately but don't interrupt
+      console.log('🔄 Service crashed during recording, will restart after cleanup...');
+      setTimeout(() => {
+        if (!whisperProcess && !isRecording) {
+          ensureWhisperService();
+        }
+      }, 500);
     }
   });
 }
 
 function writeToWhisper(command) {
   if (!whisperProcess || whisperProcess.killed) {
+    // CRITICAL: Don't restart service if recording is active - this causes interruptions
+    if (isRecording) {
+      console.error('⚠ Cannot write to whisper - service not available but recording is active');
+      return;
+    }
+    
     console.error('Whisper process not available, ensuring service...');
     ensureWhisperService();
-    // Wait a bit for process to start
-    setTimeout(() => {
+    // Wait a bit for process to start, with retry logic
+    let retries = 0;
+    const maxRetries = 5;
+    const retryInterval = 200; // 200ms between retries
+    
+    const tryWrite = () => {
       if (whisperProcess && !whisperProcess.killed) {
         try {
           whisperProcess.stdin.write(command);
           console.log('Sent command to whisper:', command.trim());
         } catch (e) {
           console.error('Failed to write to whisper stdin:', e);
+          // Retry if not at max retries
+          if (retries < maxRetries) {
+            retries++;
+            setTimeout(tryWrite, retryInterval);
+          }
         }
+      } else if (retries < maxRetries) {
+        retries++;
+        setTimeout(tryWrite, retryInterval);
       } else {
-        console.error('Whisper process still not available after wait');
+        console.error('Whisper process still not available after retries');
       }
-    }, 200);
+    };
+    
+    setTimeout(tryWrite, 100); // Initial delay
     return;
   }
   try {
@@ -1619,9 +2024,23 @@ function writeToWhisper(command) {
     console.log('Sent command to whisper:', command.trim());
   } catch (e) {
     console.error('Failed to write to whisper stdin:', e);
-    // Restart the service if write fails
-    whisperProcess = null;
-    ensureWhisperService();
+    // If write failed, try to restart service and retry (only if not recording)
+    if ((e.code === 'EPIPE' || e.message.includes('write after end')) && !isRecording) {
+      console.log('🔄 Service disconnected, restarting...');
+      whisperProcess = null;
+      ensureWhisperService();
+      // Retry after service restarts
+      setTimeout(() => {
+        if (whisperProcess && !whisperProcess.killed && !isRecording) {
+          try {
+            whisperProcess.stdin.write(command);
+            console.log('Retry: Sent command to whisper:', command.trim());
+          } catch (retryErr) {
+            console.error('Retry failed:', retryErr);
+          }
+        }
+      }, 1000);
+    }
   }
 }
 
@@ -1940,7 +2359,19 @@ function registerHotkeys() {
   const notesAcc = settings.notesHotkey || 'CommandOrControl+Super+N';
 
   const regHold = globalShortcut.register(holdAcc, () => {
+    // INSTANT RESPONSE - No checks that could cause delay
     if (isRecording || isHoldKeyPressed) return;
+    
+    // Ensure service is ready (should already be pre-initialized)
+    if (!whisperProcess || whisperProcess.killed) {
+      console.warn('⚠ Whisper service not ready, initializing...');
+      ensureWhisperService();
+      // Start recording immediately - service will catch up
+      startHoldRecording();
+      return;
+    }
+    
+    // Start recording INSTANTLY
     startHoldRecording();
   });
   if (!regHold) {
@@ -1950,6 +2381,15 @@ function registerHotkeys() {
   }
 
   const regToggle = globalShortcut.register(toggleAcc, () => {
+    // INSTANT RESPONSE - No delays
+    // Ensure service is ready (should already be pre-initialized)
+    if (!whisperProcess || whisperProcess.killed) {
+      console.warn('⚠ Whisper service not ready, initializing...');
+      ensureWhisperService();
+      // Start immediately - service will catch up
+      toggleRecording();
+      return;
+    }
     toggleRecording();
   });
   if (!regToggle) {
@@ -2066,11 +2506,6 @@ function startHoldRecording() {
     return;
   }
   
-  // Detect context and update category automatically (non-blocking)
-  detectAndUpdateContext().catch(e => {
-    console.warn('Context detection failed during recording start:', e.message);
-  });
-  
   // If model not ready, queue this action and show subtle indicator
   if (!whisperModelReady) {
     console.log('⚡ Model loading... queuing recording action');
@@ -2110,36 +2545,116 @@ function startHoldRecording() {
         holdRecordingTimeout = null;
       }, 30000);
       
-      if (whisperProcess && !whisperProcess.killed) {
+      if (whisperProcess && !whisperProcess.killed && whisperModelReady) {
+        // Ensure service is fully ready before sending commands
         writeToWhisper(`SET_MODE HOLD\n`);
         const pyCombo = electronToPythonCombo(settings.holdHotkey);
-        writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
-        writeToWhisper('START\n');
+        // Small delay to ensure SET_HOLD_KEYS is processed before START
+        setTimeout(() => {
+          if (whisperProcess && !whisperProcess.killed && isRecording) {
+            writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
+            setTimeout(() => {
+              if (whisperProcess && !whisperProcess.killed && isRecording) {
+                writeToWhisper('START\n');
+              }
+            }, 50);
+          }
+        }, 50);
       }
     };
     
     return; // Recording will start when model is ready
   }
   
+  // INSTANT START - Show widget and waveform FIRST, then start recording
   isHoldKeyPressed = true;
   isRecording = true;
   lastTypedText = ''; // Reset typing state for new recording
   typedSoFar = '';
   
-  // Hide window FIRST for ultra-fast response
-  mainWindow.hide();
-  
-  // Show indicator INSTANTLY - no delay
+  // CRITICAL: Show widget/waveform INSTANTLY (synchronous, before anything else)
   showIndicator();
   
-  // Send UI updates
-  mainWindow.webContents.send('recording-start');
+  // Send recording-start IMMEDIATELY to trigger waveform animation (synchronous)
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('recording-start');
+      mainWindow.webContents.send('play-sound', 'start');
+    }
+  } catch (e) {
+    // Ignore IPC errors
+  }
   
-  // Play sound feedback if enabled
-  mainWindow.webContents.send('play-sound', 'start');
+  // Hide window AFTER showing widget (synchronous)
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.hide();
+  }
   
-  // Ensure service is ready (should already be pre-initialized)
-  ensureWhisperService();
+  // Send commands IMMEDIATELY - Service should already be ready from pre-initialization
+  // CRITICAL: Ensure service is fully ready (model loaded) before sending commands
+  if (whisperProcess && !whisperProcess.killed && whisperModelReady) {
+    // Service is ready - send commands in correct order with small delay for SET_HOLD_KEYS
+    writeToWhisper(`SET_MODE HOLD\n`);
+    const pyCombo = electronToPythonCombo(settings.holdHotkey);
+    // Small delay to ensure SET_HOLD_KEYS is processed before START
+    // This prevents interruptions on first use
+    setTimeout(() => {
+      if (whisperProcess && !whisperProcess.killed && isRecording) {
+        writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
+        // Another small delay before START to ensure hold keys are registered
+        setTimeout(() => {
+          if (whisperProcess && !whisperProcess.killed && isRecording) {
+            writeToWhisper('START\n');
+          }
+        }, 50);
+      }
+    }, 50);
+  } else {
+    // If process not ready or model not loaded, ensure it and wait
+    if (!whisperModelReady) {
+      console.log('⚠ Model not ready yet, waiting for initialization...');
+      // The model ready check at the top should have queued this, but double-check
+      if (!pendingRecordingAction) {
+        // Queue the recording to start when model is ready
+        pendingRecordingAction = () => {
+          startHoldRecording();
+        };
+      }
+      return;
+    }
+    // Process exists but might not be ready - ensure it
+    ensureWhisperService();
+    // Wait for service to be ready with retry logic
+    let retries = 0;
+    const maxRetries = 10;
+    const checkReady = () => {
+      if (whisperProcess && !whisperProcess.killed && whisperModelReady) {
+        writeToWhisper(`SET_MODE HOLD\n`);
+        const pyCombo = electronToPythonCombo(settings.holdHotkey);
+        setTimeout(() => {
+          if (whisperProcess && !whisperProcess.killed && isRecording) {
+            writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
+            setTimeout(() => {
+              if (whisperProcess && !whisperProcess.killed && isRecording) {
+                writeToWhisper('START\n');
+              }
+            }, 50);
+          }
+        }, 50);
+      } else if (retries < maxRetries) {
+        retries++;
+        setTimeout(checkReady, 100);
+      } else {
+        console.error('⚠ Service not ready after retries');
+      }
+    };
+    setTimeout(checkReady, 100);
+  }
+  
+  // Detect context in background (non-blocking, doesn't delay recording)
+  detectAndUpdateContext().catch(e => {
+    // Silent fail - context detection is optional
+  });
   
   // Fallback: if no release event is received within 30 seconds, stop recording
   if (holdRecordingTimeout) {
@@ -2153,36 +2668,23 @@ function startHoldRecording() {
       writeToWhisper('STOP\n');
       hideIndicator();
       try { 
-        mainWindow.webContents.send('recording-stop');
-        mainWindow.webContents.send('play-sound', 'stop');
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('recording-stop');
+          mainWindow.webContents.send('play-sound', 'stop');
+        }
       } catch (e) {}
     }
     holdRecordingTimeout = null;
   }, 30000);
-  
-  // Send commands IMMEDIATELY - ULTRA FAST (no delays)
-  // Service should already be ready from pre-initialization
-  if (whisperProcess && !whisperProcess.killed) {
-    writeToWhisper(`SET_MODE HOLD\n`);
-    const pyCombo = electronToPythonCombo(settings.holdHotkey);
-    writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
-    writeToWhisper('START\n');
-  } else {
-    // If process not ready, ensure it and send immediately
-    ensureWhisperService();
-    // Use setImmediate for fastest possible execution
-    setImmediate(() => {
-      if (whisperProcess && !whisperProcess.killed) {
-        writeToWhisper(`SET_MODE HOLD\n`);
-        const pyCombo = electronToPythonCombo(settings.holdHotkey);
-        writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
-        writeToWhisper('START\n');
-      }
-    });
-  }
 }
 
 function startToggleRecording() {
+  // CRITICAL: Don't allow toggle recording if notes recording is active
+  if (isNotesRecording) {
+    console.log('⚠ Notes recording active - cannot start toggle recording');
+    return;
+  }
+  
   // If model not ready, queue this action and show indicator
   if (!whisperModelReady) {
     console.log('⚡ Model loading... queuing toggle recording');
@@ -2192,6 +2694,11 @@ function startToggleRecording() {
     
     // Queue the recording to start when model is ready
     pendingRecordingAction = () => {
+      // Double-check notes recording isn't active
+      if (isNotesRecording) {
+        console.log('⚠ Notes recording became active - canceling toggle recording');
+        return;
+      }
       isRecording = true;
   lastTypedText = ''; // Reset typing state for new recording
       typedSoFar = '';
@@ -2211,39 +2718,59 @@ function startToggleRecording() {
     return; // Recording will start when model is ready
   }
   
+  // INSTANT START - Show widget and waveform FIRST, then start recording
   isRecording = true;
   lastTypedText = ''; // Reset typing state for new recording
   typedSoFar = '';
   
-  // Hide window FIRST for ultra-fast response
-  mainWindow.hide();
-  
-  // Ensure service is ready
-  ensureWhisperService();
-  
-  // Send UI updates
-  mainWindow.webContents.send('recording-start');
-  mainWindow.webContents.send('play-sound', 'start');
+  // CRITICAL: Show widget/waveform INSTANTLY (synchronous, before anything else)
   showIndicator();
   
-  // Send commands IMMEDIATELY - ULTRA FAST (no delays)
+  // Send recording-start IMMEDIATELY to trigger waveform animation (synchronous)
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('recording-start');
+      mainWindow.webContents.send('play-sound', 'start');
+    }
+  } catch (e) {
+    // Ignore IPC errors
+  }
+  
+  // Hide window AFTER showing widget (synchronous)
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.hide();
+  }
+  
+  // Send commands IMMEDIATELY - Service should already be ready from pre-initialization
   if (whisperProcess && !whisperProcess.killed) {
     writeToWhisper(`SET_MODE TOGGLE\n`);
     writeToWhisper('START\n');
   } else {
     // If process not ready, ensure it and send immediately
     ensureWhisperService();
-    // Use setImmediate for fastest possible execution
-    setImmediate(() => {
+    // Use process.nextTick for fastest possible execution
+    process.nextTick(() => {
       if (whisperProcess && !whisperProcess.killed) {
         writeToWhisper(`SET_MODE TOGGLE\n`);
         writeToWhisper('START\n');
       }
     });
   }
+  
+  // Detect context in background (non-blocking, doesn't delay recording)
+  detectAndUpdateContext().catch(e => {
+    // Silent fail - context detection is optional
+  });
 }
 
 function toggleRecording() {
+  // CRITICAL: Don't allow toggle recording if notes recording is active
+  // Notes recording has its own separate stop function
+  if (isNotesRecording) {
+    console.log('⚠ Notes recording active - use stopNotesRecording() instead');
+    return;
+  }
+  
   isRecording = !isRecording;
   ensureWhisperService();
   if (isRecording) {
@@ -2253,13 +2780,33 @@ function toggleRecording() {
     });
     startToggleRecording();
   } else {
-    mainWindow.webContents.send('recording-stop');
-    mainWindow.webContents.send('play-sound', 'stop');
-    writeToWhisper('STOP\n');
+    // TOGGLE OFF: Stop recording and get instant text output
+    isRecording = false;
+    isHoldKeyPressed = false;
+    
+    // Hide indicator and window FIRST for instant response
     hideIndicator();
-    // Hide immediately so auto-typing targets the previous app
-    mainWindow.hide();
-    // Text will be typed when transcription comes back from Python service
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide();
+    }
+    
+    // Send STOP command IMMEDIATELY - before any UI updates
+    if (whisperProcess && !whisperProcess.killed) {
+      writeToWhisper('STOP\n');
+    }
+    
+    // Send UI updates AFTER stopping (non-blocking)
+    setImmediate(() => {
+      try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('recording-stop');
+          mainWindow.webContents.send('play-sound', 'stop');
+        }
+      } catch (e) {}
+    });
+    
+    // Text will be typed instantly when transcription comes back from Python service
+    // The service will send a partial immediately on STOP for instant output
   }
   // Update tray menu to reflect recording state
   updateTrayMenu();
@@ -2330,20 +2877,66 @@ function startNotesRecording() {
 }
 
 function stopNotesRecording() {
-  if (!isNotesRecording) return;
+  if (!isNotesRecording) {
+    console.log('⚠ stopNotesRecording called but isNotesRecording is false');
+    return;
+  }
   
-  isNotesRecording = false;
-  isRecording = false;
+  console.log('🛑 Stopping notes recording - keeping window visible');
+  
+  // CRITICAL: DON'T reset flags yet - keep them until transcription completes
+  // This ensures transcription handler knows it was notes recording
+  // We'll reset them after transcription is processed
+  const wasNotesRecording = isNotesRecording;
+  
+  // Mark that we're stopping, but keep the flag for transcription handler
+  // The flag will be reset after transcription is processed (in transcription handler)
+  console.log('📝 Notes recording: Flag will be reset after transcription completes');
+  
+  // Send STOP command IMMEDIATELY
+  if (whisperProcess && !whisperProcess.killed) {
+    writeToWhisper('STOP\n');
+  }
   
   // Send stop events
-  mainWindow.webContents.send('recording-stop');
-  mainWindow.webContents.send('play-sound', 'stop');
-  // Send special flag for notes recording stop
-  mainWindow.webContents.send('notes-recording-stop');
-  writeToWhisper('STOP\n');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('recording-stop');
+    mainWindow.webContents.send('play-sound', 'stop');
+    // Send special flag for notes recording stop
+    mainWindow.webContents.send('notes-recording-stop');
+  }
+  
+  // CRITICAL: Ensure window stays visible and focused - NEVER hide for notes recording
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    // Ensure window is visible
+    if (!mainWindow.isVisible()) {
+      console.log('🔍 Notes recording stop: Window not visible, showing now');
+      mainWindow.show();
+    }
+    // Ensure window is focusable and focused
+    mainWindow.setFocusable(true);
+    mainWindow.focus();
+    mainWindow.setAlwaysOnTop(false);
+    // Force window to front
+    mainWindow.moveTop();
+    console.log('✅ Notes recording stopped: Window kept visible and focused');
+  }
   
   // DON'T hide window - stay in app
   // DON'T show/hide indicator - it was never shown for notes
+  
+  // CRITICAL: Don't reset flags here - let transcription handler reset them
+  // This ensures transcription arrives with isNotesRecording still true
+  // The transcription handler will reset the flags after processing
+  // If transcription doesn't arrive within 3 seconds, reset as fallback
+  setTimeout(() => {
+    if (isNotesRecording === wasNotesRecording) { // Only reset if still the same (wasn't restarted)
+      console.log('📝 Notes recording: Fallback reset after timeout (transcription may have been missed)');
+      isNotesRecording = false;
+      isRecording = false;
+    }
+  }, 3000); // 3 second fallback timeout
+  
   updateTrayMenu();
 }
 
@@ -2467,53 +3060,6 @@ function reloadApp(changedFile) {
   }
 }
 
-// Cleanup watchers on app quit
-app.on('before-quit', () => {
-  fileWatchers.forEach(watcher => {
-    try {
-      watcher.close();
-    } catch (e) {
-      // Ignore errors during cleanup
-    }
-  });
-  fileWatchers = [];
-  if (reloadTimeout) {
-    clearTimeout(reloadTimeout);
-  }
-});
-
-  // Register app event handlers before app is ready
-  app.on('activate', () => {
-    console.log('📱 App activated - showing/focusing window');
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    } else if (mainWindow && !mainWindow.isDestroyed()) {
-      // Window exists - show and focus it
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.show();
-      mainWindow.focus();
-      // Bring to front
-      mainWindow.setAlwaysOnTop(true);
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.setAlwaysOnTop(false);
-        }
-      }, 200);
-    }
-  });
-
-  app.on('will-quit', () => {
-    globalShortcut.unregisterAll();
-    if (whisperProcess && !whisperProcess.killed) {
-      whisperProcess.kill();
-    }
-    if (indicatorWindow && !indicatorWindow.isDestroyed()) {
-      try { indicatorWindow.destroy(); } catch (e) {}
-    }
-  });
-
   app.whenReady().then(() => {
     // Set development mode detection after app is ready
     isDevelopment = !app.isPackaged || process.env.NODE_ENV === 'development';
@@ -2579,14 +3125,67 @@ app.on('before-quit', () => {
       hasGetCategoryBannerText: typeof getCategoryBannerText === 'function'
     });
     
+    // CRITICAL: Start whisper service IMMEDIATELY (before window creation) for fastest model loading
+    // This ensures the model starts loading as early as possible in the app lifecycle
+    console.log('🚀 Starting whisper service immediately for instant model loading...');
+    ensureWhisperService();
+    
     createWindow();
     createIndicatorWindow();
-//     registerHotkeys();
+    registerHotkeys();
 //     setupAutoUpdater();
+    
+    // Notify UI that model is loading (if window is ready)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.once('did-finish-load', () => {
+        if (!whisperModelReady) {
+          mainWindow.webContents.send('whisper-loading', { model: settings.activeModel || 'tiny' });
+        }
+      });
+    }
     
     // Enable hot reload in development mode (for changes made by agents in Cursor)
     if (isDevelopment && !isTestMode) {
       setupFileWatcher();
+    }
+    
+    // Aggressively ensure window is visible and focusable when launched
+    // This is critical for the window to be accessible from taskbar
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // Ensure window is shown and focusable
+      mainWindow.once('ready-to-show', () => {
+        if (mainWindow && !mainWindow.isDestroyed() && !isShowcaseMode && !isTestMode) {
+          console.log('✅ Window ready - showing and focusing');
+          mainWindow.show();
+          mainWindow.focus();
+          // Ensure window is not always on top (so it can be focused normally)
+          mainWindow.setAlwaysOnTop(false);
+          // Force focus after a short delay
+          setTimeout(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.focus();
+              mainWindow.setAlwaysOnTop(false);
+            }
+          }, 100);
+        }
+      });
+      
+      // Also try to show immediately if window is already ready
+      if (mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed() && !isShowcaseMode && !isTestMode) {
+            if (!mainWindow.isVisible()) {
+              console.log('🔍 Window not visible - showing now');
+              mainWindow.show();
+            }
+            if (!mainWindow.isFocused()) {
+              console.log('🔍 Window not focused - focusing now');
+              mainWindow.focus();
+            }
+            mainWindow.setAlwaysOnTop(false);
+          }
+        }, 500);
+      }
     }
     
     // Aggressively ensure window is visible when launched (critical for launching from other agents)
@@ -5388,6 +5987,19 @@ function wait(ms) {
 }
 
   app.on('will-quit', () => {
+  // Cleanup file watchers
+  fileWatchers.forEach(watcher => {
+    try {
+      watcher.close();
+    } catch (e) {
+      // Ignore errors during cleanup
+    }
+  });
+  fileWatchers = [];
+  if (reloadTimeout) {
+    clearTimeout(reloadTimeout);
+  }
+
   globalShortcut.unregisterAll();
   if (whisperProcess && !whisperProcess.killed) {
     whisperProcess.kill();

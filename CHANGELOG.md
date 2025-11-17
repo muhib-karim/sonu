@@ -7,6 +7,156 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.5.4] - 2025-01-XX
+
+### 🧹 Project Cleanup & Comprehensive Testing
+
+This version includes major project cleanup, comprehensive automated testing suite, and enhanced documentation.
+
+#### Added
+
+- **Comprehensive E2E Test Suite**: Complete functionality tests covering all features
+  - Dictionary CRUD operations (add, delete words)
+  - Snippets CRUD operations
+  - Notes CRUD operations
+  - Theme switching and persistence
+  - All experimental feature toggles (continuous dictation, low-latency, noise reduction)
+  - General settings toggles (sound feedback, waveform animation)
+  - Model management and downloading
+  - Navigation and UI responsiveness
+  - Settings persistence across app restarts
+
+- **Automated Test Runner**: `run_all_tests.js` script for running all test suites automatically
+  - Unit tests
+  - Integration tests
+  - E2E tests (basic and complete functionality)
+  - Automatic dependency installation
+
+- **Enhanced Test Coverage**: New comprehensive test file `complete_functionality.test.js`
+  - Tests actual functionality, not just UI presence
+  - Validates CRUD operations
+  - Tests all toggle switches
+  - Verifies settings persistence
+
+#### Fixed
+
+- **Project Cleanup**: Removed unnecessary duplicate files
+  - Removed root-level `widget_preload.js` and `widget.html` (duplicates)
+  - Removed `app-output.log` log file
+  - Cleaned up old model files (`base`, `ggml-*.bin`)
+
+#### Improved
+
+- **Test Infrastructure**: Enhanced test configuration
+  - Increased timeout for comprehensive tests (180 seconds)
+  - Better error handling in test suites
+  - Improved test isolation and cleanup
+
+- **Documentation**: Updated version numbers and changelog
+  - Version bumped to 3.5.4
+  - Updated VERSION.md with new release notes
+  - Enhanced test documentation
+
+#### Technical
+
+- **Test Files**: 
+  - `tests/e2e/complete_functionality.test.js` - Comprehensive functionality tests
+  - `run_all_tests.js` - Automated test runner script
+  - Updated test timeouts for longer-running tests
+
+---
+
+## [3.5.3] - 2025-01-XX
+
+### 🔧 Critical Fixes, Instant Typing & Performance Improvements
+
+This version addresses critical functionality issues, implements instant system-wide text output (like Wispr Flow), and eliminates hotkey delays for immediate dictation start.
+
+#### Fixed
+
+- **Widget/Indicator Display**: Fixed missing widget files (`widget.html`, `widget_preload.js`) that prevented the recording indicator from appearing
+  - Widget files now properly located in `apps/desktop/` directory
+  - Added file existence checks before loading widget window
+  - Fixed widget path resolution to use absolute paths
+  
+- **Icon Placement**: Fixed icon alignment issues in settings navigation tabs
+  - Added `flex-shrink: 0` to prevent icon shrinking
+  - Improved icon alignment with proper flexbox centering
+  - Icons now properly aligned in all settings tabs
+
+- **Voice Dictation**: Enhanced whisper service initialization with better error handling
+  - Added file existence verification before spawning whisper service
+  - Improved error messages for missing Python dependencies
+  - Added working directory specification for proper path resolution
+  - Enhanced error handling for spawn failures
+
+- **Model Download**: Improved model download functionality reliability
+  - Better error handling for download failures
+  - Enhanced path validation
+
+- **Instant Text Output**: Fixed system-wide text output not appearing after dictation
+  - Implemented modern native addon (`@xitanggg/node-insert-text`) for fastest typing
+  - Improved clipboard + Ctrl+V method with better timing and focus management
+  - Added automatic fallback between multiple typing methods
+  - Text now appears instantly wherever cursor is located (like Wispr Flow)
+
+- **Hotkey Delay**: Eliminated delay when triggering dictation hotkeys
+  - Recording now starts instantly when hotkey is pressed
+  - Moved async operations (context detection, IPC) to background
+  - Commands sent to whisper service before any UI updates
+  - Zero-latency hotkey response for professional feel
+
+#### Added
+
+- **Modern Native Typing Library**: Integrated `@xitanggg/node-insert-text` for instant text insertion
+  - Uses Rust's `enigo` library compiled to Node.js native addon
+  - Fastest method for system-wide text output
+  - Automatic fallback to clipboard method if native addon unavailable
+
+- **Multi-Method Typing System**: Intelligent typing with automatic fallback
+  1. Primary: Native addon (fastest, most reliable)
+  2. Fallback: Clipboard + Ctrl+V (what Wispr Flow uses)
+  3. Final: Clipboard only (if robotjs unavailable)
+
+- **Python Typing Support**: Added `pynput` to requirements for future Python-based typing option
+
+#### Improved
+
+- **Error Handling**: Comprehensive error handling for whisper service startup
+  - File existence checks before spawning processes
+  - Better error messages for debugging
+  - Graceful fallbacks when services fail to start
+
+- **File Organization**: Project cleanup and file organization
+  - Widget files moved to correct location (`apps/desktop/`)
+  - Proper path resolution throughout codebase
+  - Better separation of concerns
+
+- **Hotkey Performance**: Instant hotkey response
+  - Recording commands sent before any async operations
+  - Context detection moved to background (non-blocking)
+  - IPC updates sent after recording starts (non-blocking)
+  - Window hiding and indicator shown synchronously
+
+- **Typing Performance**: Optimized text output timing
+  - Window hiding happens before typing
+  - Focus management improved for Windows
+  - Better delay handling for focus switching
+  - Multiple fallback methods ensure reliability
+
+#### Technical
+
+- **Widget System**: Widget files now in `apps/desktop/widget.html` and `apps/desktop/widget_preload.js`
+- **Path Resolution**: All file paths use `path.join(__dirname, ...)` for reliability
+- **Error Logging**: Enhanced console logging for troubleshooting
+- **Service Initialization**: Improved whisper service startup sequence
+- **Typing Libraries**: Multi-tier typing system with automatic fallback
+  - `@xitanggg/node-insert-text` (primary)
+  - `robotjs` (fallback for clipboard method)
+  - `pynput` (optional Python-based typing)
+
+---
+
 ## [3.5.2] - 2025-01-XX
 
 ### 🚀 Performance Optimizations & Toggle Mode Improvements

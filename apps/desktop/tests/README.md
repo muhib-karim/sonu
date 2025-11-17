@@ -55,6 +55,12 @@ npm run test:integration
 # E2E tests only
 npm run test:e2e
 
+# Complete functionality tests (all features with CRUD operations)
+npm run test:e2e:complete
+
+# All E2E tests
+npm run test:e2e:all
+
 # Model download tests
 npm run test:model-download
 

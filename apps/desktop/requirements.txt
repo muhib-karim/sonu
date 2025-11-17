@@ -10,6 +10,9 @@ pyaudio>=0.2.14
 # Keyboard input handling
 keyboard>=0.13.5
 
+# Text typing/insertion (alternative to robotjs)
+pynput>=1.7.6
+
 # Scientific computing
 numpy>=1.24.0
 

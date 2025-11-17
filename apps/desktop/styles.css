@@ -1115,6 +1115,10 @@ body[data-theme="dark"] .context-menu-item:active {
   width: 18px;
   height: 18px;
   stroke-width: 2;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .settings-footer {

@@ -57,6 +57,7 @@ contextBridge.exposeInMainWorld('voiceApp', {
   cancelDownload: () => ipcRenderer.invoke('model:cancel-download'),
   onWhisperReady: (callback) => ipcRenderer.on('whisper-ready', (_, data) => callback(data)),
   onWhisperError: (callback) => ipcRenderer.on('whisper-error', (_, error) => callback(error)),
+  onWhisperLoading: (callback) => ipcRenderer.on('whisper-loading', (_, data) => callback(data)),
   getAppSettings: () => ipcRenderer.invoke('app-settings:get'),
   saveAppSettings: (settings) => ipcRenderer.invoke('app-settings:set', settings),
   clearCache: () => ipcRenderer.invoke('cache:clear'),

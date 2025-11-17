@@ -8,7 +8,7 @@
 
 [![Video Formats](https://img.shields.io/badge/video-MP4%20%7C%20H.265%20%7C%20VP9-orange)](#-showcase)
 [![Screenshots](https://img.shields.io/badge/screenshots-17-blue)](#-showcase)
-[![Version](https://img.shields.io/badge/version-3.5.0-blue.svg)](https://github.com/muhib-karim/sonu)
+[![Version](https://img.shields.io/badge/version-3.5.4-blue.svg)](https://github.com/muhib-karim/sonu)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
@@ -134,8 +134,12 @@
 
 - **Press-and-Hold Mode**: Hold a hotkey to dictate, release to finalize and output text
 - **Toggle Mode**: Start/stop continuous dictation with a single keypress
+- **Instant Hotkey Response**: Zero-latency hotkey triggering - dictation starts immediately
 - **Live Preview**: See partial transcriptions in real-time during dictation
-- **System-wide Output**: Automatically types text at cursor location in any application
+- **Instant System-wide Output**: Text appears instantly at cursor location in any application (like Wispr Flow)
+  - Uses modern native addon for fastest typing performance
+  - Automatic fallback to clipboard method for reliability
+  - Works seamlessly across all Windows applications
 - **Clipboard Integration**: Final transcriptions automatically copied to clipboard
 - **History Management**: View, edit, and copy previous transcriptions (last 100 items)
 
@@ -158,6 +162,10 @@
 ### Advanced Features
 
 - **Customizable Hotkeys**: Configure hold and toggle shortcuts to your preference
+- **Instant Typing Technology**: Multi-tier typing system with automatic fallback
+  - Primary: Native addon (`@xitanggg/node-insert-text`) for fastest performance
+  - Fallback: Clipboard + Ctrl+V method (what Wispr Flow uses)
+  - Final: Clipboard-only if automation unavailable
 - **Audio Cues**: Audio feedback for dictation start/stop
 - **Tray Integration**: System tray icon with comprehensive context menu
 - **Window Controls**: Standard minimize, maximize, and close functionality
@@ -490,16 +498,36 @@ npm run build
 
 ### Running Tests
 
+#### Automated Testing (Recommended)
+
+Run all tests, generate showcases, and upload to GitHub automatically:
+
+```bash
+cd apps/desktop
+npm run test:auto
+```
+
+This command:
+- ✅ Runs unit, integration, and E2E tests
+- ✅ Tests all features: Dictionary, Snippets, Notes, Theme, Experimental toggles
+- ✅ Generates showcase screenshots
+- ✅ Uploads to GitHub automatically
+
+#### Manual Testing
+
 Run tests from the dedicated `tests` workspace:
 
 ```bash
-cd tests
+cd apps/desktop/tests
 npm install
 
 # Unit / Integration / E2E
 npm run test:unit
 npm run test:integration
 npm run test:e2e
+
+# Complete functionality tests (all features)
+npm run test:e2e:complete
 ```
 
 Alternatively, from the project root using Jest directly:
@@ -509,6 +537,19 @@ npx jest tests/unit --runInBand
 npx jest tests/integration --runInBand
 npx jest tests/e2e --runInBand
 ```
+
+#### Test Coverage
+
+The comprehensive test suite covers:
+- ✅ Dictionary CRUD operations (add, delete words)
+- ✅ Snippets CRUD operations
+- ✅ Notes CRUD operations
+- ✅ Theme switching and persistence
+- ✅ All experimental feature toggles (continuous dictation, low-latency, noise reduction)
+- ✅ General settings toggles (sound feedback, waveform animation)
+- ✅ Model management and downloading
+- ✅ Navigation and UI responsiveness
+- ✅ Settings persistence across app restarts
 
 Notes:
 - Integration `model_download` tests require network access and may need higher timeouts (e.g., `jest.setTimeout(30000)`) or mocked requests.
