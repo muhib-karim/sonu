@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sonu</string>
+    <string name="record_button">Record</string>
+    <string name="stop_button">Stop</string>
+    <string name="transcribe_button">Transcribe</string>
+    <string name="transcription_placeholder">Transcription will appear here...</string>
+    <string name="status_ready">Ready</string>
+    <string name="status_recording">Recording...</string>
+    <string name="status_processing">Processing...</string>
+    <string name="status_error">Error</string>
+    <string name="model_not_loaded">Model not loaded. Please download a model first.</string>
+    <string name="download_model">Download Model</string>
+    <string name="select_model">Select Model</string>
+    <string name="model_tiny">Tiny (75MB)</string>
+    <string name="model_base">Base (142MB)</string>
+    <string name="model_small">Small (466MB)</string>
+    <string name="permission_required">Microphone permission is required</string>
+    <string name="error_recording">Error recording audio</string>
+    <string name="error_transcription">Error during transcription</string>
+</resources>
+
