@@ -3899,6 +3899,8 @@ window.accessibilityManager = accessibilityManager;
   async function initStylePage() {
     try {
       console.log('🎨 Initializing style page...');
+      console.log('📋 IPC object:', ipc);
+      console.log('📋 window.voiceApp:', window.voiceApp);
       
       // Wait a bit for DOM to be ready
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -3906,6 +3908,8 @@ window.accessibilityManager = accessibilityManager;
       // Verify IPC is available
       if (!ipc || !ipc.getAvailableStyles) {
         console.error('❌ IPC not available or getAvailableStyles missing!');
+        console.error('ipc:', ipc);
+        console.error('ipc.getAvailableStyles:', ipc ? ipc.getAvailableStyles : 'undefined');
         const container = document.getElementById('style-options-container');
         if (container) {
           container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">Error: IPC communication not available. Please restart the app.</p>';
@@ -3915,13 +3919,15 @@ window.accessibilityManager = accessibilityManager;
       
       // Test IPC communication
       try {
+        console.log('🧪 Testing IPC getAvailableStyles with category: personal');
         const testStyles = await ipc.getAvailableStyles('personal');
         console.log('✅ IPC test successful, got styles:', testStyles);
       } catch (e) {
         console.error('❌ IPC test failed:', e);
+        console.error('Error stack:', e.stack);
         const container = document.getElementById('style-options-container');
         if (container) {
-          container.innerHTML = `<p style="color: var(--text-muted); padding: 20px;">Error: IPC communication failed: ${e.message}</p>`;
+          container.innerHTML = `<p style="color: var(--text-muted); padding: 20px;">Error: IPC communication failed: ${e.message}. Check console for details.</p>`;
         }
         return;
       }
@@ -4036,6 +4042,9 @@ window.accessibilityManager = accessibilityManager;
     // Show loading state
     container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px; text-align: center;">Loading styles...</p>';
     
+    // Declare styles outside try block to ensure it's available after catch
+    let styles = [];
+    
     try {
       // Verify IPC is available
       if (!ipc || !ipc.getAvailableStyles) {
@@ -4044,7 +4053,7 @@ window.accessibilityManager = accessibilityManager;
       
       // Get available styles for category using style_transformer
       console.log('📞 Calling IPC getAvailableStyles with category:', category);
-      const styles = await ipc.getAvailableStyles(category);
+      styles = await ipc.getAvailableStyles(category);
       console.log('✅ Available styles for category:', category, styles);
       
       if (!styles || styles.length === 0) {
@@ -4195,24 +4204,27 @@ window.accessibilityManager = accessibilityManager;
     
     // After rendering, check if currentStyle is still valid for this category
     // If not, reset to first available style or 'none'
-    if (currentStyle !== 'none' && !styles.includes(currentStyle)) {
-      console.log(`Current style '${currentStyle}' not available for category '${category}', resetting`);
-      currentStyle = styles.length > 0 ? styles[0] : 'none';
-      if (currentStyle !== 'none') {
-        saveAppSettings({ text_style: currentStyle });
-        // Highlight the new default style
-        const defaultCard = container.querySelector(`[data-style="${currentStyle}"]`);
-        if (defaultCard) {
-          defaultCard.style.borderColor = 'var(--accent-blue)';
-          defaultCard.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+    // Only check if styles array is defined and has values
+    if (styles && Array.isArray(styles) && styles.length > 0) {
+      if (currentStyle !== 'none' && !styles.includes(currentStyle)) {
+        console.log(`Current style '${currentStyle}' not available for category '${category}', resetting`);
+        currentStyle = styles.length > 0 ? styles[0] : 'none';
+        if (currentStyle !== 'none') {
+          saveAppSettings({ text_style: currentStyle });
+          // Highlight the new default style
+          const defaultCard = container.querySelector(`[data-style="${currentStyle}"]`);
+          if (defaultCard) {
+            defaultCard.style.borderColor = 'var(--accent-blue)';
+            defaultCard.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+          }
         }
-      }
-    } else if (currentStyle !== 'none' && styles.includes(currentStyle)) {
-      // Ensure the selected style is highlighted
-      const selectedCard = container.querySelector(`[data-style="${currentStyle}"]`);
-      if (selectedCard) {
-        selectedCard.style.borderColor = 'var(--accent-blue)';
-        selectedCard.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+      } else if (currentStyle !== 'none' && styles.includes(currentStyle)) {
+        // Ensure the selected style is highlighted
+        const selectedCard = container.querySelector(`[data-style="${currentStyle}"]`);
+        if (selectedCard) {
+          selectedCard.style.borderColor = 'var(--accent-blue)';
+          selectedCard.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
+        }
       }
     }
     
@@ -4425,20 +4437,40 @@ window.accessibilityManager = accessibilityManager;
   
   async function loadNotes() {
     try {
+      console.log('📝 Loading notes...');
+      console.log('📋 IPC object:', ipc);
+      console.log('📋 ipc.getNotes:', ipc ? ipc.getNotes : 'undefined');
+      
+      if (!ipc || !ipc.getNotes) {
+        console.error('❌ IPC getNotes not available!');
+        const notesList = document.getElementById('notes-list');
+        if (notesList) {
+          notesList.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">Error: Notes functionality not available. Please restart the app.</p>';
+        }
+        return;
+      }
+      
       const notes = await ipc.getNotes();
+      console.log('✅ Notes loaded:', notes);
+      
       const notesList = document.getElementById('notes-list');
       const notesEmpty = document.getElementById('notes-empty');
       
-      if (!notesList) return;
+      if (!notesList) {
+        console.error('❌ notes-list element not found!');
+        return;
+      }
       
       notesList.innerHTML = '';
       
       if (notes.length === 0) {
+        console.log('📝 No notes found, showing empty state');
         notesList.style.display = 'none';
         if (notesEmpty) notesEmpty.style.display = 'block';
         return;
       }
       
+      console.log(`📝 Rendering ${notes.length} notes`);
       notesList.style.display = 'flex';
       if (notesEmpty) notesEmpty.style.display = 'none';
       
@@ -5136,14 +5168,19 @@ window.accessibilityManager = accessibilityManager;
   // Initialize app version immediately - read from package.json via IPC
   async function initializeAppVersionNow() {
     try {
+      console.log('🔍 Initializing app version...');
       const versionElement = document.getElementById('app-version');
       if (!versionElement) {
-        console.warn('Version element not found, will retry...');
+        console.warn('⚠️ Version element not found, will retry...');
         return false;
       }
       
+      console.log('✅ Version element found:', versionElement);
+      
       // If version is already set (by main.js injection), don't overwrite it
       const currentText = versionElement.textContent.trim();
+      console.log('Current version text:', currentText);
+      
       if (currentText && currentText.startsWith('SONU v')) {
         console.log('✅ Version already set in HTML:', currentText);
         // Ensure click handler is set up
@@ -5151,27 +5188,41 @@ window.accessibilityManager = accessibilityManager;
         return true;
       }
       
-      // Only try to get version via IPC if element is empty
+      // Try to get version via IPC
       if (window.voiceApp && window.voiceApp.getAppVersion) {
-        const result = await window.voiceApp.getAppVersion();
-        if (result && result.success) {
-          versionElement.textContent = `SONU v${result.version}`;
-          versionElement.style.cursor = 'pointer';
-          versionElement.title = 'Click to check for updates';
-          setupVersionClickHandler();
-          console.log('✅ Version initialized via IPC:', `SONU v${result.version}`);
-          return true;
+        console.log('📞 Calling IPC getAppVersion...');
+        try {
+          const result = await window.voiceApp.getAppVersion();
+          console.log('📥 IPC getAppVersion result:', result);
+          if (result && result.success) {
+            versionElement.textContent = `SONU v${result.version}`;
+            versionElement.style.cursor = 'pointer';
+            versionElement.title = 'Click to check for updates';
+            setupVersionClickHandler();
+            console.log('✅ Version initialized via IPC:', `SONU v${result.version}`);
+            return true;
+          } else {
+            console.warn('⚠️ IPC getAppVersion returned unsuccessful result:', result);
+          }
+        } catch (ipcError) {
+          console.error('❌ IPC getAppVersion error:', ipcError);
         }
+      } else {
+        console.warn('⚠️ window.voiceApp.getAppVersion not available');
+        console.log('window.voiceApp:', window.voiceApp);
       }
       
       // If IPC fails and element is still empty, set a fallback
-      if (!currentText || currentText === 'Loading...') {
-        console.warn('Could not get version via IPC, element is empty');
+      if (!currentText || currentText === 'Loading...' || currentText === '') {
+        console.warn('⚠️ Could not get version via IPC, setting fallback');
+        versionElement.textContent = 'SONU v?.?.?';
+        versionElement.title = 'Version unavailable';
       }
       
       return false;
     } catch (e) {
-      console.error('Version initialization error:', e);
+      console.error('❌ Version initialization error:', e);
+      console.error('Error stack:', e.stack);
       return false;
     }
   }
