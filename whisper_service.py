@@ -51,10 +51,12 @@ def load_model():
             # Load model from local directory path
             sys.stderr.write(f"Loading model from local directory: {model_size}\n")
             sys.stderr.flush()
-            model = WhisperModel(model_size, device="cpu")
+            # Optimized: INT8 quantization for speed, 4 CPU threads for i7-8565U (4C/8T)
+            model = WhisperModel(model_size, device="cpu", compute_type="int8", cpu_threads=4)
         else:
             # Load model using faster-whisper's built-in Hugging Face cache
-            model = WhisperModel(model_size, device="cpu")
+            # Optimized: INT8 quantization for speed, 4 CPU threads for i7-8565U (4C/8T)
+            model = WhisperModel(model_size, device="cpu", compute_type="int8", cpu_threads=4)
         
         model_ready = True
         sys.stderr.write(f"Whisper model loaded successfully\n")
@@ -216,7 +218,8 @@ def transcribe_frames():
         wf.writeframes(b''.join(frames))
         wf.close()
 
-        segments, _ = model.transcribe(tmp_path)
+        # Final transcription: Use beam_size=5 for accuracy
+        segments, _ = model.transcribe(tmp_path, beam_size=5, language="en")
         text = "".join([seg.text for seg in segments]).strip()
         return text
     finally:
@@ -247,7 +250,8 @@ def transcribe_recent_seconds(local_frames, seconds=3):
         wf.setframerate(RATE)
         wf.writeframes(b''.join(tail))
         wf.close()
-        segments, _ = model.transcribe(tmp_path)
+        # Partial transcription: Use beam_size=1, temperature=0, best_of=1 for maximum speed
+        segments, _ = model.transcribe(tmp_path, beam_size=1, language="en", temperature=0, best_of=1, vad_filter=False)
         text = "".join([seg.text for seg in segments]).strip()
         return text
     finally:
@@ -273,10 +277,10 @@ def main():
             try:
                 with lock:
                     active = recording_flag
-                    hm = hold_mode
                     local_frames = list(frames)
                     prev = last_partial_text
-                if hm and active and len(local_frames) > 10:
+                # Send PARTIAL updates for both HOLD and TOGGLE modes for instant output
+                if active and len(local_frames) > 10:
                     text = transcribe_recent_seconds(local_frames, seconds=3)
                     if text and text != prev:
                         with lock:
@@ -303,6 +307,7 @@ def main():
             # Ensure stream is started
             start_stream()
             with lock:
+                # Clear any previous state to ensure clean start
                 frames = []
                 globals()['frames'] = frames
                 globals()['recording_flag'] = True
@@ -310,24 +315,31 @@ def main():
             continue
         if cmd == "STOP":
             with lock:
+                # Only process STOP if we're actually recording (prevents duplicate STOP processing)
+                was_recording = recording_flag
                 globals()['recording_flag'] = False
-            # Transcribe
-            text = transcribe_frames()
-            # Fallback to last partial if final transcription is empty
-            if not text:
-                try:
-                    with lock:
-                        text = last_partial_text
-                except Exception:
-                    pass
-            with lock:
-                frames = []
-                globals()['frames'] = frames
-                globals()['last_partial_text'] = ""
-            if text:
-                # Send to Electron
-                sys.stdout.write(text + "\n")
-                sys.stdout.flush()
+                # Get last partial text before clearing
+                last_partial = last_partial_text
+            # Only process transcription if we were actually recording
+            if was_recording:
+                # INSTANT OUTPUT: Send last partial immediately for instant typing
+                # This gives Wispr Flow-like instant output when toggle is turned off
+                if last_partial:
+                    sys.stdout.write("PARTIAL: " + last_partial + "\n")
+                    sys.stdout.flush()
+                # Transcribe final text (may be more accurate than partial)
+                text = transcribe_frames()
+                # Fallback to last partial if final transcription is empty
+                if not text:
+                    text = last_partial
+                with lock:
+                    frames = []
+                    globals()['frames'] = frames
+                    globals()['last_partial_text'] = ""
+                if text:
+                    # Send final transcription to Electron
+                    sys.stdout.write(text + "\n")
+                    sys.stdout.flush()
             continue
         if cmd.startswith("SET_MODE"):
             # e.g., SET_MODE HOLD or SET_MODE TOGGLE

@@ -112,6 +112,16 @@
 
 ---
 
+## 🔒 Security & Transparency
+
+**100% Open Source** | **Zero Telemetry** | **Reproducible Builds**  
+
+Sonu v3.x.x is unsigned to remain free. See INSTALL.md for details.
+
+**Version Strategy**: v3.x.x = Desktop (FasterWhisper), v4.x = Mobile (Whisper.cpp)
+
+---
+
 ## 🚀 Overview
 
 **SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using TraeAI IDE and AI assistance, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
@@ -302,8 +312,12 @@ This runs `auto_screenshot.js`, capturing screenshots to `screenshots/` and a wa
 2. **Default**: `Ctrl+Shift+Space` (customizable)
 3. **Usage**:
    - Press once to start dictation
-   - Speak your text
-   - Press again to stop and output
+   - Speak your text (see live partial transcriptions in real-time)
+   - Press again to stop and output text instantly
+4. **Features**:
+   - **Instant Output**: Text appears immediately when toggled off using the last partial transcription
+   - **Live Previews**: Real-time partial transcriptions during recording (same as hold mode)
+   - **Reliable**: Stable operation even with rapid toggle sequences
 
 ### Model Management
 

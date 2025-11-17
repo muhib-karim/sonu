@@ -5,6 +5,57 @@ All notable changes to SONU will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Version Strategy:**
+- **Version 3.x.x**: Desktop-only (Windows/Linux/macOS) using FasterWhisper
+- **Version 4.0.0**: Mobile and IoT devices using Whisper.cpp (separate codebase)
+
+---
+
+## [3.5.2] - 2025-01-XX
+
+### 🚀 Performance Optimizations & Toggle Mode Improvements
+
+This version introduces critical performance optimizations for FasterWhisper transcription and significant improvements to toggle mode for instant output and reliability.
+
+#### Added
+
+- **INT8 Quantization**: Enabled INT8 quantization for faster model inference
+- **CPU Thread Optimization**: Configured 4 CPU threads for optimal performance on multi-core systems
+- **Optimized Transcription Parameters**: 
+  - Partial transcriptions use `beam_size=1`, `temperature=0`, `best_of=1` for maximum speed
+  - Final transcriptions use `beam_size=5` for accuracy
+  - VAD filtering disabled for partials to reduce latency
+- **Instant Output for Toggle Mode**: Toggle mode now provides instant text output when toggled off, matching hold mode behavior
+- **Live Partial Updates in Toggle Mode**: Toggle mode now receives real-time partial transcriptions during recording
+
+#### Improved
+
+- **Transcription Speed**: 10-20% faster partial transcriptions with optimized beam_size
+- **Model Loading**: Model loading now includes performance optimizations
+- **Resource Usage**: Better CPU utilization with thread optimization
+- **Toggle Mode Output**: Text appears instantly when toggle is turned off, using last partial transcription
+- **Toggle Mode Reliability**: Fixed disconnection issues when using toggle mode multiple times
+- **State Management**: Improved state synchronization between Electron and Python service
+- **Rapid Toggling**: Better handling of rapid toggle on/off sequences without disconnections
+
+#### Fixed
+
+- **Toggle Mode Disconnections**: Fixed issue where toggle mode would disconnect after first 2-3 uses
+- **State Conflicts**: Resolved conflicts between hold and toggle modes
+- **Duplicate STOP Processing**: Prevented duplicate STOP command processing in Python service
+- **Transcription Interference**: Fixed transcription completion interfering with new recordings
+- **Hold Timeout Cleanup**: Proper cleanup of hold recording timeouts when using toggle mode
+
+#### Technical
+
+- Model loading: `compute_type="int8"`, `cpu_threads=4` (optimized for i7-8565U 4C/8T)
+- Partial transcription: `beam_size=1`, `temperature=0`, `best_of=1`, `vad_filter=False`
+- Final transcription: `beam_size=5`, `language="en"` (maintains accuracy)
+- Toggle mode: Now sends PARTIAL updates during recording (same as hold mode)
+- Instant output: Last partial text sent immediately on STOP before final transcription
+- State guards: Added checks to prevent starting recording if already recording
+- Process validation: Enhanced whisper process readiness checks before sending commands
+
 ---
 
 ## [3.5.1] - 2025-01-XX

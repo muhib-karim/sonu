@@ -1056,16 +1056,24 @@ function ensureWhisperService() {
         appendHistory(text);
         mainWindow.webContents.send('transcription', text);
         // Update UI state after a transcription completes (covers HOLD release)
-        try { 
-          mainWindow.webContents.send('recording-stop');
-          mainWindow.webContents.send('play-sound', 'stop');
-        } catch (e) {}
-        hideIndicator();
-        isRecording = false;
-        isHoldKeyPressed = false;
-        if (holdRecordingTimeout) {
-          clearTimeout(holdRecordingTimeout);
-          holdRecordingTimeout = null;
+        // BUT: Only update state if we're not already recording again (for toggle mode)
+        // This prevents stopping a new recording that started while transcription was processing
+        const wasRecording = isRecording;
+        if (!wasRecording) {
+          // Only send stop events if we're not recording (prevents interrupting new recording)
+          try { 
+            mainWindow.webContents.send('recording-stop');
+            mainWindow.webContents.send('play-sound', 'stop');
+          } catch (e) {}
+          hideIndicator();
+        }
+        // Only reset state if we're not recording (new recording might have started)
+        if (!isRecording) {
+          isHoldKeyPressed = false;
+          if (holdRecordingTimeout) {
+            clearTimeout(holdRecordingTimeout);
+            holdRecordingTimeout = null;
+          }
         }
         // INSTANT TYPING: Type only the delta (new words not in last partial)
         // This ensures we don't retype what we already typed from partials
@@ -1365,6 +1373,12 @@ function startHoldRecording() {
 }
 
 function startToggleRecording() {
+  // Prevent starting if already recording (safety check)
+  if (isRecording) {
+    console.log('Already recording, ignoring duplicate start');
+    return;
+  }
+  
   // If model not ready, queue this action and show indicator
   if (!whisperModelReady) {
     console.log('⚡ Model loading... queuing toggle recording');
@@ -1374,8 +1388,14 @@ function startToggleRecording() {
     
     // Queue the recording to start when model is ready
     pendingRecordingAction = () => {
+      // Double-check we're not already recording
+      if (isRecording) {
+        console.log('Already recording when model became ready, skipping');
+        return;
+      }
       isRecording = true;
-  lastTypedText = ''; // Reset typing state for new recording
+      isHoldKeyPressed = false; // Ensure hold state is cleared
+      lastTypedText = ''; // Reset typing state for new recording
       typedSoFar = '';
       
       mainWindow.hide();
@@ -1393,9 +1413,38 @@ function startToggleRecording() {
     return; // Recording will start when model is ready
   }
   
+  // Ensure we have a valid whisper process before starting
+  if (!whisperProcess || whisperProcess.killed) {
+    console.log('Whisper process not available, ensuring service...');
+    ensureWhisperService();
+    // Wait a moment for process to be ready
+    setTimeout(() => {
+      if (whisperProcess && !whisperProcess.killed && !isRecording) {
+        isRecording = true;
+        isHoldKeyPressed = false; // Ensure hold state is cleared
+        lastTypedText = '';
+        typedSoFar = '';
+        mainWindow.hide();
+        mainWindow.webContents.send('recording-start');
+        mainWindow.webContents.send('play-sound', 'start');
+        showIndicator();
+        writeToWhisper(`SET_MODE TOGGLE\n`);
+        writeToWhisper('START\n');
+      }
+    }, 100);
+    return;
+  }
+  
   isRecording = true;
+  isHoldKeyPressed = false; // Ensure hold state is cleared
   lastTypedText = ''; // Reset typing state for new recording
   typedSoFar = '';
+  
+  // Clear any existing hold timeout
+  if (holdRecordingTimeout) {
+    clearTimeout(holdRecordingTimeout);
+    holdRecordingTimeout = null;
+  }
   
   // Hide window FIRST for ultra-fast response
   mainWindow.hide();
@@ -1417,7 +1466,7 @@ function startToggleRecording() {
     ensureWhisperService();
     // Use setImmediate for fastest possible execution
     setImmediate(() => {
-      if (whisperProcess && !whisperProcess.killed) {
+      if (whisperProcess && !whisperProcess.killed && isRecording) {
         writeToWhisper(`SET_MODE TOGGLE\n`);
         writeToWhisper('START\n');
       }
@@ -1426,11 +1475,15 @@ function startToggleRecording() {
 }
 
 function toggleRecording() {
-  isRecording = !isRecording;
-  ensureWhisperService();
+  // Prevent rapid toggling that could cause state issues
   if (isRecording) {
-    startToggleRecording();
-  } else {
+    // Turning OFF: Clear any hold timeout and ensure clean state
+    isRecording = false;
+    isHoldKeyPressed = false;
+    if (holdRecordingTimeout) {
+      clearTimeout(holdRecordingTimeout);
+      holdRecordingTimeout = null;
+    }
     mainWindow.webContents.send('recording-stop');
     mainWindow.webContents.send('play-sound', 'stop');
     writeToWhisper('STOP\n');
@@ -1438,6 +1491,17 @@ function toggleRecording() {
     // Hide immediately so auto-typing targets the previous app
     mainWindow.hide();
     // Text will be typed when transcription comes back from Python service
+  } else {
+    // Turning ON: Ensure service is ready and not in a bad state
+    ensureWhisperService();
+    // Only start if whisper process is actually ready
+    if (whisperProcess && !whisperProcess.killed && whisperModelReady) {
+      startToggleRecording();
+    } else {
+      // If not ready, queue it
+      console.log('Whisper service not ready, queuing toggle recording');
+      startToggleRecording();
+    }
   }
   // Update tray menu to reflect recording state
   updateTrayMenu();
