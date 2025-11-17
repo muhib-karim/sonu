@@ -1,5 +1,6 @@
 // Electron imports - must be first
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, clipboard, screen, shell, nativeTheme, dialog } = require('electron');
+const electron = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, clipboard, screen, shell, nativeTheme, dialog } = electron;
 
 // Model downloader integration
 const { ModelDownloader } = require('./src/model_downloader.js');
@@ -36,49 +37,11 @@ const { pipeline } = require('stream/promises');
 const os = require('os');
 const { getLogger } = require('./logger');
 
-// Development mode detection
-const isDevelopment = !app.isPackaged || process.env.NODE_ENV === 'development';
+// Development mode detection - will be set after app ready
+let isDevelopment = process.env.NODE_ENV === 'development';
 
-// Prevent multiple instances - must be called before app is ready
-const gotTheLock = app.requestSingleInstanceLock();
-
-if (!gotTheLock) {
-  // Another instance is already running, quit this one
-  console.log('Another instance is already running. Exiting...');
-  app.quit();
-  process.exit(0);
-} else {
-  // Handle second instance attempts - focus the existing window instead
-  app.on('second-instance', (event, commandLine, workingDirectory) => {
-    // Someone tried to run a second instance, focus our window instead
-    console.log('Second instance detected - focusing existing window');
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.show();
-      mainWindow.focus();
-      // Bring to front
-      mainWindow.setAlwaysOnTop(true);
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.setAlwaysOnTop(false);
-        }
-      }, 100);
-    } else {
-      // Window not created yet, wait a bit and try again
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          if (mainWindow.isMinimized()) {
-            mainWindow.restore();
-          }
-          mainWindow.show();
-          mainWindow.focus();
-        }
-      }, 500);
-    }
-  });
-}
+// Single instance logic will be set up after app is ready
+let gotTheLock = false;
 
 const isShowcaseMode = String(process.env.SHOWCASE_CAPTURE || '').toLowerCase() === '1' ||
   String(process.env.SHOWCASE_CAPTURE || '').toLowerCase() === 'true';
@@ -2519,7 +2482,83 @@ app.on('before-quit', () => {
   }
 });
 
+  // Register app event handlers before app is ready
+  app.on('activate', () => {
+    console.log('📱 App activated - showing/focusing window');
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    } else if (mainWindow && !mainWindow.isDestroyed()) {
+      // Window exists - show and focus it
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+      // Bring to front
+      mainWindow.setAlwaysOnTop(true);
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.setAlwaysOnTop(false);
+        }
+      }, 200);
+    }
+  });
+
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
+    if (whisperProcess && !whisperProcess.killed) {
+      whisperProcess.kill();
+    }
+    if (indicatorWindow && !indicatorWindow.isDestroyed()) {
+      try { indicatorWindow.destroy(); } catch (e) {}
+    }
+  });
+
   app.whenReady().then(() => {
+    // Set development mode detection after app is ready
+    isDevelopment = !app.isPackaged || process.env.NODE_ENV === 'development';
+
+    // Prevent multiple instances - must be called after app is ready
+    gotTheLock = app.requestSingleInstanceLock();
+
+    if (!gotTheLock) {
+      // Another instance is already running, quit this one
+      console.log('Another instance is already running. Exiting...');
+      app.quit();
+      process.exit(0);
+    } else {
+      // Handle second instance attempts - focus the existing window instead
+      app.on('second-instance', (event, commandLine, workingDirectory) => {
+        // Someone tried to run a second instance, focus our window instead
+        console.log('Second instance detected - focusing existing window');
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+          }
+          mainWindow.show();
+          mainWindow.focus();
+          // Bring to front
+          mainWindow.setAlwaysOnTop(true);
+          setTimeout(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.setAlwaysOnTop(false);
+            }
+          }, 100);
+        } else {
+          // Window not created yet, wait a bit and try again
+          setTimeout(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              if (mainWindow.isMinimized()) {
+                mainWindow.restore();
+              }
+              mainWindow.show();
+              mainWindow.focus();
+            }
+          }, 500);
+        }
+      });
+    }
+
     // Load settings first to check for custom logs directory
     loadSettings();
     
@@ -5174,27 +5213,6 @@ app.on('before-quit', () => {
     }
   });
 
-  // Handle app activation (clicking taskbar icon, dock icon on macOS, etc.)
-  app.on('activate', () => {
-    console.log('📱 App activated - showing/focusing window');
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    } else if (mainWindow && !mainWindow.isDestroyed()) {
-      // Window exists - show and focus it
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.show();
-      mainWindow.focus();
-      // Bring to front
-      mainWindow.setAlwaysOnTop(true);
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.setAlwaysOnTop(false);
-        }
-      }, 200);
-    }
-  });
 });
 
 async function runShowcaseCapture() {
