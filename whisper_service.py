@@ -273,10 +273,10 @@ def main():
             try:
                 with lock:
                     active = recording_flag
-                    hm = hold_mode
                     local_frames = list(frames)
                     prev = last_partial_text
-                if hm and active and len(local_frames) > 10:
+                # Send PARTIAL updates for both HOLD and TOGGLE modes for instant output
+                if active and len(local_frames) > 10:
                     text = transcribe_recent_seconds(local_frames, seconds=3)
                     if text and text != prev:
                         with lock:
@@ -310,24 +310,31 @@ def main():
             continue
         if cmd == "STOP":
             with lock:
+                # Only process STOP if we're actually recording (prevents duplicate STOP processing)
+                was_recording = recording_flag
                 globals()['recording_flag'] = False
-            # Transcribe
-            text = transcribe_frames()
-            # Fallback to last partial if final transcription is empty
-            if not text:
-                try:
-                    with lock:
-                        text = last_partial_text
-                except Exception:
-                    pass
-            with lock:
-                frames = []
-                globals()['frames'] = frames
-                globals()['last_partial_text'] = ""
-            if text:
-                # Send to Electron
-                sys.stdout.write(text + "\n")
-                sys.stdout.flush()
+                # Get last partial text before clearing
+                last_partial = last_partial_text
+            # Only process transcription if we were actually recording
+            if was_recording:
+                # INSTANT OUTPUT: Send last partial immediately for instant typing
+                # This gives Wispr Flow-like instant output when toggle is turned off
+                if last_partial:
+                    sys.stdout.write("PARTIAL: " + last_partial + "\n")
+                    sys.stdout.flush()
+                # Transcribe final text (may be more accurate than partial)
+                text = transcribe_frames()
+                # Fallback to last partial if final transcription is empty
+                if not text:
+                    text = last_partial
+                with lock:
+                    frames = []
+                    globals()['frames'] = frames
+                    globals()['last_partial_text'] = ""
+                if text:
+                    # Send final transcription to Electron
+                    sys.stdout.write(text + "\n")
+                    sys.stdout.flush()
             continue
         if cmd.startswith("SET_MODE"):
             # e.g., SET_MODE HOLD or SET_MODE TOGGLE
