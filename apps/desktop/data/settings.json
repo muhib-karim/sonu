@@ -1,0 +1,16 @@
+{
+  "widgetPosition": {
+    "x": 670,
+    "y": 628
+  },
+  "sound_feedback": true,
+  "waveform_animation": true,
+  "model_download_path": "C:\\Users\\Muhib\\Desktop\\SONU",
+  "selected_model": "base",
+  "theme": "dark",
+  "vibe_coding_enabled": true,
+  "history_retention": "forever",
+  "text_style": "very_casual",
+  "text_style_category": "personal",
+  "llm_processing": false
+}

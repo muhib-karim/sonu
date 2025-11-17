@@ -1,0 +1,46 @@
+name: Build Desktop v3.x.x
+
+on:
+  push:
+    tags: ['v3.*']
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with: { node-version: '18', cache: 'npm' }
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.11', cache: 'pip' }
+      
+      - run: npm install && pip install -r requirements.txt
+      
+      - name: Build (Unsigned)
+        run: npm run build
+        env: { CSC_IDENTITY_AUTO_DISCOVERY: false }
+      
+      - name: Generate checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt 2>/dev/null || shasum -a 256 * > SHA256SUMS.txt
+      
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+          body: |
+            ## Sonu v3.x.x - Desktop Release
+            
+            **Installation**: See INSTALL.md
+            
+            **Windows**: SmartScreen → "More info" → "Run anyway"  
+            **macOS**: Right-click → "Open" → "Open"  
+            **Linux**: `chmod +x Sonu-Voice-Typing-*.AppImage`
+            
+            **Verify**: Check SHA256SUMS.txt
+        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+

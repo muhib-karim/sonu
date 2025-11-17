@@ -30,17 +30,18 @@ This document provides comprehensive information for developers who want to cont
    cd sonu
    ```
 
-2. **Install Node.js dependencies**
+2. **Navigate to Desktop App**
    ```bash
-   npm install
+   cd apps/desktop
    ```
 
-3. **Install Python dependencies**
+3. **Install Dependencies**
    ```bash
+   npm install
    pip install -r requirements.txt
    ```
 
-4. **Run the application**
+4. **Run the Application**
    ```bash
    npm start
    ```
@@ -49,22 +50,25 @@ This document provides comprehensive information for developers who want to cont
 
 ```
 sonu/
-├── main.js              # Electron main process
-├── renderer.js           # UI logic and interactions
-├── preload.js            # IPC bridge
-├── styles.css            # Application styles
-├── index.html            # Main UI structure
-├── whisper_service.py    # Python transcription service
-├── system_utils.py      # System information utilities
-├── model_manager.py      # Model download and management
-├── package.json          # Node.js dependencies
-├── requirements.txt      # Python dependencies
-├── config.json.example   # Example configuration
-├── data/                 # User data directory
+├── apps/desktop/         # Desktop application (v3.x) - ACTIVE
+│   ├── main.js           # Electron main process
+│   ├── renderer.js       # UI logic and interactions
+│   ├── preload.js        # IPC bridge
+│   ├── styles.css        # Application styles
+│   ├── index.html        # Main UI structure
+│   ├── whisper_service.py # Python transcription service
+│   ├── system_utils.py   # System information utilities
+│   ├── model_manager.py  # Model download and management
+│   ├── package.json      # Node.js dependencies
+│   ├── requirements.txt  # Python dependencies
+│   ├── data/             # User data directory
+│   └── tests/            # Desktop-specific tests
+├── apps/mobile/          # Mobile app (v4+) - Future
+├── versions/             # Archived legacy files
 ├── assets/               # Application assets
 ├── scripts/              # Utility scripts
-├── tests/                # Test suite
-└── docs/                 # Documentation
+├── docs/                 # Documentation
+└── [project files]       # README, configs, etc.
 ```
 
 ## Development Setup
@@ -187,6 +191,7 @@ See [tests/README.md](../tests/README.md) for test writing guidelines.
 ### Development Build
 
 ```bash
+cd apps/desktop
 npm run build
 ```
 
@@ -195,6 +200,7 @@ This creates a development build in the `dist` folder.
 ### Production Build
 
 ```bash
+cd apps/desktop
 npm run build -- --publish=never
 ```
 

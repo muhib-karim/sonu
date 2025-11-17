@@ -219,25 +219,25 @@ Models are selected based on:
 
 ```
 sonu/
-├── main.js              # Electron main process
-├── renderer.js           # UI logic and interactions
-├── preload.js            # IPC bridge
-├── styles.css            # Application styles
-├── index.html            # Main UI structure
-├── whisper_service.py    # Python transcription service
-├── system_utils.py       # System information utilities
-├── model_manager.py      # Model download and management
-├── package.json          # Node.js dependencies
-├── config.json.example   # Example configuration
-├── data/                 # User data directory
-│   ├── settings.json.example
-│   ├── dictionary.json.example
-│   └── snippets.json
+├── apps/desktop/         # Desktop application (v3.x)
+│   ├── main.js           # Electron main process
+│   ├── renderer.js       # UI logic and interactions
+│   ├── preload.js        # IPC bridge
+│   ├── styles.css        # Application styles
+│   ├── index.html        # Main UI structure
+│   ├── whisper_service.py # Python transcription service
+│   ├── system_utils.py   # System information utilities
+│   ├── model_manager.py  # Model download and management
+│   ├── package.json      # Node.js dependencies
+│   ├── data/             # User data directory
+│   │   ├── settings.json
+│   │   ├── dictionary.json
+│   │   └── snippets.json
+│   └── tests/            # Desktop-specific tests
+├── versions/             # Archived versions
 ├── assets/               # Application assets
-│   └── tray/            # Tray icons
-├── scripts/              # Utility scripts
-├── tests/                # Test suite
-└── docs/                 # Documentation
+├── docs/                 # Documentation
+└── [project configs]     # Project-wide configurations
 ```
 
 ## Development Guidelines

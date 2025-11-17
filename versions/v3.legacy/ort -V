@@ -1,0 +1,20 @@
+[33m6a87608[m[33m ([m[1;35mrefs/stash[m[33m)[m WIP on main: 50455fb docs: Production-ready release v3.8.0 - Complete audit, showcase, and documentation update
+[33m6dcdd58[m index on main: 50455fb docs: Production-ready release v3.8.0 - Complete audit, showcase, and documentation update
+[33m50455fb[m docs: Production-ready release v3.8.0 - Complete audit, showcase, and documentation update
+[33mfed8005[m Remove large model file from git tracking
+[33mdd7b897[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mversion-4-whisper-cpp[m[33m)[m v3.8.0: Performance & Reliability Update - Instant dictation, improved tap-and-hold, comprehensive model deletion
+[33m879f0f9[m feat: Add Context 7 (v3.7.0) with automatic documentation updates and manual Git push workflow
+[33mca25253[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Fix waveform animation toggle - widget visibility now properly controlled
+[33m78528fe[m chore: Clean up project, update documentation, and improve test infrastructure
+[33m78d7e5b[m test: add comprehensive tests for dictation modes and model download
+[33mb15c418[m fix: improve E2E test reliability and fix modal closing detection
+[33m118548e[m test: improve E2E tests with comprehensive coverage and better reliability
+[33m9143d8d[m main: keep window visible in test mode to stabilize E2E navigation
+[33m0bd3deb[m e2e: SHOWCASE_CAPTURE in test env; main: show window in test mode and skip whisper service
+[33m7b49b6f[m e2e: launch from project root and set E2E_TEST; main: skip robot libs in test mode for stable Electron launch
+[33m5b20a9c[m tests: add JSON reporters; e2e: stabilize selectors/waits and setImmediate polyfill; docs: append unit test summary to logs
+[33m0e9c0b5[m test: stabilize integration for offline mode; set e2e to Node env
+[33m75f16ad[m chore(logs): add SoloBuilder baseline test results and next steps
+[33m9f59752[m docs: fix SONU logo path (assets/tray/mic-32.png)
+[33m5b831d1[m docs: fix showcase gallery rendering (HTML <img> in table)
+[33m7b8c624[m docs: update acknowledgements section (text-only)

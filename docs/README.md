@@ -26,9 +26,9 @@ SONU is an offline voice typing application powered by OpenAI's Whisper AI. It w
 2. **Setup**:
    ```bash
    git clone https://github.com/muhib-karim/sonu.git
-   cd sonu
+   cd sonu/apps/desktop
    npm install
-   pip install faster-whisper pyaudio keyboard
+   pip install -r requirements.txt
    ```
 
 3. **Run**:
@@ -91,9 +91,10 @@ SONU uses a hybrid Electron + Python architecture:
 
 ### Configuration Files
 
-- `config.json`: Keyboard shortcuts and basic settings
-- `data/settings.json`: Application preferences
-- `history.json`: Transcription history (last 100 items)
+- `apps/desktop/data/settings.json`: Application preferences
+- `apps/desktop/data/dictionary.json`: Custom words for transcription
+- `apps/desktop/data/snippets.json`: User-defined text snippets
+- `apps/desktop/data/notes.json`: Voice notes
 
 ## Development
 
@@ -101,20 +102,18 @@ SONU uses a hybrid Electron + Python architecture:
 
 ```
 sonu/
-├── main.js                 # Electron main process
-├── renderer.js            # UI renderer logic
-├── preload.js             # IPC security bridge
-├── whisper_service.py     # Python transcription service
-├── model_manager.py       # AI model management
-├── system_utils.py        # System utilities
-├── index.html            # Main UI structure
-├── styles.css            # Application styles
-├── package.json          # Node.js dependencies
-├── data/                 # Application data
-├── assets/               # Static assets
-├── versions/             # Version snapshots
-├── tests/                # Test suite
-└── docs/                 # Documentation
+├── apps/desktop/         # Desktop application (v3.x) - ACTIVE
+│   ├── main.js           # Electron main process
+│   ├── index.html        # Main UI
+│   ├── renderer.js       # Renderer process
+│   ├── package.json      # Desktop dependencies
+│   └── data/             # User data (settings, dictionary, etc.)
+├── apps/mobile/          # Mobile app (v4+) - Future development
+├── versions/             # Archived versions and legacy files
+├── assets/               # Application assets
+├── docs/                 # Documentation
+├── scripts/              # Utility scripts
+└── [project files]       # README, configs, etc.
 ```
 
 ### Testing
@@ -138,6 +137,9 @@ npm run test:e2e
 ### Building
 
 ```bash
+# Navigate to desktop app
+cd apps/desktop
+
 # Development
 npm start
 

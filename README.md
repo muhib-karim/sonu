@@ -217,17 +217,15 @@
    cd sonu
    ```
 
-2. **Install Node Dependencies**
+2. **Navigate to Desktop App**
    ```bash
-   npm install
+   cd apps/desktop
    ```
 
-3. **Configure Application**
+3. **Install Dependencies**
    ```bash
-   # Copy example configuration files
-   cp config.json.example config.json
-   cp data/settings.json.example data/settings.json
-   cp data/dictionary.json.example data/dictionary.json
+   npm install
+   pip install -r requirements.txt
    ```
 
 4. **Run the Application**
@@ -335,19 +333,11 @@ This runs `auto_screenshot.js`, capturing screenshots to `screenshots/` and a wa
 
 ### Hotkey Configuration
 
-Hotkeys are stored in `config.json`:
-
-```json
-{
-  "holdHotkey": "CommandOrControl+Super+Space",
-  "toggleHotkey": "CommandOrControl+Shift+Space",
-  "activeModel": "tiny"
-}
-```
+Hotkeys are configured in the Settings UI (no config.json needed).
 
 ### Settings Configuration
 
-Settings are stored in `data/settings.json`:
+Settings are stored in `apps/desktop/data/settings.json`:
 
 ```json
 {
@@ -362,15 +352,7 @@ Settings are stored in `data/settings.json`:
 
 ### Dictionary Management
 
-Add custom words to `data/dictionary.json`:
-
-```json
-[
-  "custom",
-  "words",
-  "here"
-]
-```
+Add custom words in the Dictionary tab of the app. Words are stored in `apps/desktop/data/dictionary.json`.
 
 ---
 
@@ -388,24 +370,22 @@ Add custom words to `data/dictionary.json`:
 
 ```
 sonu/
-├── main.js              # Electron main process
-├── renderer.js          # UI logic and interactions
-├── preload.js           # IPC bridge
-├── styles.css           # Application styles
-├── index.html           # Main UI structure
-├── whisper_service.py   # Python transcription service
-├── system_utils.py     # System information utilities
-├── model_manager.py    # Model download and management
-├── config.json.example # Example configuration
-├── data/                # User data directory
-│   ├── settings.json.example
-│   ├── dictionary.json.example
-│   └── snippets.json
-├── assets/              # Application assets
-│   └── tray/           # Tray icons
-├── scripts/             # Utility scripts
-├── tests/               # Test suite
-└── versions/            # Version snapshots
+├── apps/
+│   ├── desktop/          # Desktop app (v3.x) - ACTIVE
+│   │   ├── main.js       # Electron main process
+│   │   ├── index.html    # Main UI
+│   │   ├── renderer.js   # Renderer process
+│   │   ├── package.json  # Desktop dependencies
+│   │   └── ...
+│   └── mobile/           # Mobile app (v4+) - Future
+├── versions/             # Historical versions
+│   ├── v3.legacy/        # Archived root files
+│   └── ...
+├── assets/               # Application assets
+├── docs/                 # Documentation
+├── scripts/              # Utility scripts
+├── tests/                # Test configurations
+└── [config files]        # Project-wide configs
 ```
 
 ### Key Components
@@ -494,8 +474,12 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 ### Building from Source
 
 ```bash
+# Navigate to desktop app
+cd apps/desktop
+
 # Install dependencies
 npm install
+pip install -r requirements.txt
 
 # Run in development mode
 npm start

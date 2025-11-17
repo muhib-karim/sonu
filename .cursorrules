@@ -1,0 +1,38 @@
+# SONU Project Development Rules
+
+## Default Development Environment
+
+**By default, work on the DESKTOP app located in `apps/desktop/`**
+
+- All file operations, code changes, and commands should target `apps/desktop/` unless explicitly told otherwise
+- The desktop app is version 3.x (Electron-based)
+- Working directory: `apps/desktop/`
+
+## Mobile App Development
+
+**Only switch to mobile when explicitly requested**
+
+- When user says "work on mobile app" or "switch to mobile", change context to `apps/mobile/`
+- Mobile app is version 4+ (Android/iOS native)
+- Mobile and desktop are completely separate codebases
+
+## File Organization
+
+- **Active Desktop Files**: `apps/desktop/` - Use these for all desktop development
+- **Active Mobile Files**: `apps/mobile/` - Use these only when working on mobile
+- **Root Files**: Legacy/backup - Do NOT use for active development
+- **Versions Folder**: Historical snapshots - Read-only, do not modify
+
+## Important Rules
+
+1. When editing files, check if they exist in both root and `apps/desktop/` - always use `apps/desktop/` version
+2. When launching the app, always use `cd apps/desktop && npm start`
+3. When searching for files, prioritize `apps/desktop/` over root-level files
+4. If you find duplicate files (root vs apps/desktop), use the `apps/desktop/` version
+
+## Context Awareness
+
+- Default context: Desktop app (`apps/desktop/`)
+- Mobile context: Only when explicitly requested
+- Always verify you're working in the correct directory before making changes
+

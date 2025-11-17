@@ -1,0 +1,43 @@
+name: Build Desktop v3.x.x
+
+on:
+  push:
+    tags:
+      - 'v3.*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install
+        run: npm install && pip install -r requirements.txt
+        working-directory: apps/desktop
+      
+      - name: Build (Unsigned)
+        run: npm run build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        working-directory: apps/desktop
+      
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: apps/desktop/dist/*
+          body: "Sonu Desktop v3.x.x - Unsigned open-source release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
