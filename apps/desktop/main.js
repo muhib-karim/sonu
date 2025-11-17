@@ -260,6 +260,11 @@ function createWindow() {
     show: false  // Don't show until ready (prevents white flash)
   });
   
+  // Ensure window can be focused from taskbar (Windows-specific)
+  if (process.platform === 'win32') {
+    mainWindow.setFocusable(true);
+  }
+  
   // Windows-specific: Handle taskbar icon clicks
   // On Windows, clicking the taskbar icon should restore and focus the window
   if (process.platform === 'win32') {
@@ -269,19 +274,44 @@ function createWindow() {
       // Use setImmediate to ensure this runs after the window is fully shown
       setImmediate(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
+          // Windows-specific: Use more aggressive focus method
+          try {
+            // On Windows, setVisibleOnAllWorkspaces might not support options parameter
+            if (process.platform === 'win32') {
+              mainWindow.setVisibleOnAllWorkspaces(true);
+            } else {
+              mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+            }
+          } catch (e) {
+            console.warn('setVisibleOnAllWorkspaces failed:', e.message);
+          }
           // Ensure window is focusable
           mainWindow.setFocusable(true);
           mainWindow.focus();
+          // Bring to front using moveTop (Windows-specific)
+          mainWindow.moveTop();
           // Temporarily bring to front, then set back to normal
           mainWindow.setAlwaysOnTop(true);
           setTimeout(() => {
             if (mainWindow && !mainWindow.isDestroyed()) {
               mainWindow.setAlwaysOnTop(false);
-              // Ensure it's still focusable
+              try {
+                mainWindow.setVisibleOnAllWorkspaces(false);
+              } catch (e) {
+                // Ignore errors when resetting
+              }
+              // Ensure it's still focusable and on top
               mainWindow.setFocusable(true);
               mainWindow.focus();
+              mainWindow.moveTop();
+              // Force focus again after a short delay
+              setTimeout(() => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                  mainWindow.focus();
+                }
+              }, 50);
             }
-          }, 100);
+          }, 150);
         }
       });
     });
@@ -290,11 +320,46 @@ function createWindow() {
     mainWindow.on('restore', () => {
       console.log('Window restore event - ensuring focus');
       if (mainWindow && !mainWindow.isDestroyed()) {
+        // Windows-specific: Use more aggressive focus method
+        try {
+          if (process.platform === 'win32') {
+            mainWindow.setVisibleOnAllWorkspaces(true);
+          } else {
+            mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+          }
+        } catch (e) {
+          console.warn('setVisibleOnAllWorkspaces failed:', e.message);
+        }
         mainWindow.setFocusable(true);
         mainWindow.show();
         mainWindow.focus();
-        mainWindow.setAlwaysOnTop(false);
+        mainWindow.moveTop();
+        mainWindow.setAlwaysOnTop(true);
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setAlwaysOnTop(false);
+            try {
+              mainWindow.setVisibleOnAllWorkspaces(false);
+            } catch (e) {
+              // Ignore errors when resetting
+            }
+            mainWindow.focus();
+            mainWindow.moveTop();
+            // Force focus again after a short delay
+            setTimeout(() => {
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.focus();
+              }
+            }, 50);
+          }
+        }, 150);
       }
+    });
+    
+    // Handle minimize event to ensure proper restoration
+    mainWindow.on('minimize', () => {
+      console.log('Window minimized');
+      // Don't hide on minimize - keep in taskbar
     });
   }
   
@@ -3060,6 +3125,78 @@ function reloadApp(changedFile) {
   }
 }
 
+  // Handle taskbar icon clicks (Windows/macOS) - MUST be before app.whenReady()
+  // This is the proper way to handle when user clicks the taskbar icon
+  app.on('activate', () => {
+    console.log('🖱️ App activate event (taskbar icon clicked)');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // Restore if minimized
+      if (mainWindow.isMinimized()) {
+        console.log('Window is minimized - restoring');
+        mainWindow.restore();
+      }
+      // Show if hidden
+      if (!mainWindow.isVisible()) {
+        console.log('Window is hidden - showing');
+        mainWindow.show();
+      }
+      // Windows-specific: Use more aggressive focus method
+      if (process.platform === 'win32') {
+        // Set visible on all workspaces to ensure it can be brought to front
+        try {
+          mainWindow.setVisibleOnAllWorkspaces(true);
+        } catch (e) {
+          console.warn('setVisibleOnAllWorkspaces failed:', e.message);
+        }
+        // Ensure window is focusable
+        mainWindow.setFocusable(true);
+        // Show and focus
+        mainWindow.show();
+        mainWindow.focus();
+        // Use multiple methods to bring to front
+        mainWindow.moveTop();
+        // Temporarily bring to front to ensure it appears above other windows
+        mainWindow.setAlwaysOnTop(true);
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setAlwaysOnTop(false);
+            try {
+              mainWindow.setVisibleOnAllWorkspaces(false);
+            } catch (e) {
+              // Ignore errors when resetting
+            }
+            mainWindow.focus();
+            mainWindow.moveTop();
+            // Force focus again after a short delay
+            setTimeout(() => {
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.focus();
+              }
+            }, 50);
+          }
+        }, 150);
+      } else {
+        // Non-Windows platforms
+        mainWindow.setFocusable(true);
+        mainWindow.focus();
+        mainWindow.moveTop();
+        mainWindow.setAlwaysOnTop(true);
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setAlwaysOnTop(false);
+            mainWindow.focus();
+            mainWindow.moveTop();
+          }
+        }, 100);
+      }
+      console.log('✅ Window restored and focused from taskbar click');
+    } else {
+      // Window not created yet, create it
+      console.log('Window not created yet - creating window');
+      createWindow();
+    }
+  });
+
   app.whenReady().then(() => {
     // Set development mode detection after app is ready
     isDevelopment = !app.isPackaged || process.env.NODE_ENV === 'development';
@@ -3081,15 +3218,37 @@ function reloadApp(changedFile) {
           if (mainWindow.isMinimized()) {
             mainWindow.restore();
           }
-          mainWindow.show();
-          mainWindow.focus();
-          // Bring to front
-          mainWindow.setAlwaysOnTop(true);
-          setTimeout(() => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.setAlwaysOnTop(false);
-            }
-          }, 100);
+          if (!mainWindow.isVisible()) {
+            mainWindow.show();
+          }
+          // Windows-specific: Use more aggressive focus method
+          if (process.platform === 'win32') {
+            mainWindow.setFocusable(true);
+            mainWindow.focus();
+            mainWindow.moveTop();
+            mainWindow.setAlwaysOnTop(true);
+            setTimeout(() => {
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.setAlwaysOnTop(false);
+                mainWindow.focus();
+                mainWindow.moveTop();
+                // Force focus again after a short delay
+                setTimeout(() => {
+                  if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.focus();
+                  }
+                }, 50);
+              }
+            }, 150);
+          } else {
+            mainWindow.focus();
+            mainWindow.setAlwaysOnTop(true);
+            setTimeout(() => {
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.setAlwaysOnTop(false);
+              }
+            }, 100);
+          }
         } else {
           // Window not created yet, wait a bit and try again
           setTimeout(() => {
@@ -3099,6 +3258,9 @@ function reloadApp(changedFile) {
               }
               mainWindow.show();
               mainWindow.focus();
+              if (process.platform === 'win32') {
+                mainWindow.moveTop();
+              }
             }
           }, 500);
         }

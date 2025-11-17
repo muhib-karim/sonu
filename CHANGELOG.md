@@ -32,13 +32,25 @@ This version includes major project cleanup, comprehensive automated testing sui
   - E2E tests (basic and complete functionality)
   - Automatic dependency installation
 
-- **Enhanced Test Coverage**: New comprehensive test file `complete_functionality.test.js`
-  - Tests actual functionality, not just UI presence
+- **Enhanced Test Coverage**: New comprehensive test files
+  - `complete_functionality.test.js` - Tests actual functionality, not just UI presence
+  - `realtime_comprehensive.test.js` - Real-time interactive tests that actually click buttons, test downloads, toggles, copy functions, and all user interactions
   - Validates CRUD operations
   - Tests all toggle switches
   - Verifies settings persistence
+  - Tests model downloads and cancellation
+  - Tests copy buttons throughout the app
+  - Tests theme changes
+  - Tests model selection
+  - Tests all navigation and UI interactions
 
 #### Fixed
+
+- **Taskbar Icon Click**: Fixed issue where clicking the taskbar icon didn't bring the window to front
+  - Added `app.on('activate')` handler to properly handle taskbar icon clicks
+  - Enhanced Windows-specific window restoration logic
+  - Improved window focus and bring-to-front behavior
+  - Added `moveTop()` calls to ensure window appears above other windows
 
 - **Project Cleanup**: Removed unnecessary duplicate files
   - Removed root-level `widget_preload.js` and `widget.html` (duplicates)

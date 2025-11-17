@@ -31,7 +31,7 @@ console.log('\n🧪 Step 2: Running comprehensive tests...');
 const testSuites = [
   { name: 'Unit Tests', command: 'npm run test:unit', cwd: testsDir },
   { name: 'Integration Tests', command: 'npm run test:integration', cwd: testsDir },
-  { name: 'E2E Tests - Complete Functionality', command: 'npm run test:e2e:complete', cwd: testsDir }
+  { name: 'E2E Tests - Real-Time Comprehensive', command: 'npm run test:e2e:realtime', cwd: testsDir }
 ];
 
 let allTestsPassed = true;

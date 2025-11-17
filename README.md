@@ -528,6 +528,9 @@ npm run test:e2e
 
 # Complete functionality tests (all features)
 npm run test:e2e:complete
+
+# Real-time comprehensive tests (clicks all buttons, tests downloads, toggles, copy functions)
+npm run test:realtime
 ```
 
 Alternatively, from the project root using Jest directly:

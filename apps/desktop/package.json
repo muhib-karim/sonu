@@ -10,6 +10,7 @@
     "test:e2e": "cd tests && npm run test:e2e",
     "test:all": "node run_all_tests.js",
     "test:complete": "cd tests && npm run test:e2e:complete",
+    "test:realtime": "cd tests && npm run test:e2e:realtime",
     "test:auto": "node automated_test_and_showcase.js",
     "fetch-icon": "node scripts/fetch-tray-icon.js",
     "preview": "python -m http.server 8000",

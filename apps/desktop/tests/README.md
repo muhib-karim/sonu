@@ -58,6 +58,9 @@ npm run test:e2e
 # Complete functionality tests (all features with CRUD operations)
 npm run test:e2e:complete
 
+# Real-time comprehensive tests (interactive, clicks all buttons, tests all features)
+npm run test:e2e:realtime
+
 # All E2E tests
 npm run test:e2e:all
 

@@ -13,7 +13,8 @@
     "test:typing": "jest tests/integration/typing.test.js --json --outputFile=jest-integration.json",
     "test:e2e": "jest tests/e2e --json --outputFile=jest-e2e.json --runInBand --maxWorkers=1 --testTimeout=180000 --globalTeardown=tests/e2e/global-teardown.js",
     "test:e2e:complete": "jest tests/e2e/complete_functionality.test.js --json --outputFile=jest-e2e-complete.json --runInBand --maxWorkers=1 --testTimeout=180000",
-    "test:e2e:all": "jest tests/e2e --json --outputFile=jest-e2e-all.json --runInBand --maxWorkers=1 --testTimeout=180000 --globalTeardown=tests/e2e/global-teardown.js",
+    "test:e2e:realtime": "jest tests/e2e/realtime_comprehensive.test.js --json --outputFile=jest-e2e-realtime.json --runInBand --maxWorkers=1 --testTimeout=300000",
+    "test:e2e:all": "jest tests/e2e --json --outputFile=jest-e2e-all.json --runInBand --maxWorkers=1 --testTimeout=300000 --globalTeardown=tests/e2e/global-teardown.js",
     "test:electron": "jest tests/electron",
     "test:python": "python -m pytest tests/python",
     "test:all": "npm run test:unit; npm run test:integration; npm run test:python; npm run test:e2e"

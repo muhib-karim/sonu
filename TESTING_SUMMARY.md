@@ -117,10 +117,98 @@ All test suites are configured with appropriate timeouts:
 3. **Playwright**: May require display server in CI environments
 4. **Test Isolation**: Each test suite runs independently with proper cleanup
 
+## Real-Time Comprehensive Testing
+
+### New Test Suite: `realtime_comprehensive.test.js`
+
+This test suite performs **actual real-time interactions** with the app:
+
+#### Features Tested in Real-Time:
+
+1. **Navigation**
+   - ✅ All main tabs (Home, Dictionary, Snippets, Style, Notes, Settings)
+   - ✅ All settings sub-tabs (General, System, Model, Themes, Vibe, Experimental)
+   - ✅ Rapid navigation between tabs
+
+2. **Dictionary Management**
+   - ✅ Add word (fills form, submits)
+   - ✅ Copy word button (clicks and verifies clipboard)
+   - ✅ Delete word (clicks delete, verifies removal)
+
+3. **Snippets Management**
+   - ✅ Add snippet (fills name and text, submits)
+   - ✅ Copy snippet button
+
+4. **Notes Management**
+   - ✅ Add note (fills title and content, submits)
+   - ✅ Copy note button
+
+5. **Theme System**
+   - ✅ Toggle theme using button (light/dark)
+   - ✅ Select theme from gallery
+   - ✅ Verify theme changes persist
+
+6. **Model Management**
+   - ✅ Change model selection (selects different model)
+   - ✅ Click download button
+   - ✅ Click cancel download button (if download starts)
+
+7. **All Toggles**
+   - ✅ Experimental: Continuous dictation (ON/OFF)
+   - ✅ Experimental: Low-latency (ON/OFF)
+   - ✅ Experimental: Noise reduction (ON/OFF)
+   - ✅ General: Sound feedback (ON/OFF)
+   - ✅ General: Waveform animation (ON/OFF)
+   - ✅ Verifies settings are saved after each toggle
+
+8. **Copy Buttons**
+   - ✅ History copy buttons
+   - ✅ Dictionary copy buttons
+   - ✅ Snippets copy buttons
+   - ✅ Notes copy buttons
+
+9. **Dictation Testing**
+   - ✅ Dictation UI elements (hotkey display, live preview, waveform)
+   - ✅ IPC methods availability
+   - ✅ Notes recording (NFC dictation) button and functionality
+
+10. **Window Controls**
+    - ✅ Minimize button
+    - ✅ Maximize button
+    - ✅ Window restoration
+
+11. **System Information**
+    - ✅ Load system info
+    - ✅ Refresh system info button
+
+12. **Hotkey Settings**
+    - ✅ Open shortcuts modal
+    - ✅ Verify modal elements
+
+13. **Style Transformer**
+    - ✅ Style categories display
+    - ✅ Style selection
+
+14. **Complete User Journey**
+    - ✅ Full workflow: Navigate → Add items → Change settings → Test features
+
+## Running Real-Time Tests
+
+```bash
+cd apps/desktop
+npm run test:realtime
+```
+
+Or from tests directory:
+```bash
+cd apps/desktop/tests
+npm run test:e2e:realtime
+```
+
 ## Future Enhancements
 
-- Dictation functionality tests (requires audio input simulation)
-- Model download progress tests
+- Actual audio input simulation for dictation testing
+- Model download completion tests (with mocked downloads)
 - Advanced error scenario testing
 - Performance benchmarking tests
 
