@@ -302,8 +302,12 @@ This runs `auto_screenshot.js`, capturing screenshots to `screenshots/` and a wa
 2. **Default**: `Ctrl+Shift+Space` (customizable)
 3. **Usage**:
    - Press once to start dictation
-   - Speak your text
-   - Press again to stop and output
+   - Speak your text (see live partial transcriptions in real-time)
+   - Press again to stop and output text instantly
+4. **Features**:
+   - **Instant Output**: Text appears immediately when toggled off using the last partial transcription
+   - **Live Previews**: Real-time partial transcriptions during recording (same as hold mode)
+   - **Reliable**: Stable operation even with rapid toggle sequences
 
 ### Model Management
 
