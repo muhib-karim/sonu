@@ -31,71 +31,80 @@
 ---
 
 ## 📸 Showcase
+
 <div align="center">
 
-### Full Gallery
+### Application Overview
 
 <table>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/01-home.png" alt="Home" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/01_home.png" alt="01_home" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/02-dictionary.png" alt="Dictionary" width="300"></td>
+    <td align="center"><strong>Home Dashboard</strong></td>
+    <td align="center"><strong>Dictionary Workspace</strong></td>
+    <td align="center"><strong>Snippets Library</strong></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/02_dictation_start.png" alt="02_dictation_start" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/03-snippets.png" alt="Snippets" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/03_output_log.png" alt="03_output_log" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/01-home.png" alt="Home Dashboard" width="100%"></td>
+    <td><img src="apps/desktop/assets/showcase/02-dictionary.png" alt="Dictionary Workspace" width="100%"></td>
+    <td><img src="apps/desktop/assets/showcase/03-snippets.png" alt="Snippets Library" width="100%"></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/04-style.png" alt="Style" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/04_help.png" alt="04_help" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/05-notes.png" alt="Notes" width="300"></td>
+    <td align="center"><strong>Style Presets</strong></td>
+    <td align="center"><strong>Notes Dashboard</strong></td>
+    <td align="center"><strong>Settings - General</strong></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/05_dictionary.png" alt="05_dictionary" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/06-settings-general.png" alt="Settings general" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/06_snippets.png" alt="06_snippets" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/04-style.png" alt="Style Presets" width="100%"></td>
+    <td><img src="apps/desktop/assets/showcase/05-notes.png" alt="Notes Dashboard" width="100%"></td>
+    <td><img src="apps/desktop/assets/showcase/06-settings-general.png" alt="Settings - General" width="100%"></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/07-settings-system.png" alt="Settings system" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/07_style.png" alt="07_style" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/08-settings-model.png" alt="Settings model" width="300"></td>
+    <td align="center"><strong>Settings - System</strong></td>
+    <td align="center"><strong>Settings - Model Selector</strong></td>
+    <td align="center"><strong>Settings - Themes</strong></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/08_notes.png" alt="08_notes" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/09-settings-themes.png" alt="Settings themes" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/09_settings.png" alt="09_settings" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/07-settings-system.png" alt="Settings - System" width="100%"></td>
+    <td><img src="apps/desktop/assets/showcase/08-settings-model.png" alt="Settings - Model Selector" width="100%"></td>
+    <td><img src="apps/desktop/assets/showcase/09-settings-themes.png" alt="Settings - Themes" width="100%"></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/10-home-dark.png" alt="Home dark" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/10_settings-general.png" alt="10_settings general" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/11_settings-system.png" alt="11_settings system" width="300"></td>
+    <td colspan="3" align="center"><strong>Dark Theme</strong></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/12_model_selector.png" alt="12_model_selector" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/13_settings-themes.png" alt="13_settings themes" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/14_settings-vibe.png" alt="14_settings vibe" width="300"></td>
+    <td colspan="3"><img src="apps/desktop/assets/showcase/10-home-dark.png" alt="Home in Dark Theme" width="100%"></td>
   </tr>
+</table>
+
+### Video Showcase
+
+<table>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/15_settings-experimental.png" alt="15_settings experimental" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/16_theme-light.png" alt="16_theme light" width="300"></td>
-    <td><img src="apps/desktop/assets/showcase/17_theme-dark.png" alt="17_theme dark" width="300"></td>
-  </tr>
-  
-  <tr>
-    <td colspan="3">
-      <sub>Screenshots are auto-generated via <code>npm run showcase</code> and saved to <code>apps/desktop/assets/showcase/</code>.</sub>
+    <td colspan="3" align="center">
+      <h3>🎬 Video Demonstrations</h3>
+      <p>
+        <a href="apps/desktop/assets/showcase/showcase.mp4">📹 MP4 Montage</a> ·
+        <a href="apps/desktop/assets/showcase/showcase_vp9.webm">📹 VP9 Montage</a> ·
+        <a href="apps/desktop/assets/showcase/showcase_h265.mp4">📹 HEVC Montage</a>
+      </p>
+      <p>
+        <strong>Slideshows:</strong><br>
+        <a href="apps/desktop/assets/showcase/showcase_slideshow_h265.mp4">HEVC Slideshow</a> ·
+        <a href="apps/desktop/assets/showcase/showcase_slideshow_vp9.webm">VP9 Slideshow</a> ·
+        <a href="apps/desktop/assets/showcase/showcase_slideshow_3s_h265.mp4">HEVC (Ken Burns)</a> ·
+        <a href="apps/desktop/assets/showcase/showcase_slideshow_3s_vp9.webm">VP9 (Ken Burns)</a>
+      </p>
     </td>
   </tr>
-  
 </table>
+
+<sub>✨ Screenshots and videos are auto-generated via <code>npm run showcase</code> and saved to <code>apps/desktop/assets/showcase/</code></sub>
 
 </div>
 ---
 
 ## 🚀 Overview
 
-**SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using TraeAI IDE and AI assistance, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
+**SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using Cursor, VSCode, and AI-powered development tools, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
 
 ### Key Highlights
 
