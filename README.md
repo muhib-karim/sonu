@@ -43,9 +43,9 @@
     <td align="center"><strong>Snippets Library</strong></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/01-home.png" alt="Home Dashboard" width="100%"></td>
-    <td><img src="apps/desktop/assets/showcase/02-dictionary.png" alt="Dictionary Workspace" width="100%"></td>
-    <td><img src="apps/desktop/assets/showcase/03-snippets.png" alt="Snippets Library" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/01-home.png" alt="Home Dashboard" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/02-dictionary.png" alt="Dictionary Workspace" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/03-snippets.png" alt="Snippets Library" width="100%"></td>
   </tr>
   <tr>
     <td align="center"><strong>Style Presets</strong></td>
@@ -53,9 +53,9 @@
     <td align="center"><strong>Settings - General</strong></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/04-style.png" alt="Style Presets" width="100%"></td>
-    <td><img src="apps/desktop/assets/showcase/05-notes.png" alt="Notes Dashboard" width="100%"></td>
-    <td><img src="apps/desktop/assets/showcase/06-settings-general.png" alt="Settings - General" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/04-style.png" alt="Style Presets" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/05-notes.png" alt="Notes Dashboard" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/06-settings-general.png" alt="Settings - General" width="100%"></td>
   </tr>
   <tr>
     <td align="center"><strong>Settings - System</strong></td>
@@ -63,15 +63,15 @@
     <td align="center"><strong>Settings - Themes</strong></td>
   </tr>
   <tr>
-    <td><img src="apps/desktop/assets/showcase/07-settings-system.png" alt="Settings - System" width="100%"></td>
-    <td><img src="apps/desktop/assets/showcase/08-settings-model.png" alt="Settings - Model Selector" width="100%"></td>
-    <td><img src="apps/desktop/assets/showcase/09-settings-themes.png" alt="Settings - Themes" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/07-settings-system.png" alt="Settings - System" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/08-settings-model.png" alt="Settings - Model Selector" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/09-settings-themes.png" alt="Settings - Themes" width="100%"></td>
   </tr>
   <tr>
     <td colspan="3" align="center"><strong>Dark Theme</strong></td>
   </tr>
   <tr>
-    <td colspan="3"><img src="apps/desktop/assets/showcase/10-home-dark.png" alt="Home in Dark Theme" width="100%"></td>
+    <td colspan="3"><img src="https://raw.githubusercontent.com/muhib-karim/sonu/desktop-v3/apps/desktop/assets/showcase/10-home-dark.png" alt="Home in Dark Theme" width="100%"></td>
   </tr>
 </table>
 
@@ -82,16 +82,16 @@
     <td colspan="3" align="center">
       <h3>🎬 Video Demonstrations</h3>
       <p>
-        <a href="apps/desktop/assets/showcase/showcase.mp4">📹 MP4 Montage</a> ·
-        <a href="apps/desktop/assets/showcase/showcase_vp9.webm">📹 VP9 Montage</a> ·
-        <a href="apps/desktop/assets/showcase/showcase_h265.mp4">📹 HEVC Montage</a>
+        <a href="https://github.com/muhib-karim/sonu/blob/desktop-v3/apps/desktop/assets/showcase/showcase.mp4">📹 MP4 Montage</a> ·
+        <a href="https://github.com/muhib-karim/sonu/blob/desktop-v3/apps/desktop/assets/showcase/showcase_vp9.webm">📹 VP9 Montage</a> ·
+        <a href="https://github.com/muhib-karim/sonu/blob/desktop-v3/apps/desktop/assets/showcase/showcase_h265.mp4">📹 HEVC Montage</a>
       </p>
       <p>
         <strong>Slideshows:</strong><br>
-        <a href="apps/desktop/assets/showcase/showcase_slideshow_h265.mp4">HEVC Slideshow</a> ·
-        <a href="apps/desktop/assets/showcase/showcase_slideshow_vp9.webm">VP9 Slideshow</a> ·
-        <a href="apps/desktop/assets/showcase/showcase_slideshow_3s_h265.mp4">HEVC (Ken Burns)</a> ·
-        <a href="apps/desktop/assets/showcase/showcase_slideshow_3s_vp9.webm">VP9 (Ken Burns)</a>
+        <a href="https://github.com/muhib-karim/sonu/blob/desktop-v3/apps/desktop/assets/showcase/showcase_slideshow_h265.mp4">HEVC Slideshow</a> ·
+        <a href="https://github.com/muhib-karim/sonu/blob/desktop-v3/apps/desktop/assets/showcase/showcase_slideshow_vp9.webm">VP9 Slideshow</a> ·
+        <a href="https://github.com/muhib-karim/sonu/blob/desktop-v3/apps/desktop/assets/showcase/showcase_slideshow_3s_h265.mp4">HEVC (Ken Burns)</a> ·
+        <a href="https://github.com/muhib-karim/sonu/blob/desktop-v3/apps/desktop/assets/showcase/showcase_slideshow_3s_vp9.webm">VP9 (Ken Burns)</a>
       </p>
     </td>
   </tr>
