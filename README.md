@@ -599,23 +599,39 @@ This project was built using the following development tools and AI assistants:
 
 ## 💎 Sponsors & Support
 
-### Cursor Ultra Sponsorship
+### 🎯 Support Cursor Ultra Subscription
 
-This project is made possible thanks to **Cursor Ultra** subscription, which provides:
+This project is powered by **Cursor Ultra**, which enables professional-grade AI-augmented development. Your support helps maintain the Cursor Ultra subscription and ensures continued development of SONU.
+
+<div align="center">
+
+### ☕ Buy Me a Coffee
+
+**Support the project and help maintain Cursor Ultra subscription**
+
+<a href="https://ko-fi.com/ai_dev_2024" target="_blank">
+  <img src="https://img.shields.io/badge/☕%20Buy%20Me%20a%20Coffee-Support%20Development-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Buy Me a Coffee" />
+</a>
+
+**[👉 Donate via Ko-fi](https://ko-fi.com/ai_dev_2024)** to help cover Cursor Ultra costs and support continued development! 🙏
+
+</div>
+
+### What Cursor Ultra Enables
 
 - 🚀 **Advanced AI Features**: Enhanced code completion and generation
 - ⚡ **Faster Development**: Accelerated development cycles
 - 🎯 **Better Code Quality**: AI-powered code review and optimization
 - 💼 **Professional Tools**: Enterprise-grade development environment
 
-**Want to support continued development?**
+### Other Ways to Support
 
-If you find SONU useful and want to help maintain and improve it, consider:
+If you find SONU useful, you can also:
 
 - ⭐ **Star the repository** – Show your support
 - 🐛 **Report issues** – Help improve the app
 - 💡 **Suggest features** – Share your ideas
-- 💰 **Sponsor development** – Help cover Cursor Ultra costs
+- 🔄 **Share the project** – Help others discover SONU
 
 Your support enables continued development and feature additions. Thank you! 🙏
 
