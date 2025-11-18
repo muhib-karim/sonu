@@ -18,26 +18,28 @@
 
 ---
 
-### 🎯 **Development Journey & Support Goal**
+### 🎯 **Professional Sponsorship Needed for Cross-Platform Development**
 
-SONU represents a remarkable achievement in AI-augmented development, having been built entirely using **free trials and free API usage**. This project was developed using:
+<div align="center">
 
-- **Cursor Free/Pro** (7-day trial) – Primary IDE with AI-powered development assistance
-- **KiloCode** (free trial) – AI coding assistant for enhanced productivity
-- **VS Code** – Code editor with extensions
-- **Cline** (free trial) – AI-powered development extension
-- **RooCode** (free trial) – AI-powered code generation and refactoring
+**🚀 Help SONU Go Multi-Platform! 🚀**
 
-**The entire project has been achieved using free API usage and trial periods**, demonstrating what's possible with accessible AI development tools.
+SONU needs **professional sponsorship** to accelerate development and bring voice typing to **macOS, Linux, Android, and iOS**.
 
-**Our Goal:** To continue this momentum and deliver even more professional-grade features, we're seeking support to obtain **Cursor Ultra** or any other development tool sponsorship. **Any help, donation, or sponsorship is warmly welcome** and will directly enable:
+**[👉 Support Cross-Platform Development](https://ko-fi.com/ai_dev_2024)** | **[⭐ Star on GitHub](https://github.com/muhib-karim/sonu)**
 
-- ⚡ Faster feature development and bug fixes
-- 🚀 Enhanced AI-powered code quality
-- 💼 Professional-grade development tools
-- 🎯 Continued innovation and improvements
+</div>
 
-**[👉 Support via Ko-fi](https://ko-fi.com/ai_dev_2024)** | Your support makes a real difference! 🙏
+**Development Journey:** SONU was built entirely using **free trials and free API usage**, demonstrating what's possible with accessible AI development tools. However, to deliver **professional-grade, multi-platform software** at scale, we need sustainable development resources.
+
+**What Sponsorship Enables:**
+- 🍎 **macOS Support** - Native DMG installers
+- 🐧 **Linux Support** - AppImage, .deb, .rpm packages  
+- 📱 **Mobile Apps** - Native Android & iOS
+- ⚡ **Continuous Development** - Faster features, better quality
+- 🏢 **Enterprise Features** - Code signing, auto-updates, professional support
+
+**Your support directly enables cross-platform portability and professional-grade features!** 🙏
 
 ---
 
@@ -143,6 +145,128 @@ SONU represents a remarkable achievement in AI-augmented development, having bee
 
 ---
 
+## 📥 Download & Install
+
+### Windows (Current Platform)
+
+**🚀 Easy Installation - One-Click Installer:**
+
+1. **Download the latest release** from [GitHub Releases](https://github.com/muhib-karim/sonu/releases)
+2. **Run the installer** (`Sonu Voice Typing Setup.exe`)
+3. **Follow the installation wizard** - choose your installation directory
+4. **Launch SONU** from Start Menu or Desktop shortcut
+5. **Start dictating!** - Configure your hotkeys in Settings
+
+**System Requirements:**
+- Windows 10/11 (64-bit)
+- 4GB RAM minimum (8GB recommended)
+- 2GB free disk space
+- Microphone input device
+
+**Note:** Python and Node.js are bundled with the installer - no manual installation required!
+
+### Building from Source
+
+For developers who want to build from source:
+
+```bash
+# Clone repository
+git clone https://github.com/muhib-karim/sonu.git
+cd sonu/apps/desktop
+
+# Install dependencies
+npm install
+pip install -r requirements.txt
+
+# Run in development
+npm start
+
+# Build installer
+npm run build
+```
+
+---
+
+## 🗺️ Multi-Platform Roadmap
+
+SONU is currently available for **Windows** with active development. We're working to bring SONU to more platforms:
+
+### ✅ Available Now
+- **Windows 10/11** - Full support with NSIS installer
+
+### 🚧 Coming Soon
+- **macOS** - DMG installer (in development)
+- **Linux** - AppImage and .deb packages (planned)
+
+### 📱 Future Platforms
+- **Android** - Native mobile app (planned)
+- **iOS** - Native mobile app (planned)
+
+**Want to help?** We welcome contributions for platform-specific builds! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+---
+
+## 💎 Professional Sponsorship for Cross-Platform Development
+
+<div align="center">
+
+### 🚀 **Help Us Build the Future of Voice Typing**
+
+**SONU needs professional sponsorship to accelerate cross-platform development and deliver enterprise-grade features.**
+
+</div>
+
+### Why Sponsorship Matters
+
+SONU was built using free trials and free API usage, demonstrating what's possible with accessible AI development tools. However, to deliver **professional-grade, multi-platform software** at scale, we need sustainable development resources.
+
+### What Your Sponsorship Enables
+
+#### 🎯 **Cross-Platform Portability**
+- **macOS Development**: Native DMG installers, macOS-specific optimizations
+- **Linux Support**: AppImage, .deb, and .rpm packages for all major distributions
+- **Mobile Apps**: Native Android and iOS applications
+- **Platform Testing**: Comprehensive testing across all platforms
+
+#### ⚡ **Continuous Development**
+- **Faster Feature Development**: Rapid iteration and feature delivery
+- **Professional Tools**: Access to premium development environments (Cursor Ultra, etc.)
+- **Quality Assurance**: Automated testing, CI/CD pipelines, and quality control
+- **Bug Fixes**: Rapid response to issues and security updates
+
+#### 🏢 **Enterprise Features**
+- **Code Signing**: Digitally signed installers for all platforms
+- **Auto-Updates**: Seamless update mechanism across platforms
+- **Professional Support**: Dedicated support channels
+- **Documentation**: Comprehensive guides and API documentation
+
+### How to Support
+
+**Individual Sponsors:**
+- ⭐ **Star the repository** - Show your support
+- 💰 **One-time donations** - [Ko-fi](https://ko-fi.com/ai_dev_2024)
+- 🔄 **Recurring sponsorship** - GitHub Sponsors (coming soon)
+
+**Professional/Corporate Sponsors:**
+- 🏢 **Enterprise Sponsorship** - Direct partnership opportunities
+- 🛠️ **Tool Sponsorship** - Development tool licenses (Cursor Ultra, etc.)
+- 📦 **Infrastructure Sponsorship** - Build servers, CI/CD resources
+- 🎯 **Feature Sponsorship** - Sponsor specific platform ports or features
+
+### Current Sponsors
+
+*Be the first to sponsor SONU's cross-platform journey!*
+
+<div align="center">
+
+**[👉 Support SONU Development](https://ko-fi.com/ai_dev_2024)** | **[⭐ Star on GitHub](https://github.com/muhib-karim/sonu)**
+
+*Your support directly enables cross-platform development and professional-grade features*
+
+</div>
+
+---
+
 ## ✨ Features
 
 ### Core Functionality
@@ -207,7 +331,7 @@ SONU represents a remarkable achievement in AI-augmented development, having bee
 
 ---
 
-## 🛠️ Installation
+## 🛠️ Development Installation
 
 ### Prerequisites
 
@@ -263,6 +387,8 @@ npm run build
 ```
 
 This creates a Windows installer in the `dist` folder.
+
+**Note:** Building requires Visual Studio Build Tools or running as Administrator due to native dependency compilation.
 
 ## 📸 Automated Showcase Capture
 

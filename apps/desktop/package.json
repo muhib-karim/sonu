@@ -41,6 +41,7 @@
     "speech-to-text"
   ],
   "devDependencies": {
+    "electron": "^28.3.3",
     "electron-builder": "^24.9.0",
     "playwright": "^1.56.1",
     "sharp": "^0.34.5",
@@ -50,7 +51,6 @@
   },
   "dependencies": {
     "@xitanggg/node-insert-text": "^1.5.1",
-    "electron": "^28.3.3",
     "electron-localshortcut": "^3.2.1",
     "electron-updater": "^6.1.8",
     "follow-redirects": "^1.15.11",
@@ -59,14 +59,21 @@
   "build": {
     "appId": "com.sonu.app",
     "productName": "Sonu Voice Typing",
+    "npmRebuild": false,
     "publish": {
       "provider": "github",
       "owner": "muhib-karim",
       "repo": "sonu"
     },
     "win": {
-      "target": "nsis",
-      "sign": null
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "sign": false,
+      "signingHashAlgorithms": []
     },
     "mac": {
       "target": "dmg",
@@ -77,12 +84,19 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SONU Voice Typing"
     },
     "files": [
       "**/*",
       "!**/*.md",
-      "whisper_service.py"
+      "!tests/**/*",
+      "whisper_service.py",
+      "model_manager.py",
+      "system_utils.py",
+      "llm_service.py"
     ]
   }
 }
