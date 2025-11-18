@@ -20,7 +20,7 @@
 
 ### 🎯 **Development Goal: Cursor Ultra Subscription**
 
-SONU is built with cutting-edge AI-assisted development tools. To continue delivering professional-grade features and maintain rapid development cycles, **we're seeking support to obtain and maintain a Cursor Ultra subscription**.
+SONU was developed using **Cursor Free/Pro on a 7-day trial**. This project demonstrates the power of AI-augmented development, and to continue building professional-grade features and maintain rapid development cycles, **the goal is to obtain a Cursor Ultra subscription**.
 
 **Your support directly enables:**
 - ⚡ Faster feature development and bug fixes
@@ -28,7 +28,7 @@ SONU is built with cutting-edge AI-assisted development tools. To continue deliv
 - 💼 Professional-grade development tools
 - 🎯 Continued innovation and improvements
 
-**[👉 Support via Ko-fi](https://ko-fi.com/ai_dev_2024)** | Every contribution helps! 🙏
+**[👉 Support via Ko-fi](https://ko-fi.com/ai_dev_2024)** | I would really appreciate the support! 🙏
 
 ---
 
@@ -617,7 +617,7 @@ This project was built using the following development tools and AI assistants:
 
 ### 🎯 Our Goal: Cursor Ultra Subscription
 
-SONU is developed using **Cursor Ultra**, a powerful AI-augmented development environment that enables rapid, high-quality software development. To continue delivering professional-grade features and maintain the development momentum, **we need your help to obtain and maintain a Cursor Ultra subscription**.
+SONU was developed using **Cursor Free/Pro on a 7-day trial**, a powerful AI-augmented development environment that enabled rapid, high-quality software development. This project demonstrates the power of AI-augmented development, and to continue delivering professional-grade features and maintain the development momentum, **the goal is to obtain a Cursor Ultra subscription**. I would really appreciate your support!
 
 <div align="center">
 
@@ -627,13 +627,13 @@ SONU is developed using **Cursor Ultra**, a powerful AI-augmented development en
   <img src="https://img.shields.io/badge/☕%20Support%20on%20Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" height="40" />
 </a>
 
-**[👉 Donate Now](https://ko-fi.com/ai_dev_2024)** | Every contribution brings us closer to our goal! 🙏
+**[👉 Donate Now](https://ko-fi.com/ai_dev_2024)** | I would really appreciate the support! 🙏
 
 </div>
 
 ### Why Cursor Ultra Matters
 
-Cursor Ultra is the engine behind SONU's rapid development and professional code quality:
+Cursor Ultra will be the engine that enables SONU's continued rapid development and professional code quality:
 
 - 🚀 **Advanced AI Features**: Real-time code completion, generation, and refactoring
 - ⚡ **10x Faster Development**: Accelerated development cycles with AI assistance
@@ -645,7 +645,7 @@ Cursor Ultra is the engine behind SONU's rapid development and professional code
 
 When you support SONU, you're directly contributing to:
 
-- ✅ **Maintaining Cursor Ultra** – Ensuring continued access to professional development tools
+- ✅ **Obtaining Cursor Ultra** – Enabling access to professional development tools for continued development
 - ✅ **Faster Updates** – More frequent releases and bug fixes
 - ✅ **Better Features** – Enhanced functionality and user experience
 - ✅ **Long-term Sustainability** – Ensuring SONU continues to evolve
@@ -670,9 +670,9 @@ Your support, whether through donations, stars, feedback, or sharing, makes a re
 
 <div align="center">
 
-[![Cursor Ultra](https://img.shields.io/badge/Powered%20by-Cursor%20Ultra-purple?style=for-the-badge&logo=cursor&logoColor=white)](https://cursor.sh)
+[![Cursor](https://img.shields.io/badge/Built%20with-Cursor%20Free%2FPro-blue?style=for-the-badge&logo=cursor&logoColor=white)](https://cursor.sh) [![Goal](https://img.shields.io/badge/Goal-Cursor%20Ultra-purple?style=for-the-badge&logo=cursor&logoColor=white)](https://cursor.sh)
 
-*Professional AI-augmented development enabled by Cursor Ultra*
+*Developed with Cursor Free/Pro (7-day trial) · Goal: Cursor Ultra for continued development*
 
 </div>
 
@@ -707,7 +707,7 @@ For issues, questions, or feature requests:
 
 <div align="center">
 
-**Made with ❤️ by a solo developer using Cursor, VSCode, and AI-powered development tools**
+**Made with ❤️ by a solo developer using Cursor Free/Pro (7-day trial), VSCode, and AI-powered development tools**
 
 *Built to demonstrate the power of AI-augmented development*
 
