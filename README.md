@@ -652,13 +652,17 @@ When you support SONU, you're directly contributing to:
 
 ### How You Can Help
 
+<div align="center">
+
 | Action | Impact |
-|--------|--------|
+|:------:|:------:|
 | [☕ **Donate via Ko-fi**](https://ko-fi.com/ai_dev_2024) | Directly supports Cursor Ultra subscription |
 | ⭐ **Star the repository** | Shows appreciation and helps others discover SONU |
 | 🐛 **Report issues** | Helps improve stability and features |
 | 💡 **Suggest features** | Guides development priorities |
 | 🔄 **Share the project** | Spreads awareness and grows the community |
+
+</div>
 
 ### Thank You! 🙏
 
