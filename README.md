@@ -591,7 +591,7 @@ This project was built using the following development tools and AI assistants:
 > These tools enabled rapid development and professional-grade code quality as a solo developer.
 ---
 
-> Built independently and completely offline with respect for all the creators above. Special thanks to Cursor Ultra for enabling professional-grade AI-augmented development. Special thanks to Cursor Ultra for enabling professional-grade AI-augmented development.  
+> Built independently and completely offline with respect for all the creators above.  
 > Special thanks to **Cursor Ultra** for enabling professional-grade AI-augmented development.  
 > All trademarks belong to their respective owners. 
 
