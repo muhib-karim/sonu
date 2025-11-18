@@ -18,9 +18,11 @@
 
 ---
 
-### 🎯 **Development Goal: Cursor Ultra Subscription**
+### 🎯 **Development Goal: Professional Development Tools & Sponsorship**
 
-SONU was developed using **Cursor Free/Pro on a 7-day trial**. This project demonstrates the power of AI-augmented development, and to continue building professional-grade features and maintain rapid development cycles, **the goal is to obtain a Cursor Ultra subscription**.
+SONU was developed using a suite of AI-augmented development tools including **Cursor Free/Pro (7-day trial)**, **KiloCode**, **VS Code**, **Klein**, and **RooCode**. This project demonstrates the power of collaborative AI-assisted development, and to continue building professional-grade features and maintain rapid development cycles, **the primary goal is to obtain a Cursor Ultra subscription**.
+
+**We welcome any form of sponsorship or support** that helps maintain and enhance the development workflow. Whether it's Cursor Ultra, alternative development tools, or direct contributions, **any help and donation is greatly appreciated**.
 
 **Your support directly enables:**
 - ⚡ Faster feature development and bug fixes
@@ -28,7 +30,7 @@ SONU was developed using **Cursor Free/Pro on a 7-day trial**. This project demo
 - 💼 Professional-grade development tools
 - 🎯 Continued innovation and improvements
 
-**[👉 Support via Ko-fi](https://ko-fi.com/ai_dev_2024)** | I would really appreciate the support! 🙏
+**[👉 Support via Ko-fi](https://ko-fi.com/ai_dev_2024)** | Any contribution makes a meaningful difference! 🙏
 
 ---
 
@@ -120,7 +122,7 @@ SONU was developed using **Cursor Free/Pro on a 7-day trial**. This project demo
 
 ## 🚀 Overview
 
-**SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using Cursor, VSCode, and AI-powered development tools, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
+**SONU** is a cutting-edge desktop application that provides real-time voice-to-text transcription using OpenAI's Whisper model via the faster-whisper library, running entirely offline on your Windows machine. Built with Electron and Python using Cursor Free/Pro (7-day trial), KiloCode, VS Code, Klein, and RooCode, SONU offers a seamless, privacy-focused dictation experience that works across all your applications.
 
 ### Key Highlights
 
@@ -598,26 +600,29 @@ This project was made possible thanks to the amazing work of the open-source AI 
 
 This project was built using the following development tools and AI assistants:
 
-- **Cursor** – Primary IDE with AI-powered development assistance
-- **VSCode** – Code editor for development and debugging
+- **Cursor Free/Pro (7-day trial)** – Primary IDE with AI-powered development assistance
+- **VS Code** – Code editor for development and debugging
 - **KiloCode** – AI coding assistant for enhanced productivity
 - **Klein** – Development tool for code optimization
 - **RooCode** – AI-powered code generation and refactoring
 
-> These tools enabled rapid development and professional-grade code quality as a solo developer.
+> These tools enabled rapid development and professional-grade code quality as a solo developer. The collaborative use of multiple AI-augmented development environments demonstrates the power of modern development tooling.
 ---
 
 > Built independently and completely offline with respect for all the creators above.  
-> Special thanks to **Cursor Ultra** for enabling professional-grade AI-augmented development.  
+> Special thanks to **Cursor Free/Pro**, **KiloCode**, **VS Code**, **Klein**, and **RooCode** for enabling professional-grade AI-augmented development.  
+> Goal: Obtain **Cursor Ultra** or alternative professional development tools to continue innovation.  
 > All trademarks belong to their respective owners. 
 
 ---
 
 ## 💎 Sponsors & Support
 
-### 🎯 Our Goal: Cursor Ultra Subscription
+### 🎯 Our Goal: Professional Development Tools & Sponsorship
 
-SONU was developed using **Cursor Free/Pro on a 7-day trial**, a powerful AI-augmented development environment that enabled rapid, high-quality software development. This project demonstrates the power of AI-augmented development, and to continue delivering professional-grade features and maintain the development momentum, **the goal is to obtain a Cursor Ultra subscription**. I would really appreciate your support!
+SONU was developed using a comprehensive suite of AI-augmented development tools, including **Cursor Free/Pro (7-day trial)**, **KiloCode**, **VS Code**, **Klein**, and **RooCode**. This collaborative approach enabled rapid, high-quality software development and demonstrates the power of modern AI-assisted development workflows.
+
+To continue delivering professional-grade features and maintain the development momentum, **our primary goal is to obtain a Cursor Ultra subscription**. However, **we welcome any form of sponsorship or support**—whether it's Cursor Ultra, alternative development tools, direct contributions, or other forms of assistance. **Any help and donation is greatly appreciated and makes a meaningful difference**.
 
 <div align="center">
 
@@ -627,13 +632,13 @@ SONU was developed using **Cursor Free/Pro on a 7-day trial**, a powerful AI-aug
   <img src="https://img.shields.io/badge/☕%20Support%20on%20Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" height="40" />
 </a>
 
-**[👉 Donate Now](https://ko-fi.com/ai_dev_2024)** | I would really appreciate the support! 🙏
+**[👉 Donate Now](https://ko-fi.com/ai_dev_2024)** | Any contribution makes a meaningful difference! 🙏
 
 </div>
 
-### Why Cursor Ultra Matters
+### Why Professional Development Tools Matter
 
-Cursor Ultra will be the engine that enables SONU's continued rapid development and professional code quality:
+Professional development tools like Cursor Ultra (or alternative solutions) will be the engine that enables SONU's continued rapid development and professional code quality:
 
 - 🚀 **Advanced AI Features**: Real-time code completion, generation, and refactoring
 - ⚡ **10x Faster Development**: Accelerated development cycles with AI assistance
@@ -645,10 +650,11 @@ Cursor Ultra will be the engine that enables SONU's continued rapid development 
 
 When you support SONU, you're directly contributing to:
 
-- ✅ **Obtaining Cursor Ultra** – Enabling access to professional development tools for continued development
+- ✅ **Professional Development Tools** – Enabling access to Cursor Ultra or alternative professional development tools for continued development
 - ✅ **Faster Updates** – More frequent releases and bug fixes
 - ✅ **Better Features** – Enhanced functionality and user experience
-- ✅ **Long-term Sustainability** – Ensuring SONU continues to evolve
+- ✅ **Long-term Sustainability** – Ensuring SONU continues to evolve and improve
+- ✅ **Community Growth** – Supporting open-source innovation and accessibility
 
 ### How You Can Help
 
@@ -656,7 +662,7 @@ When you support SONU, you're directly contributing to:
 
 | Action | Impact |
 |:------:|:------:|
-| [☕ **Donate via Ko-fi**](https://ko-fi.com/ai_dev_2024) | Directly supports Cursor Ultra subscription |
+| [☕ **Donate via Ko-fi**](https://ko-fi.com/ai_dev_2024) | Directly supports development tools and continued development |
 | ⭐ **Star the repository** | Shows appreciation and helps others discover SONU |
 | 🐛 **Report issues** | Helps improve stability and features |
 | 💡 **Suggest features** | Guides development priorities |
@@ -666,7 +672,7 @@ When you support SONU, you're directly contributing to:
 
 ### Thank You! 🙏
 
-Your support, whether through donations, stars, feedback, or sharing, makes a real difference. Together, we can maintain the professional development tools that make SONU possible and continue building an exceptional offline voice typing experience.
+Your support, whether through donations, sponsorships, stars, feedback, or sharing, makes a real difference. We are grateful for any form of assistance—whether it's helping obtain Cursor Ultra, providing alternative development tools, or direct contributions. Together, we can maintain the professional development tools that make SONU possible and continue building an exceptional offline voice typing experience.
 
 <div align="center">
 
@@ -707,7 +713,7 @@ For issues, questions, or feature requests:
 
 <div align="center">
 
-**Made with ❤️ by a solo developer using Cursor Free/Pro (7-day trial), VSCode, and AI-powered development tools**
+**Made with ❤️ by a solo developer using Cursor Free/Pro (7-day trial), KiloCode, VS Code, Klein, and RooCode**
 
 *Built to demonstrate the power of AI-augmented development*
 
