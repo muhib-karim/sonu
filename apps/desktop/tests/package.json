@@ -14,7 +14,10 @@
     "test:e2e": "jest tests/e2e --json --outputFile=jest-e2e.json --runInBand --maxWorkers=1 --testTimeout=180000 --globalTeardown=tests/e2e/global-teardown.js",
     "test:e2e:complete": "jest tests/e2e/complete_functionality.test.js --json --outputFile=jest-e2e-complete.json --runInBand --maxWorkers=1 --testTimeout=180000",
     "test:e2e:realtime": "jest tests/e2e/realtime_comprehensive.test.js --json --outputFile=jest-e2e-realtime.json --runInBand --testTimeout=300000",
+    "test:e2e:model-download": "jest tests/e2e/model_download_comprehensive.test.js --json --outputFile=jest-e2e-model-download.json --runInBand --testTimeout=600000",
+    "test:e2e:user-journeys": "jest tests/e2e/user_journeys --json --outputFile=jest-e2e-user-journeys.json --runInBand --testTimeout=300000",
     "test:e2e:all": "jest tests/e2e --json --outputFile=jest-e2e-all.json --runInBand --maxWorkers=1 --testTimeout=300000 --globalTeardown=tests/e2e/global-teardown.js",
+    "test:visual": "jest tests/visual --json --outputFile=jest-visual.json --runInBand --testTimeout=180000",
     "test:electron": "jest tests/electron",
     "test:python": "python -m pytest tests/python",
     "test:all": "npm run test:unit; npm run test:integration; npm run test:python; npm run test:e2e"

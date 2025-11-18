@@ -11,7 +11,14 @@
     "test:all": "node run_all_tests.js",
     "test:complete": "cd tests && npm run test:e2e:complete",
     "test:realtime": "cd tests && npm run test:e2e:realtime",
+    "test:model-download": "cd tests && npm run test:e2e:model-download",
+    "test:user-journeys": "cd tests && npm run test:e2e:user-journeys",
+    "test:visual": "cd tests && npm run test:visual",
     "test:auto": "node automated_test_and_showcase.js",
+    "test:health": "node scripts/check_model_download_health.js",
+    "update-readme": "node scripts/update_github_readme.js",
+    "precommit": "cd tests && npm run test:unit",
+    "prepush": "npm run test:all",
     "fetch-icon": "node scripts/fetch-tray-icon.js",
     "preview": "python -m http.server 8000",
     "screenshots": "electron scripts/take-screenshots-for-github.js",
@@ -36,7 +43,10 @@
   "devDependencies": {
     "electron-builder": "^24.9.0",
     "playwright": "^1.56.1",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "@axe-core/playwright": "^4.8.2"
   },
   "dependencies": {
     "@xitanggg/node-insert-text": "^1.5.1",

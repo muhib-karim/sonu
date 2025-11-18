@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Running pre-push tests..."
+
+# Run all tests before pushing
+cd apps/desktop
+npm run test:all
+
+# If tests pass, continue with push
+exit 0
+

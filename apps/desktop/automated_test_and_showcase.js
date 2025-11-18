@@ -70,6 +70,17 @@ try {
   // Continue anyway
 }
 
+// Step 3.5: Update GitHub README with showcase and acknowledgements
+console.log('\n📝 Step 3.5: Updating GitHub README...');
+try {
+  const { updateREADME } = require('./scripts/update_github_readme.js');
+  updateREADME();
+  console.log('✅ README updated successfully');
+} catch (e) {
+  console.error('❌ README update failed:', e.message);
+  // Continue anyway
+}
+
 // Step 4: Upload to GitHub
 console.log('\n📤 Step 4: Uploading to GitHub...');
 try {

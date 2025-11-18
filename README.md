@@ -31,85 +31,66 @@
 ---
 
 ## 📸 Showcase
-
 <div align="center">
 
 ### Full Gallery
 
 <table>
   <tr>
-    <td><img src="assets/showcase/01_home.png" alt="Home"></td>
-    <td><img src="assets/showcase/02_dictation_start.png" alt="Dictation Start"></td>
-    <td><img src="assets/showcase/03_output_log.png" alt="Output Log"></td>
+    <td><img src="apps/desktop/assets/showcase/01-home.png" alt="Home" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/01_home.png" alt="01_home" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/02-dictionary.png" alt="Dictionary" width="300"></td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/04_help.png" alt="Help"></td>
-    <td><img src="assets/showcase/05_dictionary.png" alt="Dictionary"></td>
-    <td><img src="assets/showcase/06_snippets.png" alt="Snippets"></td>
+    <td><img src="apps/desktop/assets/showcase/02_dictation_start.png" alt="02_dictation_start" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/03-snippets.png" alt="Snippets" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/03_output_log.png" alt="03_output_log" width="300"></td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/07_style.png" alt="Style"></td>
-    <td><img src="assets/showcase/08_notes.png" alt="Notes"></td>
-    <td><img src="assets/showcase/09_settings.png" alt="Settings"></td>
+    <td><img src="apps/desktop/assets/showcase/04-style.png" alt="Style" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/04_help.png" alt="04_help" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/05-notes.png" alt="Notes" width="300"></td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/10_settings-general.png" alt="Settings - General"></td>
-    <td><img src="assets/showcase/11_settings-system.png" alt="Settings - System"></td>
-    <td><img src="assets/showcase/12_model_selector.png" alt="Model Selector"></td>
+    <td><img src="apps/desktop/assets/showcase/05_dictionary.png" alt="05_dictionary" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/06-settings-general.png" alt="Settings general" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/06_snippets.png" alt="06_snippets" width="300"></td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/13_settings-themes.png" alt="Settings - Themes"></td>
-    <td><img src="assets/showcase/14_settings-vibe.png" alt="Settings - Vibe"></td>
-    <td><img src="assets/showcase/15_settings-experimental.png" alt="Settings - Experimental"></td>
+    <td><img src="apps/desktop/assets/showcase/07-settings-system.png" alt="Settings system" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/07_style.png" alt="07_style" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/08-settings-model.png" alt="Settings model" width="300"></td>
   </tr>
   <tr>
-    <td><img src="assets/showcase/16_theme-light.png" alt="Theme - Light"></td>
-    <td><img src="assets/showcase/17_theme-dark.png" alt="Theme - Dark"></td>
-    <td></td>
+    <td><img src="apps/desktop/assets/showcase/08_notes.png" alt="08_notes" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/09-settings-themes.png" alt="Settings themes" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/09_settings.png" alt="09_settings" width="300"></td>
   </tr>
-  
-  <!-- Theme Comparison Row -->
   <tr>
-    <td colspan="3">
-      <em>Beautiful light and dark themes with smooth transitions</em>
-    </td>
+    <td><img src="apps/desktop/assets/showcase/10-home-dark.png" alt="Home dark" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/10_settings-general.png" alt="10_settings general" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/11_settings-system.png" alt="11_settings system" width="300"></td>
   </tr>
-  
-  <!-- Video Showcase -->
   <tr>
-    <td colspan="3">
-      <h3>Video Showcase</h3>
-      <p>
-        <a href="assets/showcase/showcase.mp4">MP4 Montage</a> ·
-        <a href="assets/showcase/showcase_vp9.webm">VP9 Montage</a> ·
-        <a href="assets/showcase/showcase_h265.mp4">HEVC Montage</a>
-      </p>
-      <p>
-        Slideshow: 
-        <a href="assets/showcase/showcase_slideshow_h265.mp4">HEVC</a> ·
-        <a href="assets/showcase/showcase_slideshow_vp9.webm">VP9</a> ·
-        <a href="assets/showcase/showcase_slideshow_3s_h265.mp4">HEVC (Ken Burns)</a> ·
-        <a href="assets/showcase/showcase_slideshow_3s_vp9.webm">VP9 (Ken Burns)</a>
-      </p>
-    </td>
+    <td><img src="apps/desktop/assets/showcase/12_model_selector.png" alt="12_model_selector" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/13_settings-themes.png" alt="13_settings themes" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/14_settings-vibe.png" alt="14_settings vibe" width="300"></td>
+  </tr>
+  <tr>
+    <td><img src="apps/desktop/assets/showcase/15_settings-experimental.png" alt="15_settings experimental" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/16_theme-light.png" alt="16_theme light" width="300"></td>
+    <td><img src="apps/desktop/assets/showcase/17_theme-dark.png" alt="17_theme dark" width="300"></td>
   </tr>
   
   <tr>
     <td colspan="3">
-      <sub>Screenshots and videos are auto-generated via <code>npm run showcase</code> and saved to <code>assets/showcase/</code>.</sub>
-    </td>
-  </tr>
-  
-  <tr>
-    <td colspan="3">
-      <sub>Use <code>scripts/run-showcase.js</code> with <code>ffmpeg</code> filters from <code>assets/showcase/slideshow_filter*.txt</code> to render slideshows.</sub>
+      <sub>Screenshots are auto-generated via <code>npm run showcase</code> and saved to <code>apps/desktop/assets/showcase/</code>.</sub>
     </td>
   </tr>
   
 </table>
 
 </div>
-
 ---
 
 ## 🚀 Overview
@@ -586,14 +567,56 @@ This project was made possible thanks to the amazing work of the open-source AI 
 - **MacWhisper / Whisper Desktop / WhisperNote** – for early attempts at offline Whisper usability.  
 - **Descript & Otter.ai** – for industry-leading transcription and editing experiences that inspired the UX of this offline version. 
 
+
+
 ### ⚙️ Development Tools
-- **Cursor IDE** – main environment used for writing and testing the app.  
-- **Trae AI Solo Code** – used for autonomous offline build automation and showcase generation. 
+
+This project was built using the following development tools and AI assistants:
+
+- **Cursor** – Primary IDE with AI-powered development assistance
+- **VSCode** – Code editor for development and debugging
+- **KiloCode** – AI coding assistant for enhanced productivity
+- **Klein** – Development tool for code optimization
+- **RooCode** – AI-powered code generation and refactoring
+
+> These tools enabled rapid development and professional-grade code quality as a solo developer.
+---
+
+> Built independently and completely offline with respect for all the creators above. Special thanks to Cursor Ultra for enabling professional-grade AI-augmented development. Special thanks to Cursor Ultra for enabling professional-grade AI-augmented development.  
+> Special thanks to **Cursor Ultra** for enabling professional-grade AI-augmented development.  
+> All trademarks belong to their respective owners. 
 
 ---
 
-> Built independently and completely offline with respect for all the creators above.  
-> All trademarks belong to their respective owners. 
+## 💎 Sponsors & Support
+
+### Cursor Ultra Sponsorship
+
+This project is made possible thanks to **Cursor Ultra** subscription, which provides:
+
+- 🚀 **Advanced AI Features**: Enhanced code completion and generation
+- ⚡ **Faster Development**: Accelerated development cycles
+- 🎯 **Better Code Quality**: AI-powered code review and optimization
+- 💼 **Professional Tools**: Enterprise-grade development environment
+
+**Want to support continued development?**
+
+If you find SONU useful and want to help maintain and improve it, consider:
+
+- ⭐ **Star the repository** – Show your support
+- 🐛 **Report issues** – Help improve the app
+- 💡 **Suggest features** – Share your ideas
+- 💰 **Sponsor development** – Help cover Cursor Ultra costs
+
+Your support enables continued development and feature additions. Thank you! 🙏
+
+<div align="center">
+
+[![Sponsor](https://img.shields.io/badge/Sponsor-Cursor%20Ultra-purple?style=for-the-badge)](https://cursor.sh)
+
+*Supporting professional AI-augmented development*
+
+</div>
 
 ---
 
@@ -626,7 +649,7 @@ For issues, questions, or feature requests:
 
 <div align="center">
 
-**Made with ❤️ by a solo developer using TraeAI IDE and AI assistance**
+**Made with ❤️ by a solo developer using Cursor, VSCode, and AI-powered development tools**
 
 *Built to demonstrate the power of AI-augmented development*
 

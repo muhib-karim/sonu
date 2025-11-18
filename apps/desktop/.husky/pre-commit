@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run unit tests
+cd apps/desktop/tests
+npm run test:unit
+
+# If tests pass, continue with commit
+exit 0
+

@@ -3,14 +3,18 @@
     "x": 670,
     "y": 628
   },
-  "sound_feedback": true,
-  "waveform_animation": true,
+  "sound_feedback": false,
+  "waveform_animation": false,
   "model_download_path": "C:\\Users\\Muhib\\Desktop\\SONU",
   "selected_model": "base",
   "theme": "dark",
   "vibe_coding_enabled": true,
   "history_retention": "forever",
   "text_style": "formal",
-  "text_style_category": "work",
-  "llm_processing": false
+  "text_style_category": "personal",
+  "llm_processing": false,
+  "launch_on_startup": false,
+  "continuous_dictation": false,
+  "low_latency": false,
+  "noise_reduction": false
 }
