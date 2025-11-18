@@ -24,7 +24,11 @@
     "screenshots": "electron scripts/take-screenshots-for-github.js",
     "auto-screenshots": "node auto_screenshot.js",
     "showcase": "electron scripts/run-showcase.js",
-    "banner": "node scripts/generate-banner.js"
+    "banner": "node scripts/generate-banner.js",
+    "release": "node scripts/release.js",
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major"
   },
   "author": "muhib-karim",
   "license": "MIT",
