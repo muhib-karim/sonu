@@ -16,6 +16,22 @@
 
 *Transform your voice into text instantly, completely offline, with enterprise-grade accuracy*
 
+---
+
+### 🎯 **Development Goal: Cursor Ultra Subscription**
+
+SONU is built with cutting-edge AI-assisted development tools. To continue delivering professional-grade features and maintain rapid development cycles, **we're seeking support to obtain and maintain a Cursor Ultra subscription**.
+
+**Your support directly enables:**
+- ⚡ Faster feature development and bug fixes
+- 🚀 Enhanced AI-powered code quality
+- 💼 Professional-grade development tools
+- 🎯 Continued innovation and improvements
+
+**[👉 Support via Ko-fi](https://ko-fi.com/ai_dev_2024)** | Every contribution helps! 🙏
+
+---
+
 </div>
 
 <div align="center">
@@ -599,47 +615,60 @@ This project was built using the following development tools and AI assistants:
 
 ## 💎 Sponsors & Support
 
-### 🎯 Support Cursor Ultra Subscription
+### 🎯 Our Goal: Cursor Ultra Subscription
 
-This project is powered by **Cursor Ultra**, which enables professional-grade AI-augmented development. Your support helps maintain the Cursor Ultra subscription and ensures continued development of SONU.
+SONU is developed using **Cursor Ultra**, a powerful AI-augmented development environment that enables rapid, high-quality software development. To continue delivering professional-grade features and maintain the development momentum, **we need your help to obtain and maintain a Cursor Ultra subscription**.
 
 <div align="center">
 
-### ☕ Buy Me a Coffee
-
-**Support the project and help maintain Cursor Ultra subscription**
+### ☕ Support Development via Ko-fi
 
 <a href="https://ko-fi.com/ai_dev_2024" target="_blank">
-  <img src="https://img.shields.io/badge/☕%20Buy%20Me%20a%20Coffee-Support%20Development-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Buy Me a Coffee" />
+  <img src="https://img.shields.io/badge/☕%20Support%20on%20Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" height="40" />
 </a>
 
-**[👉 Donate via Ko-fi](https://ko-fi.com/ai_dev_2024)** to help cover Cursor Ultra costs and support continued development! 🙏
+**[👉 Donate Now](https://ko-fi.com/ai_dev_2024)** | Every contribution brings us closer to our goal! 🙏
 
 </div>
 
-### What Cursor Ultra Enables
+### Why Cursor Ultra Matters
 
-- 🚀 **Advanced AI Features**: Enhanced code completion and generation
-- ⚡ **Faster Development**: Accelerated development cycles
-- 🎯 **Better Code Quality**: AI-powered code review and optimization
-- 💼 **Professional Tools**: Enterprise-grade development environment
+Cursor Ultra is the engine behind SONU's rapid development and professional code quality:
 
-### Other Ways to Support
+- 🚀 **Advanced AI Features**: Real-time code completion, generation, and refactoring
+- ⚡ **10x Faster Development**: Accelerated development cycles with AI assistance
+- 🎯 **Superior Code Quality**: AI-powered code review and optimization
+- 💼 **Enterprise-Grade Tools**: Professional development environment
+- 🔄 **Continuous Innovation**: Enables rapid iteration and feature development
 
-If you find SONU useful, you can also:
+### Impact of Your Support
 
-- ⭐ **Star the repository** – Show your support
-- 🐛 **Report issues** – Help improve the app
-- 💡 **Suggest features** – Share your ideas
-- 🔄 **Share the project** – Help others discover SONU
+When you support SONU, you're directly contributing to:
 
-Your support enables continued development and feature additions. Thank you! 🙏
+- ✅ **Maintaining Cursor Ultra** – Ensuring continued access to professional development tools
+- ✅ **Faster Updates** – More frequent releases and bug fixes
+- ✅ **Better Features** – Enhanced functionality and user experience
+- ✅ **Long-term Sustainability** – Ensuring SONU continues to evolve
+
+### How You Can Help
+
+| Action | Impact |
+|--------|--------|
+| [☕ **Donate via Ko-fi**](https://ko-fi.com/ai_dev_2024) | Directly supports Cursor Ultra subscription |
+| ⭐ **Star the repository** | Shows appreciation and helps others discover SONU |
+| 🐛 **Report issues** | Helps improve stability and features |
+| 💡 **Suggest features** | Guides development priorities |
+| 🔄 **Share the project** | Spreads awareness and grows the community |
+
+### Thank You! 🙏
+
+Your support, whether through donations, stars, feedback, or sharing, makes a real difference. Together, we can maintain the professional development tools that make SONU possible and continue building an exceptional offline voice typing experience.
 
 <div align="center">
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-Cursor%20Ultra-purple?style=for-the-badge)](https://cursor.sh)
+[![Cursor Ultra](https://img.shields.io/badge/Powered%20by-Cursor%20Ultra-purple?style=for-the-badge&logo=cursor&logoColor=white)](https://cursor.sh)
 
-*Supporting professional AI-augmented development*
+*Professional AI-augmented development enabled by Cursor Ultra*
 
 </div>
 
