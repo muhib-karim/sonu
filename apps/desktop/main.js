@@ -3799,6 +3799,20 @@ function reloadApp(changedFile) {
     }
   });
 
+  // LLM model management handlers (stub implementations)
+  ipcMain.handle('llm:check-model', async () => {
+    // LLM feature not fully implemented yet
+    return { available: false, message: 'LLM feature not available' };
+  });
+  
+  ipcMain.handle('llm:download-model', async () => {
+    return { success: false, message: 'LLM model download not implemented' };
+  });
+  
+  ipcMain.handle('llm:get-status', async () => {
+    return { ready: false, status: 'not_implemented' };
+  });
+
   // Model suggestion handler - using Node.js model downloader
   ipcMain.handle('model:suggest', async () => {
     try {
@@ -4185,19 +4199,31 @@ function reloadApp(changedFile) {
     return 'v1.8.2'; // Not used for faster-whisper
   }
 
-  // NOTE: This function is NOT used for faster-whisper downloads
-  // faster-whisper handles downloads automatically from Hugging Face Systran repositories
-  // This function is kept for backward compatibility only
+  // Get download sources for a model (used as fallback when Python is not available)
+  // faster-whisper models are hosted on Hugging Face Systran repositories
   async function getModelSources(modelName) {
-    const filename = MODEL_DEFINITIONS[modelName]?.filename;
-    if (!filename) {
+    const modelDef = MODEL_DEFINITIONS[modelName];
+    if (!modelDef) {
       throw new Error(`Unknown model: ${modelName}`);
     }
 
-    // faster-whisper downloads from Hugging Face Systran repositories automatically
-    // These URLs are NOT used for faster-whisper downloads
-    // They are kept for backward compatibility only
-    return [];
+    // Hugging Face Systran faster-whisper model URLs
+    // These are the actual model files used by faster-whisper
+    const modelName_fw = modelDef.filename; // e.g., 'tiny', 'base', 'small', 'medium', 'large-v3'
+    
+    // Return multiple mirror sources for robustness
+    return [
+      {
+        name: 'Hugging Face (Systran)',
+        url: `https://huggingface.co/Systran/faster-whisper-${modelName_fw}/resolve/main/model.bin`,
+        priority: 1
+      },
+      {
+        name: 'Hugging Face Mirror',
+        url: `https://hf-mirror.com/Systran/faster-whisper-${modelName_fw}/resolve/main/model.bin`,
+        priority: 2
+      }
+    ];
   }
 
   // Get manual download URLs for display in UI
@@ -4696,8 +4722,8 @@ function reloadApp(changedFile) {
       }
 
       // Check if model already exists in faster-whisper cache
-      // faster-whisper stores models in: ~/.cache/huggingface/hub/models--openai--whisper-{model_name}/
-      // On Windows: %LOCALAPPDATA%\.cache\huggingface\hub\models--openai--whisper-{model_name}\
+      // faster-whisper stores models in: ~/.cache/huggingface/hub/models--Systran--faster-whisper-{model_name}/
+      // On Windows: %LOCALAPPDATA%\.cache\huggingface\hub\models--Systran--faster-whisper-{model_name}\
       let hfCacheDir;
       if (process.platform === 'win32') {
         const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
@@ -4706,9 +4732,42 @@ function reloadApp(changedFile) {
         hfCacheDir = path.join(os.homedir(), '.cache', 'huggingface', 'hub');
       }
       
-      const modelCacheDir = path.join(hfCacheDir, `models--openai--whisper-${modelName}`);
-      if (fs.existsSync(modelCacheDir)) {
-        // Model already exists in faster-whisper cache
+      // faster-whisper model name for cache directory
+      const fasterWhisperModelName = modelDef.filename; // e.g., 'tiny', 'base', 'small', 'medium', 'large-v3'
+      const modelCacheDir = path.join(hfCacheDir, `models--Systran--faster-whisper-${fasterWhisperModelName}`);
+      
+      // Check if model is FULLY downloaded (not just directory exists)
+      const isModelComplete = () => {
+        if (!fs.existsSync(modelCacheDir)) return false;
+        
+        // Check for snapshots directory
+        const snapshotsDir = path.join(modelCacheDir, 'snapshots');
+        if (!fs.existsSync(snapshotsDir)) return false;
+        
+        // Find snapshot directories
+        const snapshots = fs.readdirSync(snapshotsDir).filter(f => {
+          const fullPath = path.join(snapshotsDir, f);
+          return fs.statSync(fullPath).isDirectory();
+        });
+        
+        if (snapshots.length === 0) return false;
+        
+        // Check for model.bin in the first snapshot
+        const snapshotPath = path.join(snapshotsDir, snapshots[0]);
+        const modelBinPath = path.join(snapshotPath, 'model.bin');
+        
+        if (!fs.existsSync(modelBinPath)) return false;
+        
+        // Check model.bin has reasonable size (at least 10MB)
+        const stats = fs.statSync(modelBinPath);
+        const minSizeMB = 10;
+        if (stats.size < minSizeMB * 1024 * 1024) return false;
+        
+        return true;
+      };
+      
+      if (isModelComplete()) {
+        // Model already exists and is complete in faster-whisper cache
         console.log(`✓ Model ${modelName} already exists in faster-whisper cache at ${modelCacheDir}`);
         
         // Set as active model
@@ -4748,9 +4807,9 @@ function reloadApp(changedFile) {
       // Define target path for the model file
       const targetPath = path.join(downloadPath, modelDef.filename);
 
-      // Use Python offline model downloader for robust, resumable downloads
+      // Use Python model_manager.py for robust downloads via faster-whisper
       const pythonCmd = findPythonExecutable();
-      const downloaderScript = path.join(__dirname, 'offline_model_downloader.py');
+      const downloaderScript = path.join(__dirname, 'model_manager.py');
       
       if (pythonCmd && fs.existsSync(downloaderScript)) {
         try {
@@ -4786,7 +4845,8 @@ function reloadApp(changedFile) {
                           speedKB: jsonData.speedKB || 0,
                           message: jsonData.message || `Downloading ${modelName}... ${jsonData.percent || 0}%`,
                           elapsed: jsonData.elapsed || 0,
-                          remaining: jsonData.remaining || 0
+                          remaining: jsonData.remaining || 0,
+                          canResume: jsonData.canResume || false
                         });
                       }
                     } else if (jsonData.type === 'result') {
@@ -4797,11 +4857,17 @@ function reloadApp(changedFile) {
                         settings.activeModel = modelName;
                         saveSettings();
                         
-                        // Restart whisper service
+                        // Restart whisper service with new model
                         whisperModelReady = false;
                         if (whisperProcess && !whisperProcess.killed) {
                           whisperProcess.kill();
                         }
+                        
+                        // CRITICAL: Start new whisper service with the new model after a short delay
+                        setTimeout(() => {
+                          console.log(`🔄 Restarting whisper service with model: ${modelName}`);
+                          ensureWhisperService();
+                        }, 500);
                         
                         if (mainWindow && !mainWindow.isDestroyed()) {
                           mainWindow.webContents.send('model:complete', {
@@ -4837,7 +4903,7 @@ function reloadApp(changedFile) {
             
             pythonProcess.stderr.on('data', (data) => {
               stderr += data.toString();
-              console.log('offline_model_downloader stderr:', data.toString().trim());
+              console.log('model_manager.py stderr:', data.toString().trim());
             });
             
             pythonProcess.on('close', (code) => {
@@ -4958,19 +5024,128 @@ function reloadApp(changedFile) {
         console.log('🛑 Download process terminated');
         
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('model:error', {
-            success: false,
-            error: 'Download cancelled by user',
-            message: 'Download was cancelled'
+          mainWindow.webContents.send('model:cancelled', {
+            success: true,
+            message: 'Download was cancelled',
+            canResume: true
           });
         }
-        return { success: true, message: 'Download cancelled' };
+        return { success: true, message: 'Download cancelled', canResume: true };
       }
       return { success: false, message: 'No active download to cancel' };
     } catch (e) {
       console.error('Error cancelling download:', e);
       // Force clear even on error
       activeDownloadProcess = null;
+      return { success: false, error: e.message };
+    }
+  });
+
+  // Resume download handler
+  ipcMain.handle('model:resume-download', async (event, modelName) => {
+    try {
+      console.log(`🔄 Resuming download for model: ${modelName}`);
+      
+      const modelDef = models.find(m => m.name.toLowerCase() === modelName.toLowerCase());
+      if (!modelDef) {
+        return { success: false, error: `Unknown model: ${modelName}` };
+      }
+      
+      const pythonCmd = findPythonExecutable();
+      const downloaderScript = path.join(__dirname, 'model_manager.py');
+      
+      if (!pythonCmd || !fs.existsSync(downloaderScript)) {
+        return { success: false, error: 'Python not available for download' };
+      }
+      
+      return await new Promise((resolve, reject) => {
+        const pythonProcess = spawn(pythonCmd, [downloaderScript, 'download', modelName, 'resume'], {
+          cwd: __dirname,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          shell: process.platform === 'win32',
+          windowsHide: true
+        });
+        
+        activeDownloadProcess = pythonProcess;
+        
+        let stdout = '';
+        
+        pythonProcess.stdout.on('data', (data) => {
+          stdout += data.toString();
+          const lines = stdout.split('\n');
+          stdout = lines.pop() || '';
+          
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const jsonData = JSON.parse(line);
+                if (jsonData.type === 'progress') {
+                  if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('model:progress', {
+                      percent: jsonData.percent || 0,
+                      bytesDownloaded: jsonData.bytesDownloaded || 0,
+                      bytesTotal: jsonData.bytesTotal || 0,
+                      speedKB: jsonData.speedKB || 0,
+                      message: jsonData.message || `Resuming ${modelName}... ${jsonData.percent || 0}%`,
+                      canResume: jsonData.canResume || false
+                    });
+                  }
+                } else if (jsonData.type === 'result') {
+                  activeDownloadProcess = null;
+                  if (jsonData.success) {
+                    settings.activeModel = modelName;
+                    saveSettings();
+                    
+                    whisperModelReady = false;
+                    if (whisperProcess && !whisperProcess.killed) {
+                      whisperProcess.kill();
+                    }
+                    
+                    setTimeout(() => {
+                      console.log(`🔄 Restarting whisper service with model: ${modelName}`);
+                      ensureWhisperService();
+                    }, 500);
+                    
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                      mainWindow.webContents.send('model:complete', {
+                        success: true,
+                        model: modelName,
+                        path: jsonData.path,
+                        size_mb: jsonData.size_mb,
+                        status: 'downloaded',
+                        cached: jsonData.cached || false
+                      });
+                    }
+                    resolve({ success: true, model: modelName });
+                  } else {
+                    reject(new Error(jsonData.error || 'Resume failed'));
+                  }
+                }
+              } catch (e) {
+                // Not JSON, ignore
+              }
+            }
+          }
+        });
+        
+        pythonProcess.stderr.on('data', (data) => {
+          console.log('model_manager.py stderr:', data.toString().trim());
+        });
+        
+        pythonProcess.on('close', (code) => {
+          activeDownloadProcess = null;
+          if (code !== 0) {
+            reject(new Error(`Resume failed with code ${code}`));
+          }
+        });
+        
+        pythonProcess.on('error', (error) => {
+          activeDownloadProcess = null;
+          reject(error);
+        });
+      });
+    } catch (e) {
+      console.error('Error resuming download:', e);
       return { success: false, error: e.message };
     }
   });
@@ -5016,9 +5191,10 @@ function reloadApp(changedFile) {
     // Try each source with retries
     let lastError = null;
     let sourceIndex = 0;
-    for (const sourceUrl of sources) {
+    for (const source of sources) {
       sourceIndex++;
-      const sourceName = new URL(sourceUrl).hostname;
+      const sourceUrl = source.url || source;
+      const sourceName = source.name || new URL(sourceUrl).hostname;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           try {
@@ -5053,7 +5229,12 @@ function reloadApp(changedFile) {
               if (whisperProcess && !whisperProcess.killed) {
                 whisperProcess.kill();
               }
-              // Service will auto-restart on next use
+              
+              // CRITICAL: Start new whisper service with the new model after a short delay
+              setTimeout(() => {
+                console.log(`🔄 Restarting whisper service with model: ${modelName}`);
+                ensureWhisperService();
+              }, 500);
               
               const successResult = {
                 success: true,
@@ -5166,6 +5347,89 @@ function reloadApp(changedFile) {
       };
               }
             });
+
+  // Model delete handler - allows user to delete a cached model
+  ipcMain.handle('model:delete', async (_evt, modelName) => {
+    try {
+      console.log(`🗑️ Deleting model: ${modelName}`);
+      
+      const modelDef = models.find(m => m.name.toLowerCase() === modelName.toLowerCase());
+      if (!modelDef) {
+        return { success: false, error: `Unknown model: ${modelName}` };
+      }
+      
+      // Get the Hugging Face cache directory
+      let hfCacheDir;
+      if (process.platform === 'win32') {
+        const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+        hfCacheDir = path.join(localAppData, '.cache', 'huggingface', 'hub');
+      } else {
+        hfCacheDir = path.join(os.homedir(), '.cache', 'huggingface', 'hub');
+      }
+      
+      const fasterWhisperModelName = modelDef.filename;
+      const modelCacheDir = path.join(hfCacheDir, `models--Systran--faster-whisper-${fasterWhisperModelName}`);
+      
+      // Also check for download state file
+      const downloadStateFile = path.join(hfCacheDir, `.download_state_${modelName}.json`);
+      
+      let deleted = false;
+      let deletedPaths = [];
+      
+      // Delete the model cache directory
+      if (fs.existsSync(modelCacheDir)) {
+        try {
+          fs.rmSync(modelCacheDir, { recursive: true, force: true });
+          deletedPaths.push(modelCacheDir);
+          deleted = true;
+          console.log(`✓ Deleted model cache: ${modelCacheDir}`);
+        } catch (e) {
+          console.error(`Error deleting model cache: ${e.message}`);
+        }
+      }
+      
+      // Delete the download state file
+      if (fs.existsSync(downloadStateFile)) {
+        try {
+          fs.unlinkSync(downloadStateFile);
+          deletedPaths.push(downloadStateFile);
+          console.log(`✓ Deleted download state: ${downloadStateFile}`);
+        } catch (e) {
+          console.error(`Error deleting download state: ${e.message}`);
+        }
+      }
+      
+      // If this was the active model, we need to handle that
+      if (settings.activeModel === modelName) {
+        // Don't change active model, just note it
+        console.log(`⚠️ Deleted model was the active model. User will need to download again or switch.`);
+      }
+      
+      if (deleted) {
+        if (logger) logger.download('Model deleted', { model: modelName, paths: deletedPaths });
+        return {
+          success: true,
+          model: modelName,
+          message: `Model ${modelName.toUpperCase()} has been deleted.`,
+          deletedPaths
+        };
+      } else {
+        return {
+          success: false,
+          model: modelName,
+          error: 'Model not found in cache',
+          message: `Model ${modelName.toUpperCase()} was not found in the cache.`
+        };
+      }
+    } catch (error) {
+      console.error('Model delete failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        message: `Error deleting model: ${error.message}`
+      };
+    }
+  });
 
   // Model import handler - allows user to import a pre-downloaded model file
   ipcMain.handle('model:import', async () => {

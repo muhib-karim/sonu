@@ -70,6 +70,21 @@ hold_mode = False
 hold_keys_combo = "ctrl+shift+space"  # python keyboard combo string
 combo_keys = ['ctrl', 'shift', 'space']
 
+# Language settings
+auto_detect_language = True
+current_language = None  # None means auto-detect, or specific language code like 'en', 'es', etc.
+detected_language = None
+language_confidence = 0.0
+
+# Experimental settings
+experimental_settings = {
+    'vad_enabled': True,
+    'beam_size': 5,
+    'best_of': 5,
+    'temperature': 0,
+    'min_silence_ms': 500
+}
+
 def parse_combo(combo: str):
     parts = [p.strip().lower() for p in combo.split('+') if p.strip()]
     mapped = []
@@ -190,8 +205,36 @@ def audio_capture_loop():
             sys.stderr.flush()
 
 
+def detect_language_from_audio(audio_path):
+    """Detect language from audio file using Whisper"""
+    global detected_language, language_confidence
+    try:
+        # Use Whisper's language detection
+        segments, info = model.transcribe(
+            audio_path,
+            beam_size=1,
+            best_of=1,
+            vad_filter=False
+        )
+        # Consume generator to get info
+        _ = list(segments)
+        
+        if hasattr(info, 'language') and info.language:
+            detected_language = info.language
+            language_confidence = getattr(info, 'language_probability', 0.0)
+            sys.stderr.write(f"Detected language: {detected_language} (confidence: {language_confidence:.2f})\n")
+            sys.stderr.flush()
+            # Notify Electron of detected language
+            sys.stdout.write(f"LANG_DETECTED: {detected_language} {language_confidence:.2f}\n")
+            sys.stdout.flush()
+            return detected_language
+    except Exception as e:
+        sys.stderr.write(f"Language detection error: {e}\n")
+        sys.stderr.flush()
+    return None
+
 def transcribe_frames():
-    global frames
+    global frames, detected_language, language_confidence
     if not frames:
         return ""
     # Write to temp wav
@@ -205,20 +248,44 @@ def transcribe_frames():
         wf.writeframes(b''.join(frames))
         wf.close()
 
-        # Use optimal transcription parameters for maximum accuracy
-        # beam_size=5: Balance between speed and accuracy (higher = more accurate but slower)
-        # temperature=0: Deterministic results (no randomness)
-        # best_of=5: Generate 5 candidates and pick best (better quality)
-        # vad_filter=True: Voice Activity Detection removes silence for better accuracy
-        segments, _ = model.transcribe(
+        # Determine language to use
+        lang = None
+        if auto_detect_language:
+            # Let Whisper auto-detect
+            lang = None
+        elif current_language:
+            lang = current_language
+
+        # Get transcription parameters from experimental settings
+        beam_size = experimental_settings.get('beam_size', 5)
+        best_of = experimental_settings.get('best_of', 5)
+        temperature = experimental_settings.get('temperature', 0)
+        vad_enabled = experimental_settings.get('vad_enabled', True)
+        min_silence_ms = experimental_settings.get('min_silence_ms', 500)
+
+        # Transcribe with language setting
+        segments, info = model.transcribe(
             tmp_path,
-            beam_size=5,
-            temperature=0,
-            best_of=5,
-            vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=500)
+            language=lang,
+            beam_size=beam_size,
+            temperature=temperature,
+            best_of=best_of,
+            vad_filter=vad_enabled,
+            vad_parameters=dict(min_silence_duration_ms=min_silence_ms) if vad_enabled else None
         )
-        text = "".join([seg.text for seg in segments]).strip()
+        
+        # Collect segments
+        segment_list = list(segments)
+        text = "".join([seg.text for seg in segment_list]).strip()
+        
+        # Update detected language from info
+        if hasattr(info, 'language') and info.language:
+            detected_language = info.language
+            language_confidence = getattr(info, 'language_probability', 0.0)
+            # Notify Electron of detected language
+            sys.stdout.write(f"LANG_DETECTED: {detected_language} {language_confidence:.2f}\n")
+            sys.stdout.flush()
+        
         return text
     finally:
         try:
@@ -364,6 +431,60 @@ def main():
                 sys.stderr.flush()
             except Exception as e:
                 sys.stderr.write(f"✗ Failed to set hold keys: {e}\n")
+                sys.stderr.flush()
+            continue
+        
+        # Language settings
+        if cmd.startswith("SET_LANGUAGE"):
+            try:
+                lang_val = line.strip().split(" ", 1)[1].strip().lower()
+                with lock:
+                    if lang_val == "auto" or lang_val == "":
+                        globals()['auto_detect_language'] = True
+                        globals()['current_language'] = None
+                    else:
+                        globals()['auto_detect_language'] = False
+                        globals()['current_language'] = lang_val
+                sys.stderr.write(f"✓ Language set to: {lang_val if lang_val else 'auto'}\n")
+                sys.stderr.flush()
+            except Exception as e:
+                sys.stderr.write(f"✗ Failed to set language: {e}\n")
+                sys.stderr.flush()
+            continue
+        
+        if cmd == "GET_LANGUAGE":
+            # Return current language settings
+            with lock:
+                lang = current_language if current_language else "auto"
+                detected = detected_language if detected_language else "unknown"
+                conf = language_confidence
+            sys.stdout.write(f"LANGUAGE_INFO: {lang} {detected} {conf:.2f}\n")
+            sys.stdout.flush()
+            continue
+        
+        # Experimental settings
+        if cmd.startswith("SET_EXPERIMENTAL"):
+            try:
+                # Format: SET_EXPERIMENTAL key=value
+                param = line.strip().split(" ", 1)[1].strip()
+                key, value = param.split("=", 1)
+                key = key.strip().lower()
+                value = value.strip()
+                
+                with lock:
+                    if key in ['vad_enabled']:
+                        experimental_settings[key] = value.lower() == 'true'
+                    elif key in ['beam_size', 'best_of', 'min_silence_ms']:
+                        experimental_settings[key] = int(value)
+                    elif key in ['temperature']:
+                        experimental_settings[key] = float(value)
+                    else:
+                        experimental_settings[key] = value
+                
+                sys.stderr.write(f"✓ Experimental setting {key}={value}\n")
+                sys.stderr.flush()
+            except Exception as e:
+                sys.stderr.write(f"✗ Failed to set experimental setting: {e}\n")
                 sys.stderr.flush()
             continue
 

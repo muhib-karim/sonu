@@ -2,6 +2,14 @@
 const fs = require('fs');
 const path = require('path');
 
+// Polyfill setImmediate for jsdom/Jest environment
+if (typeof setImmediate === 'undefined') {
+  global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
+}
+if (typeof clearImmediate === 'undefined') {
+  global.clearImmediate = (id) => clearTimeout(id);
+}
+
 // Mock Electron modules
 jest.mock('electron', () => ({
   app: {
@@ -10,11 +18,13 @@ jest.mock('electron', () => ({
     quit: jest.fn(),
     getVersion: jest.fn(() => '3.0.0-dev'),
     whenReady: jest.fn(() => Promise.resolve()),
-    isReady: jest.fn(() => true)
+    isReady: jest.fn(() => true),
+    requestSingleInstanceLock: jest.fn(() => true)
   },
   BrowserWindow: jest.fn().mockImplementation(() => ({
     loadFile: jest.fn(),
     on: jest.fn(),
+    once: jest.fn(),
     show: jest.fn(),
     hide: jest.fn(),
     close: jest.fn(),
@@ -32,11 +42,18 @@ jest.mock('electron', () => ({
     unmaximize: jest.fn(),
     isMaximized: jest.fn(() => false),
     destroy: jest.fn(),
+    setFocusable: jest.fn(),
     webContents: {
       send: jest.fn(),
       on: jest.fn(),
       once: jest.fn(),
-      executeJavaScript: jest.fn(() => Promise.resolve())
+      executeJavaScript: jest.fn(() => Promise.resolve()),
+      isDestroyed: jest.fn(() => false),
+      session: {
+        clearCache: jest.fn(() => Promise.resolve()),
+        clearStorageData: jest.fn(() => Promise.resolve()),
+        clearHostResolverCache: jest.fn(() => Promise.resolve())
+      }
     }
   })),
   ipcMain: {

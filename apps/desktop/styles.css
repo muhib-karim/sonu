@@ -1352,13 +1352,14 @@ body[data-theme="dark"] .context-menu-item:active {
 
 .model-action-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
 }
 
-/* Download and Import Buttons - Enhanced */
+/* Download, Import, and Delete Buttons - Enhanced */
 .download-btn-primary,
-.import-btn-secondary {
+.import-btn-secondary,
+.delete-btn-danger {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1399,6 +1400,23 @@ body[data-theme="dark"] .context-menu-item:active {
   background: var(--bg-hover);
   border-color: var(--accent-blue);
   color: var(--accent-blue);
+}
+
+.delete-btn-danger {
+  background: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.delete-btn-danger:hover {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.delete-btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Manual Download Section */
@@ -2351,6 +2369,82 @@ body[data-theme="dark"] .dictionary-word-input {
 /* Hide only when progress container itself is hidden */
 .model-progress[style*="display: none"] .cancel-download-button {
   display: none !important;
+}
+
+/* Download Action Buttons Container */
+.download-action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.download-action-buttons .cancel-download-button,
+.download-action-buttons .resume-download-button {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Resume Download Button */
+.resume-download-button {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 28px;
+  background: #2ed573;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(46, 213, 115, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.resume-download-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.resume-download-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.resume-download-button:hover {
+  background: #7bed9f;
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 6px 20px rgba(46, 213, 115, 0.45);
+}
+
+.resume-download-button:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 10px rgba(46, 213, 115, 0.35);
+}
+
+.resume-download-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.resume-download-button svg,
+.resume-download-button span {
+  position: relative;
+  z-index: 1;
 }
 
 /* Theme Gallery */

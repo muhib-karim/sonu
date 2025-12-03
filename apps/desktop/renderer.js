@@ -2734,13 +2734,19 @@ window.accessibilityManager = accessibilityManager;
           console.error('✗ Patience message element not found!');
         }
         
-        // CRITICAL: Cancel button is visible by default in CSS - just log
+        // CRITICAL: Show Cancel button and hide Resume button when download starts
         const cancelBtn = document.getElementById('cancel-download-btn');
+        const resumeBtn = document.getElementById('resume-download-btn');
         if (cancelBtn) {
-          console.log('✓ Cancel button visible (CSS default)');
-          console.log('Cancel button display:', window.getComputedStyle(cancelBtn).display);
+          cancelBtn.style.display = 'flex';
+          console.log('✓ Cancel button shown for download');
         } else {
           console.error('✗ CRITICAL: Cancel button not found in DOM!');
+        }
+        // Hide Resume button during active download
+        if (resumeBtn) {
+          resumeBtn.style.display = 'none';
+          console.log('✓ Resume button hidden for download');
         }
 
         // Track this download
@@ -3017,11 +3023,22 @@ window.accessibilityManager = accessibilityManager;
     });
   }
   
+  // Track current model for resume
+  let currentDownloadModel = null;
+  
   // Cancel download button handler
   const cancelDownloadBtn = document.getElementById('cancel-download-btn');
+  const resumeDownloadBtn = document.getElementById('resume-download-btn');
+  
   if (cancelDownloadBtn) {
     cancelDownloadBtn.addEventListener('click', async () => {
       console.log('Cancel button clicked');
+      
+      // Store current model for resume
+      const modelSelect = document.getElementById('model-select');
+      if (modelSelect) {
+        currentDownloadModel = modelSelect.value;
+      }
       
       // Mark all active downloads as cancelled
       for (const [modelName, downloadInfo] of activeDownloads.entries()) {
@@ -3032,13 +3049,19 @@ window.accessibilityManager = accessibilityManager;
       // Call IPC to cancel download
       if (ipc.cancelDownload && typeof ipc.cancelDownload === 'function') {
         try {
-          await ipc.cancelDownload();
+          const result = await ipc.cancelDownload();
+          console.log('Cancel result:', result);
         } catch (e) {
           console.error('Error cancelling download:', e);
         }
       }
       
-      // Don't hide cancel button manually - CSS handles it
+      // Hide Cancel button, show Resume button
+      cancelDownloadBtn.style.display = 'none';
+      if (resumeDownloadBtn) {
+        resumeDownloadBtn.style.display = 'flex';
+      }
+      
       // Hide patience message
       const patienceMsg = document.getElementById('download-patience-message');
       if (patienceMsg) patienceMsg.style.display = 'none';
@@ -3047,15 +3070,8 @@ window.accessibilityManager = accessibilityManager;
       const progressText = document.getElementById('model-progress-text');
       const progressFill = document.getElementById('model-progress-fill');
       
-      if (progressText) progressText.textContent = '❌ Download cancelled';
-      if (progressFill) progressFill.style.width = '0%';
-      
-      setTimeout(() => {
-        if (progressContainer) {
-          progressContainer.style.display = 'none';
-          progressContainer.classList.remove('active');
-        }
-      }, 2000);
+      if (progressText) progressText.textContent = '⏸️ Download paused - Click Resume to continue';
+      // Keep progress bar at current position for visual feedback
       
       // Re-enable download button
       const downloadModelBtn = document.getElementById('download-model-btn');
@@ -3066,12 +3082,154 @@ window.accessibilityManager = accessibilityManager;
     });
   }
   
+  // Resume download button handler
+  if (resumeDownloadBtn) {
+    resumeDownloadBtn.addEventListener('click', async () => {
+      console.log('Resume button clicked');
+      
+      const modelSelect = document.getElementById('model-select');
+      const modelName = currentDownloadModel || (modelSelect ? modelSelect.value : null);
+      
+      if (!modelName) {
+        console.error('No model to resume');
+        return;
+      }
+      
+      console.log(`Resuming download for model: ${modelName}`);
+      
+      // Hide Resume button, show Cancel button
+      resumeDownloadBtn.style.display = 'none';
+      if (cancelDownloadBtn) {
+        cancelDownloadBtn.style.display = 'flex';
+      }
+      
+      const progressText = document.getElementById('model-progress-text');
+      const progressContainer = document.getElementById('model-progress');
+      const downloadModelBtn = document.getElementById('download-model-btn');
+      
+      if (progressText) progressText.textContent = '🔄 Resuming download...';
+      if (progressContainer) {
+        progressContainer.style.display = 'block';
+        progressContainer.classList.add('active');
+      }
+      if (downloadModelBtn) downloadModelBtn.disabled = true;
+      
+      // Call IPC to resume download
+      if (ipc.resumeDownload && typeof ipc.resumeDownload === 'function') {
+        try {
+          const result = await ipc.resumeDownload(modelName);
+          console.log('Resume result:', result);
+        } catch (e) {
+          console.error('Error resuming download:', e);
+          if (progressText) progressText.textContent = `❌ Resume failed: ${e.message}`;
+          if (downloadModelBtn) downloadModelBtn.disabled = false;
+        }
+      } else {
+        console.error('resumeDownload not available');
+        if (progressText) progressText.textContent = '❌ Resume not available';
+        if (downloadModelBtn) downloadModelBtn.disabled = false;
+      }
+    });
+  }
+  
+  // Handle model:cancelled event
+  if (ipc.onModelCancelled && typeof ipc.onModelCancelled === 'function') {
+    ipc.onModelCancelled((data) => {
+      console.log('Model cancelled event:', data);
+      
+      const progressText = document.getElementById('model-progress-text');
+      const resumeBtn = document.getElementById('resume-download-btn');
+      
+      if (data.canResume && resumeBtn) {
+        resumeBtn.style.display = 'flex';
+        if (progressText) progressText.textContent = '⏸️ Download paused - Click Resume to continue';
+      }
+    });
+  }
+  
+  // Delete model button handler
+  const deleteModelBtn = document.getElementById('delete-model-btn');
+  if (deleteModelBtn) {
+    deleteModelBtn.addEventListener('click', async () => {
+      const modelSelect = document.getElementById('model-select');
+      const modelName = modelSelect ? modelSelect.value : null;
+      
+      if (!modelName) {
+        console.error('No model selected to delete');
+        return;
+      }
+      
+      // Confirm deletion
+      const confirmed = confirm(`Are you sure you want to delete the ${modelName.toUpperCase()} model?\n\nThis will remove all cached model files and you will need to download the model again.`);
+      
+      if (!confirmed) {
+        return;
+      }
+      
+      console.log(`Deleting model: ${modelName}`);
+      deleteModelBtn.disabled = true;
+      deleteModelBtn.textContent = 'Deleting...';
+      
+      try {
+        if (ipc.deleteModel && typeof ipc.deleteModel === 'function') {
+          const result = await ipc.deleteModel(modelName);
+          console.log('Delete result:', result);
+          
+          if (result.success) {
+            // Show success message
+            const progressContainer = document.getElementById('model-progress');
+            const progressText = document.getElementById('model-progress-text');
+            const progressFill = document.getElementById('model-progress-fill');
+            
+            if (progressContainer) {
+              progressContainer.style.display = 'block';
+              progressContainer.classList.add('active');
+            }
+            if (progressFill) progressFill.style.width = '100%';
+            if (progressText) progressText.textContent = `🗑️ ${modelName.toUpperCase()} model deleted successfully`;
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+              if (progressContainer) {
+                progressContainer.style.display = 'none';
+                progressContainer.classList.remove('active');
+              }
+            }, 3000);
+            
+            // Refresh model status
+            checkModelStatus().catch(e => console.warn('Error checking model status:', e));
+          } else {
+            alert(`Failed to delete model: ${result.error || result.message || 'Unknown error'}`);
+          }
+        } else {
+          console.error('deleteModel not available');
+          alert('Delete model function not available');
+        }
+      } catch (e) {
+        console.error('Error deleting model:', e);
+        alert(`Error deleting model: ${e.message}`);
+      } finally {
+        deleteModelBtn.disabled = false;
+        deleteModelBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+          Delete
+        `;
+      }
+    });
+  }
+  
   // Check model status on load - wrapped to prevent breaking the script
   async function checkModelStatus() {
     try {
       const modelSelect = document.getElementById('model-select');
       const statusDesc = document.getElementById('model-status-desc');
       const downloadBtn = document.getElementById('download-model-btn');
+      const deleteBtn = document.getElementById('delete-model-btn');
       
       if (!modelSelect || !statusDesc) {
         // Elements don't exist yet, that's okay
@@ -3094,6 +3252,11 @@ window.accessibilityManager = accessibilityManager;
               downloadBtn.textContent = 'Model Already Installed';
               downloadBtn.classList.add('disabled');
             }
+            // Enable delete button when model exists
+            if (deleteBtn) {
+              deleteBtn.disabled = false;
+              deleteBtn.classList.remove('disabled');
+            }
           } else {
             // Model not downloaded - status removed for clean UI
             
@@ -3102,6 +3265,11 @@ window.accessibilityManager = accessibilityManager;
               downloadBtn.disabled = false;
               downloadBtn.textContent = 'Download & Apply Model';
               downloadBtn.classList.remove('disabled');
+            }
+            // Disable delete button when model doesn't exist
+            if (deleteBtn) {
+              deleteBtn.disabled = true;
+              deleteBtn.classList.add('disabled');
             }
           }
         } catch (e) {
@@ -3113,6 +3281,11 @@ window.accessibilityManager = accessibilityManager;
             downloadBtn.textContent = 'Download & Apply Model';
             downloadBtn.classList.remove('disabled');
           }
+          // Disable delete button on error (safer default)
+          if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.classList.add('disabled');
+          }
         }
       } else {
         // Enable button if check function not available
@@ -3121,16 +3294,27 @@ window.accessibilityManager = accessibilityManager;
           downloadBtn.textContent = 'Download & Apply Model';
           downloadBtn.classList.remove('disabled');
         }
+        // Disable delete button if check function not available
+        if (deleteBtn) {
+          deleteBtn.disabled = true;
+          deleteBtn.classList.add('disabled');
+        }
       }
     } catch (e) {
       // Silently fail - don't break the app
       console.warn('Error checking model status (non-critical):', e);
       // Enable button on error
       const downloadBtn = document.getElementById('download-model-btn');
+      const deleteBtn = document.getElementById('delete-model-btn');
       if (downloadBtn) {
         downloadBtn.disabled = false;
         downloadBtn.textContent = 'Download & Apply Model';
         downloadBtn.classList.remove('disabled');
+      }
+      // Disable delete button on error
+      if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.classList.add('disabled');
       }
     }
   }
