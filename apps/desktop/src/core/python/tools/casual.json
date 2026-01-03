@@ -1,0 +1,9 @@
+{
+  "id": "casual",
+  "name": "Casual Style",
+  "description": "Transform text to be casual with capitalization but less punctuation.",
+  "system_prompt": "Transform this text to be casual with capitalization but less punctuation (remove trailing periods). Keep the meaning exactly the same, just adjust the style. Return only the transformed text, no explanations:\n\n",
+  "parameters": {
+    "temperature": 0.3
+  }
+}

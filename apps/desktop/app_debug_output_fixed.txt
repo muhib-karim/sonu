@@ -1,0 +1,29 @@
+
+> sonu@3.6.1 start
+> electron .
+
+Performance monitoring not available: window is not defined
+Failed to initialize active-window: activeWindow.initialize is not a function
+⚠ robot automation library not available; auto-typing disabled.
+Install robotjs: npm install robotjs
+robot-js error: Cannot find module 'robot-js'
+Require stack:
+- C:\Users\Muhib\Desktop\Projects\SONU\apps\desktop\main.js
+robotjs error: Cannot find module 'robotjs'
+Require stack:
+- C:\Users\Muhib\Desktop\Projects\SONU\apps\desktop\main.js
+C:\Users\Muhib\Desktop\Projects\SONU\apps\desktop\main.js:1578
+app.whenReady().then(() => {
+    ^
+
+TypeError: Cannot read properties of undefined (reading 'whenReady')
+    at Object.<anonymous> (C:\Users\Muhib\Desktop\Projects\SONU\apps\desktop\main.js:1578:5)
+    at Module._compile (node:internal/modules/cjs/loader:1271:14)
+    at Object..js (node:internal/modules/cjs/loader:1326:10)
+    at Module.load (node:internal/modules/cjs/loader:1126:32)
+    at node:internal/modules/cjs/loader:967:12
+    at Function._load (node:electron/js2c/node_init:2:13357)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:96:12)
+    at node:internal/main/run_main_module:23:47
+
+Node.js v18.17.1

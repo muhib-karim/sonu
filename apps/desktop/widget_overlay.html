@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SONU Recording Overlay</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: transparent;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .overlay {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .overlay.recording {
+      background: rgba(76, 175, 80, 0.9);
+    }
+    
+    .overlay.transcribing {
+      background: rgba(33, 150, 243, 0.9);
+    }
+    
+    .overlay.error {
+      background: rgba(244, 67, 54, 0.9);
+    }
+    
+    .left-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .icon {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+    
+    .middle-section {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+    }
+    
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 24px;
+    }
+    
+    .bar {
+      width: 4px;
+      background: white;
+      border-radius: 2px;
+      transition: height 60ms ease-out, opacity 120ms ease-out;
+      opacity: 0.8;
+    }
+    
+    .status-text {
+      color: white;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .right-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .cancel-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .cancel-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .cancel-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: white;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.2s ease-out;
+    }
+    
+    .fade-out {
+      animation: fadeOut 0.2s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    @keyframes fadeOut {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.95); }
+    }
+    
+    .pulse {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlay">
+    <div class="left-section">
+      <svg class="icon" id="stateIcon" viewBox="0 0 24 24">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </div>
+    
+    <div class="middle-section" id="middleSection">
+      <div class="waveform" id="waveform">
+        <!-- Bars will be inserted here -->
+      </div>
+    </div>
+    
+    <div class="right-section">
+      <button class="cancel-btn" id="cancelBtn" title="Cancel">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  
+  <script>
+    const { ipcRenderer } = require('electron');
+    
+    const overlay = document.getElementById('overlay');
+    const waveform = document.getElementById('waveform');
+    const stateIcon = document.getElementById('stateIcon');
+    const middleSection = document.getElementById('middleSection');
+    const cancelBtn = document.getElementById('cancelBtn');
+    
+    const BAR_COUNT = 9;
+    let isVisible = false;
+    let currentState = 'recording';
+    let levels = Array(BAR_COUNT).fill(0);
+    let smoothedLevels = Array(BAR_COUNT).fill(0);
+    let animationFrame = null;
+    
+    // Create bars
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.style.height = '4px';
+      waveform.appendChild(bar);
+    }
+    
+    const bars = waveform.querySelectorAll('.bar');
+    
+    function updateWaveform() {
+      // Smooth the levels
+      for (let i = 0; i < BAR_COUNT; i++) {
+        smoothedLevels[i] = smoothedLevels[i] * 0.7 + levels[i] * 0.3;
+        const height = Math.min(20, 4 + Math.pow(smoothedLevels[i], 0.7) * 16);
+        const opacity = Math.max(0.2, smoothedLevels[i] * 1.7);
+        bars[i].style.height = height + 'px';
+        bars[i].style.opacity = opacity;
+      }
+      animationFrame = requestAnimationFrame(updateWaveform);
+    }
+    
+    function setOverlayState(state) {
+      currentState = state;
+      overlay.className = 'overlay fade-in ' + state;
+      
+      if (state === 'recording') {
+        stateIcon.innerHTML = '<path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>';
+        middleSection.innerHTML = '<div class="waveform" id="waveform"></div>';
+        // Recreate waveform
+        const newWaveform = document.getElementById('waveform');
+        for (let i = 0; i < BAR_COUNT; i++) {
+          const bar = document.createElement('div');
+          bar.className = 'bar';
+          bar.style.height = '4px';
+          newWaveform.appendChild(bar);
+        }
+      } else if (state === 'transcribing') {
+        stateIcon.innerHTML = '<path d="M12 15.2c1.76 0 3.2-1.44 3.2-3.2l-3.2 0 0 3.2z M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z"/>';
+        middleSection.innerHTML = '<span class="status-text pulse">Transcribing...</span>';
+      } else if (state === 'error') {
+        stateIcon.innerHTML = '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>';
+        middleSection.innerHTML = '<span class="status-text">Error</span>';
+      }
+      
+      // Re-get bars reference
+      const newWaveform = document.getElementById('waveform');
+      if (newWaveform) {
+        const newBars = newWaveform.querySelectorAll('.bar');
+        if (newBars.length > 0) {
+          // Update animation with new bars
+        }
+      }
+    }
+    
+    function showOverlay(state = 'recording') {
+      if (isVisible && currentState === state) return;
+      
+      isVisible = true;
+      setOverlayState(state);
+      updateWaveform();
+    }
+    
+    function hideOverlay() {
+      if (!isVisible) return;
+      
+      isVisible = false;
+      overlay.className = 'overlay fade-out';
+      levels = Array(BAR_COUNT).fill(0);
+      smoothedLevels = Array(BAR_COUNT).fill(0);
+      
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+      }
+      
+      setTimeout(() => {
+        if (!isVisible) {
+          overlay.className = 'overlay';
+        }
+      }, 200);
+    }
+    
+    function updateLevels(newLevels) {
+      levels = newLevels.slice(0, BAR_COUNT);
+    }
+    
+    // IPC handlers
+    ipcRenderer.on('show-overlay', (event, state) => {
+      showOverlay(state || 'recording');
+    });
+    
+    ipcRenderer.on('hide-overlay', () => {
+      hideOverlay();
+    });
+    
+    ipcRenderer.on('mic-level', (event, levels) => {
+      if (isVisible && currentState === 'recording') {
+        updateLevels(levels);
+      }
+    });
+    
+    cancelBtn.addEventListener('click', () => {
+      ipcRenderer.send('cancel-recording');
+    });
+    
+    console.log('SONU Recording Overlay loaded');
+  </script>
+</body>
+</html>

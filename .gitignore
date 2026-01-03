@@ -107,3 +107,8 @@ versions/*/*.bak
 # screenshots/*.jpg
 # recordings/*.mp4
 
+
+# Terminal Paste Image folder
+.cp-images/
+
+apps/desktop/models/parakeet-v3/parakeet-tdt-0.6b-v3.nemo

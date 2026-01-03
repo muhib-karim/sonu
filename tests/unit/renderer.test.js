@@ -25,6 +25,7 @@ describe('Renderer Tests', () => {
       <button id="theme-toggle-btn" data-theme="light"></button>
       <input id="modal-hold-hotkey" />
       <input id="modal-toggle-hotkey" />
+      <input id="modal-notes-hotkey" />
       <button id="save-shortcuts-btn"></button>
       <div id="system-info-container"></div>
       <div id="microphone-modal"></div>
@@ -350,7 +351,8 @@ describe('Renderer Tests', () => {
 
         expect(mockIpcRenderer.saveSettings).toHaveBeenCalledWith({
           holdHotkey: 'Ctrl+Space',
-          toggleHotkey: 'Ctrl+Shift+Space'
+          toggleHotkey: 'Ctrl+Shift+Space',
+          notesHotkey: ''
         });
       });
     });

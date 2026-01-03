@@ -1,8 +1,8 @@
 const { contextBridge, ipcRenderer, clipboard } = require('electron');
-
 contextBridge.exposeInMainWorld('voiceApp', {
   onTranscription: (callback) => ipcRenderer.on('transcription', (_, text) => callback(text)),
   onTranscriptionPartial: (callback) => ipcRenderer.on('transcription-partial', (_, text) => callback(text)),
+  onTranscriptionRefined: (callback) => ipcRenderer.on('transcription-refined', (_, text) => callback(text)),
   onRecordingStart: (callback) => ipcRenderer.on('recording-start', callback),
   onRecordingStop: (callback) => ipcRenderer.on('recording-stop', callback),
   onNotesRecordingStart: (callback) => ipcRenderer.on('notes-recording-start', callback),
@@ -82,6 +82,11 @@ contextBridge.exposeInMainWorld('voiceApp', {
   addSnippet: (snippet) => ipcRenderer.invoke('snippets:add', snippet),
   updateSnippet: (id, snippet) => ipcRenderer.invoke('snippets:update', id, snippet),
   deleteSnippet: (id) => ipcRenderer.invoke('snippets:delete', id),
+  // Persona profiles
+  getPersonas: () => ipcRenderer.invoke('personas:get'),
+  setActivePersona: (personaId) => ipcRenderer.invoke('personas:set-active', personaId),
+  getActivePersona: () => ipcRenderer.invoke('personas:get-active'),
+  clearPersona: () => ipcRenderer.invoke('personas:clear'),
   // Notes
   getNotes: () => ipcRenderer.invoke('notes:get'),
   addNote: (note) => ipcRenderer.invoke('notes:add', note),
@@ -106,6 +111,7 @@ contextBridge.exposeInMainWorld('voiceApp', {
   // LLM model management
   checkLLMModel: () => ipcRenderer.invoke('llm:check-model'),
   downloadLLMModel: () => ipcRenderer.invoke('llm:download-model'),
+  importLLMModel: () => ipcRenderer.invoke('llm:import-model'),
   getLLMStatus: () => ipcRenderer.invoke('llm:get-status'),
   // Style transformer functions
   getStyleDescription: (style, category) => ipcRenderer.invoke('style:get-description', style, category),
@@ -113,5 +119,40 @@ contextBridge.exposeInMainWorld('voiceApp', {
   getAvailableStyles: (category) => ipcRenderer.invoke('style:get-available', category),
   getCategoryBannerText: (category) => ipcRenderer.invoke('style:get-banner-text', category),
   detectContext: () => ipcRenderer.invoke('style:detect-context'),
-  onStyleCategoryAutoUpdated: (callback) => ipcRenderer.on('style-category-auto-updated', (_, category) => callback(category))
+  onStyleCategoryAutoUpdated: (callback) => ipcRenderer.on('style-category-auto-updated', (_, category) => callback(category)),
+  
+  // Command Overlay
+  showCommandOverlay: () => ipcRenderer.send('command:show'),
+
+  // Context Manager
+  startContextTracking: () => ipcRenderer.send('context:start-tracking'),
+  stopContextTracking: () => ipcRenderer.send('context:stop-tracking'),
+  onContextChanged: (callback) => ipcRenderer.on('context-changed', (_, context) => callback(context)),
+  setContextAutoStyle: (enabled) => ipcRenderer.invoke('context:set-auto-style', enabled),
+  getContextAutoStyle: () => ipcRenderer.invoke('context:get-auto-style'),
+  getCurrentContext: () => ipcRenderer.invoke('context:get-current'),
+  
+  // Groq API for instant transcription
+  getGroqStatus: () => ipcRenderer.invoke('groq:get-status'),
+  saveGroqApiKey: (apiKey) => ipcRenderer.invoke('groq:save-api-key', apiKey),
+  setGroqEnabled: (enabled) => ipcRenderer.invoke('groq:set-enabled', enabled),
+  openGroqConsole: () => ipcRenderer.send('groq:open-console'),
+
+  // Multi-language dictation
+  getSupportedLanguages: () => ipcRenderer.invoke('dictation:get-languages'),
+  setDictationLanguage: (language) => ipcRenderer.invoke('dictation:set-language', language),
+  onLanguageDetected: (callback) => ipcRenderer.on('language-detected', (_, data) => callback(data)),
+
+  // Continuous dictation mode
+  startContinuousDictation: () => ipcRenderer.send('continuous:start'),
+  stopContinuousDictation: () => ipcRenderer.send('continuous:stop'),
+  getContinuousStatus: () => ipcRenderer.invoke('continuous:status'),
+  onContinuousStarted: (callback) => ipcRenderer.on('continuous-started', callback),
+  onContinuousStopped: (callback) => ipcRenderer.on('continuous-stopped', callback),
+  onContinuousSegment: (callback) => ipcRenderer.on('continuous-segment', (_, segment) => callback(segment)),
+
+  // WPM Stats
+  getWPMStats: () => ipcRenderer.invoke('stats:get-wpm'),
+  resetStats: () => ipcRenderer.invoke('stats:reset'),
+  getSessionStats: () => ipcRenderer.invoke('stats:get-session')
 });

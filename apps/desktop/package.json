@@ -1,7 +1,7 @@
 {
   "name": "sonu",
-  "version": "3.5.4",
-  "description": "Professional offline voice typing application powered by Whisper AI",
+  "version": "3.6.1",
+  "description": "Professional offline voice typing application powered by Whisper AI and Local LLM",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -45,16 +45,17 @@
     "speech-to-text"
   ],
   "devDependencies": {
+    "@axe-core/playwright": "^4.8.2",
     "electron": "^28.3.3",
     "electron-builder": "^24.9.0",
-    "playwright": "^1.56.1",
-    "sharp": "^0.34.5",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.0",
-    "@axe-core/playwright": "^4.8.2"
+    "playwright": "^1.56.1",
+    "sharp": "^0.34.5"
   },
   "dependencies": {
-    "@xitanggg/node-insert-text": "^1.5.1",
+    "@paymoapp/active-window": "^2.1.2",
+    "easydl": "^1.2.0",
     "electron-localshortcut": "^3.2.1",
     "electron-updater": "^6.1.8",
     "follow-redirects": "^1.15.11",
@@ -73,7 +74,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "sign": false,

@@ -260,6 +260,7 @@ class PerformanceMonitor {
   // Data Persistence
   saveMetrics() {
     try {
+      if (typeof localStorage === 'undefined') return;
       const metricsToSave = {
         ...this.metrics,
         lastUpdated: Date.now()
@@ -273,6 +274,7 @@ class PerformanceMonitor {
 
   loadMetrics() {
     try {
+      if (typeof localStorage === 'undefined') return;
       const saved = localStorage.getItem('sonu_performance_metrics');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -422,25 +424,27 @@ function getPerformanceMonitor() {
 }
 
 // Global error handler integration
-window.addEventListener('error', (event) => {
-  const monitor = getPerformanceMonitor();
-  monitor.recordError(event.error, {
-    filename: event.filename,
-    lineno: event.lineno,
-    colno: event.colno,
-    message: event.message
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    const monitor = getPerformanceMonitor();
+    monitor.recordError(event.error, {
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      message: event.message
+    });
   });
-});
 
-window.addEventListener('unhandledrejection', (event) => {
-  const monitor = getPerformanceMonitor();
-  monitor.recordError(event.reason, {
-    type: 'unhandled_promise_rejection'
+  window.addEventListener('unhandledrejection', (event) => {
+    const monitor = getPerformanceMonitor();
+    monitor.recordError(event.reason, {
+      type: 'unhandled_promise_rejection'
+    });
   });
-});
 
-// Make available globally
-window.PerformanceMonitor = PerformanceMonitor;
-window.getPerformanceMonitor = getPerformanceMonitor;
+  // Make available globally
+  window.PerformanceMonitor = PerformanceMonitor;
+  window.getPerformanceMonitor = getPerformanceMonitor;
+}
 
 module.exports = { PerformanceMonitor, getPerformanceMonitor };

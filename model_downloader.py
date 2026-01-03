@@ -35,13 +35,49 @@ def get_model_cache_path(model_size):
             if local_appdata:
                 cache_dir = os.path.join(local_appdata, ".cache", "huggingface", "hub")
         
-        # Model directory pattern: models--openai--whisper-{size}
-        model_dir = f"models--openai--whisper-{model_size}"
+        # Model directory pattern: models--{org}--{name}
+        # Handle custom repo IDs
+        repo_id = get_repo_id(model_size)
+        if "/" in repo_id:
+            org, name = repo_id.split("/", 1)
+            model_dir = f"models--{org}--{name}"
+        else:
+            # Default fallback (OpenAI or Systran depending on version)
+            # faster-whisper usually downloads to models--Systran--faster-whisper-{size}
+            # BUT older versions or different functions might behave differently.
+            # Let's check both potential paths due to internal changes
+            possible_dirs = [
+                f"models--Systran--faster-whisper-{model_size}",
+                f"models--openai--whisper-{model_size}"
+            ]
+            for p_dir in possible_dirs:
+                if os.path.exists(os.path.join(cache_dir, p_dir)):
+                    model_dir = p_dir
+                    break
+            else:
+                # Default to Systran for new downloads
+                model_dir = f"models--Systran--faster-whisper-{model_size}"
+
         full_path = os.path.join(cache_dir, model_dir)
         
         return full_path
     except Exception as e:
         return None
+
+
+def get_repo_id(model_size):
+    """Map model size to HF repo ID."""
+    # Distil-Whisper models (pre-converted for faster-whisper)
+    if model_size == "distil-small.en":
+        return "Systran/faster-distil-whisper-small.en"
+    elif model_size == "distil-medium.en":
+        return "Systran/faster-distil-whisper-medium.en"
+    elif model_size == "distil-large-v3":
+        return "Systran/faster-distil-whisper-large-v3"
+    
+    # Standard models (mapped automatically by faster-whisper, but explicit here for clarity)
+    # faster-whisper maps "base" -> "Systran/faster-whisper-base" internally if no / present
+    return model_size
 
 
 def check_model_exists(model_size):
@@ -82,7 +118,11 @@ def download_model(model_size):
         print(f"Downloading model '{model_size}'...", file=sys.stderr)
         sys.stderr.flush()
         
-        model = WhisperModel(model_size, device="cpu", download_root=None)
+        # Use the mapped repo ID
+        repo_id = get_repo_id(model_size)
+        print(f"Downloading from '{repo_id}'...", file=sys.stderr)
+        
+        model = WhisperModel(repo_id, device="cpu", download_root=None)
         
         # Verify it was downloaded
         exists, path = check_model_exists(model_size)
@@ -136,7 +176,68 @@ def get_model_info(model_size):
         except Exception:
             info["size_mb"] = None
     
+    
+    if exists and path:
+        # Calculate size
+        try:
+            total_size = 0
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    if os.path.exists(file_path):
+                        total_size += os.path.getsize(file_path)
+            info["size_mb"] = round(total_size / (1024 * 1024), 2)
+        except Exception:
+            info["size_mb"] = None
+    
     return info
+
+
+def download_llm():
+    """Download the TinyLlama GGUF model."""
+    try:
+        from huggingface_hub import hf_hub_download
+        
+        repo_id = "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF"
+        filename = "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+        target_filename = "TinyLlama-1.1B-Chat-v1.0-Q4_K_M.gguf"
+        
+        # Target directory
+        target_dir = os.path.join(os.path.expanduser("~"), ".sonu", "models", "llm")
+        os.makedirs(target_dir, exist_ok=True)
+        target_path = os.path.join(target_dir, target_filename)
+        
+        if os.path.exists(target_path):
+             return {
+                "success": True,
+                "model": "TinyLlama",
+                "cached": True,
+                "path": target_path,
+                "message": "LLM model already exists"
+            }
+            
+        print(f"Downloading {filename} to {target_path}...", file=sys.stderr)
+        
+        # Download to cache first
+        downloaded_path = hf_hub_download(repo_id=repo_id, filename=filename)
+        
+        # Copy/Symlink to target location
+        import shutil
+        shutil.copy2(downloaded_path, target_path)
+        
+        return {
+            "success": True,
+            "model": "TinyLlama",
+            "cached": False,
+            "path": target_path,
+            "message": "LLM model downloaded successfully"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": f"Failed to download LLM: {str(e)}"
+        }
 
 
 if __name__ == "__main__":
@@ -176,6 +277,10 @@ if __name__ == "__main__":
         info = get_model_info(model_size)
         import json
         print(json.dumps(info, indent=2))
+    elif command == "download_llm":
+        result = download_llm()
+        import json
+        print(json.dumps(result, indent=2))
     else:
         print(f"Error: Unknown command '{command}'")
         sys.exit(1)

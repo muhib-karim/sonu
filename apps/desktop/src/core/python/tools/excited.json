@@ -1,0 +1,9 @@
+{
+  "id": "excited",
+  "name": "Excited Style",
+  "description": "Transform text to be more excited with exclamation marks.",
+  "system_prompt": "Transform this text to be more excited with exclamation marks. Keep the meaning exactly the same, just adjust the style. Return only the transformed text, no explanations:\n\n",
+  "parameters": {
+    "temperature": 0.4
+  }
+}

@@ -2,53 +2,53 @@
 let performanceMonitor = null;
 try {
   if (typeof require !== 'undefined') {
-const { getPerformanceMonitor } = require('./src/performance_monitor.js');
+    const { getPerformanceMonitor } = require('./src/performance_monitor.js');
     performanceMonitor = getPerformanceMonitor();
 
-// Initialize performance monitoring
-document.addEventListener('DOMContentLoaded', () => {
+    // Initialize performance monitoring
+    document.addEventListener('DOMContentLoaded', () => {
       if (performanceMonitor) {
-  performanceMonitor.loadMetrics();
+        performanceMonitor.loadMetrics();
 
-  // Record page load performance
-  if (performance.timing) {
-    const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-    performanceMonitor.recordUIRenderTime(loadTime);
+        // Record page load performance
+        if (performance.timing) {
+          const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+          performanceMonitor.recordUIRenderTime(loadTime);
         }
-  }
-});
-
-// Add performance monitoring to key interactions
-document.addEventListener('click', (event) => {
-      if (performanceMonitor) {
-  const startTime = performance.now();
-
-  // Use setTimeout to measure interaction latency
-  setTimeout(() => {
-    const latency = performance.now() - startTime;
-    performanceMonitor.recordInteractionLatency(latency);
-  }, 0);
       }
-});
+    });
 
-// Error handling with performance monitoring
-window.addEventListener('error', (event) => {
+    // Add performance monitoring to key interactions
+    document.addEventListener('click', (event) => {
       if (performanceMonitor) {
-  performanceMonitor.recordError(event.error, {
-    filename: event.filename,
-    lineno: event.lineno,
-    colno: event.colno
-  });
-      }
-});
+        const startTime = performance.now();
 
-window.addEventListener('unhandledrejection', (event) => {
-      if (performanceMonitor) {
-  performanceMonitor.recordError(event.reason, {
-    type: 'unhandled_promise_rejection'
-  });
+        // Use setTimeout to measure interaction latency
+        setTimeout(() => {
+          const latency = performance.now() - startTime;
+          performanceMonitor.recordInteractionLatency(latency);
+        }, 0);
       }
-});
+    });
+
+    // Error handling with performance monitoring
+    window.addEventListener('error', (event) => {
+      if (performanceMonitor) {
+        performanceMonitor.recordError(event.error, {
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno
+        });
+      }
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      if (performanceMonitor) {
+        performanceMonitor.recordError(event.reason, {
+          type: 'unhandled_promise_rejection'
+        });
+      }
+    });
   }
 } catch (e) {
   console.warn('Performance monitoring not available:', e.message);
@@ -65,31 +65,31 @@ try {
     i18nManager = i18nModule.getI18nManager();
     t = i18nModule.t || t;
 
-// Initialize internationalization
-document.addEventListener('DOMContentLoaded', () => {
+    // Initialize internationalization
+    document.addEventListener('DOMContentLoaded', () => {
       if (i18nManager) {
-  // Update initial content with translations
-  setTimeout(() => {
-    i18nManager.updateContent();
-  }, 100);
+        // Update initial content with translations
+        setTimeout(() => {
+          i18nManager.updateContent();
+        }, 100);
       }
-});
+    });
 
-// Listen for locale changes
-window.addEventListener('localeChanged', (event) => {
+    // Listen for locale changes
+    window.addEventListener('localeChanged', (event) => {
       if (i18nManager) {
-  const { locale, isRTL } = event.detail;
-  console.log(`Locale changed to: ${locale}, RTL: ${isRTL}`);
+        const { locale, isRTL } = event.detail;
+        console.log(`Locale changed to: ${locale}, RTL: ${isRTL}`);
 
-  // Update any dynamic content that needs refreshing
+        // Update any dynamic content that needs refreshing
         if (typeof updateDictationBoxHotkey === 'function') {
-  updateDictationBoxHotkey();
+          updateDictationBoxHotkey();
         }
         if (typeof updateKeyboardShortcutsDisplay === 'function') {
-  updateKeyboardShortcutsDisplay();
+          updateKeyboardShortcutsDisplay();
         }
       }
-});
+    });
   }
 } catch (e) {
   console.warn('Internationalization not available:', e.message);
@@ -102,16 +102,16 @@ window.t = t;
 let accessibilityManager = null;
 try {
   if (typeof require !== 'undefined') {
-const { getAccessibilityManager } = require('./src/accessibility.js');
+    const { getAccessibilityManager } = require('./src/accessibility.js');
     accessibilityManager = getAccessibilityManager();
 
-// Initialize accessibility features
-document.addEventListener('DOMContentLoaded', () => {
+    // Initialize accessibility features
+    document.addEventListener('DOMContentLoaded', () => {
       if (accessibilityManager) {
-  // Announce page load to screen readers
-  setTimeout(() => {
-    accessibilityManager.announce('SONU voice typing application loaded. Press Tab to navigate.');
-  }, 1000);
+        // Announce page load to screen readers
+        setTimeout(() => {
+          accessibilityManager.announce('SONU voice typing application loaded. Press Tab to navigate.');
+        }, 1000);
       }
     });
   }
@@ -123,21 +123,21 @@ window.accessibilityManager = accessibilityManager;
 (() => {
   // IPC API
   const ipc = window.voiceApp || {
-    onTranscription: () => {},
-    onRecordingStart: () => {},
-    onRecordingStop: () => {},
-    toggleRecording: () => {},
+    onTranscription: () => { },
+    onRecordingStart: () => { },
+    onRecordingStop: () => { },
+    toggleRecording: () => { },
     getSettings: async () => ({ holdHotkey: 'CommandOrControl+Super+Space', toggleHotkey: 'CommandOrControl+Shift+Space' }),
     saveSettings: async (s) => s,
-    onHotkeyRegistered: () => {},
-    onHotkeyError: () => {},
-    startCaptureHotkey: () => {},
-    endCaptureHotkey: () => {},
+    onHotkeyRegistered: () => { },
+    onHotkeyError: () => { },
+    startCaptureHotkey: () => { },
+    endCaptureHotkey: () => { },
     getHistory: async () => [],
-    clearHistory: async () => {},
+    clearHistory: async () => { },
     saveHistory: async () => false,
     deleteHistoryItem: async () => false,
-    onHistoryAppend: () => {},
+    onHistoryAppend: () => { },
     copyToClipboard: (text) => {
       // Fallback: try to use navigator.clipboard if available
       if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
@@ -148,26 +148,26 @@ window.accessibilityManager = accessibilityManager;
         console.error('Clipboard API not available');
       }
     },
-    onShowMessage: () => {},
-    onFocusHoldHotkey: () => {},
-    onFocusToggleHotkey: () => {},
-    onTranscriptionPartial: () => {},
+    onShowMessage: () => { },
+    onFocusHoldHotkey: () => { },
+    onFocusToggleHotkey: () => { },
+    onTranscriptionPartial: () => { },
     getSystemInfo: async () => null,
     getSuggestedModel: async () => 'base',
     downloadModel: async () => ({ success: false }),
     checkModel: async () => ({ exists: false }),
     getModelSpace: async () => 0,
-    onModelProgress: () => {},
-    onModelComplete: () => {},
-    onModelError: () => {},
+    onModelProgress: () => { },
+    onModelComplete: () => { },
+    onModelError: () => { },
     getAppSettings: async () => ({}),
     saveAppSettings: async () => ({}),
     clearCache: async () => ({}),
     listMicrophones: async () => [],
-    onPlaySound: () => {},
+    onPlaySound: () => { },
     getSystemTheme: async () => 'light',
-    onSystemThemeChanged: () => {},
-    setThemeSource: () => {},
+    onSystemThemeChanged: () => { },
+    setThemeSource: () => { },
     // Dictionary
     getDictionary: async () => [],
     addDictionaryWord: async () => ({ success: false, words: [] }),
@@ -206,7 +206,7 @@ window.accessibilityManager = accessibilityManager;
       return 'This style applies in various apps. Available on desktop in English.';
     },
     detectContext: async () => null,
-    onStyleCategoryAutoUpdated: () => {}
+    onStyleCategoryAutoUpdated: () => { }
   };
 
   // State
@@ -220,7 +220,7 @@ window.accessibilityManager = accessibilityManager;
     wpm: 0,
     timeSaved: 0 // in seconds (estimated based on typing speed)
   };
-  
+
   let recordingStartTime = null;
   let recordingDurations = []; // Track durations for WPM calculation
   let whisperModelReady = false; // Track if whisper model is ready
@@ -229,7 +229,7 @@ window.accessibilityManager = accessibilityManager;
 
   // Elements - wrapped in try-catch to ensure basic functionality works
   let navItems, pages, settingsNavItems, settingsPages, historyList, livePreview, livePreviewText, statTime, statWords, statSaved, statWpm, historyListFull;
-  
+
   try {
     navItems = document.querySelectorAll('.nav-item[data-page]');
     pages = document.querySelectorAll('.page');
@@ -243,7 +243,7 @@ window.accessibilityManager = accessibilityManager;
     statWords = document.getElementById('stat-words');
     statSaved = document.getElementById('stat-saved');
     statWpm = document.getElementById('stat-wpm');
-    
+
     console.log('Elements loaded:', {
       navItems: navItems.length,
       pages: pages.length,
@@ -266,22 +266,22 @@ window.accessibilityManager = accessibilityManager;
       // Re-query elements every time to ensure we get the latest
       navItems = document.querySelectorAll('.nav-item[data-page]');
       pages = document.querySelectorAll('.page');
-      
+
       if (navItems.length === 0) {
         console.warn('No navigation items found, will retry...');
         return;
       }
-      
+
       console.log('Setting up navigation. Nav items:', navItems.length, 'Pages:', pages.length);
-      
+
       // Remove old listeners by cloning nodes (prevents duplicate listeners)
       navItems.forEach((item) => {
         // Clone the node to remove all event listeners
         const newItem = item.cloneNode(true);
         item.parentNode.replaceChild(newItem, item);
-        
+
         // Add fresh event listener
-        newItem.addEventListener('click', function(e) {
+        newItem.addEventListener('click', function (e) {
           e.preventDefault();
           e.stopPropagation();
           try {
@@ -295,10 +295,10 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       });
-      
+
       // Update navItems reference to the new cloned elements
       navItems = document.querySelectorAll('.nav-item[data-page]');
-      
+
       navigationSetup = true;
       console.log('Navigation setup complete');
     } catch (e) {
@@ -312,10 +312,10 @@ window.accessibilityManager = accessibilityManager;
       console.error('No page specified for navigation');
       return;
     }
-    
+
     console.log('Navigating to page:', page);
     currentPage = page;
-    
+
     try {
       // Re-query if needed
       if (!navItems || navItems.length === 0) {
@@ -324,14 +324,14 @@ window.accessibilityManager = accessibilityManager;
       if (!pages || pages.length === 0) {
         pages = document.querySelectorAll('.page');
       }
-      
+
       // Update nav items
       navItems.forEach(nav => {
         if (nav && nav.dataset) {
           nav.classList.toggle('active', nav.dataset.page === page);
         }
       });
-      
+
       // Update pages
       pages.forEach(p => {
         if (p && p.id) {
@@ -341,9 +341,9 @@ window.accessibilityManager = accessibilityManager;
           console.log(`Page ${p.id}: ${isActive ? 'active' : 'inactive'}`);
         }
       });
-      
+
       console.log('Navigation complete. Current page:', currentPage);
-      
+
       // Load data when navigating to tabs
       if (page === 'home') {
         loadHistory(); // Load history on home page
@@ -372,22 +372,22 @@ window.accessibilityManager = accessibilityManager;
       // Re-query elements every time to ensure we get the latest
       settingsNavItems = document.querySelectorAll('.settings-nav-item[data-settings-page]');
       settingsPages = document.querySelectorAll('.settings-page');
-      
+
       if (settingsNavItems.length === 0) {
         console.warn('No settings navigation items found, will retry...');
         return;
       }
-      
+
       console.log('Setting up settings navigation. Nav items:', settingsNavItems.length, 'Pages:', settingsPages.length);
-      
+
       // Remove old listeners by cloning nodes (prevents duplicate listeners)
       settingsNavItems.forEach((item) => {
         // Clone the node to remove all event listeners
         const newItem = item.cloneNode(true);
         item.parentNode.replaceChild(newItem, item);
-        
+
         // Add fresh event listener
-        newItem.addEventListener('click', function(e) {
+        newItem.addEventListener('click', function (e) {
           e.preventDefault();
           e.stopPropagation();
           try {
@@ -401,10 +401,10 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       });
-      
+
       // Update settingsNavItems reference to the new cloned elements
       settingsNavItems = document.querySelectorAll('.settings-nav-item[data-settings-page]');
-      
+
       settingsNavigationSetup = true;
       console.log('Settings navigation setup complete');
     } catch (e) {
@@ -418,15 +418,15 @@ window.accessibilityManager = accessibilityManager;
       console.error('No settings page specified for navigation');
       return;
     }
-    
+
     console.log('Navigating to settings page:', page);
     currentSettingsPage = page;
-    
+
     // First, navigate to settings page if not already there
     if (currentPage !== 'settings') {
       navigateToPage('settings');
     }
-    
+
     try {
       // Re-query if needed
       if (!settingsNavItems || settingsNavItems.length === 0) {
@@ -435,14 +435,14 @@ window.accessibilityManager = accessibilityManager;
       if (!settingsPages || settingsPages.length === 0) {
         settingsPages = document.querySelectorAll('.settings-page');
       }
-      
+
       // Update nav items
       settingsNavItems.forEach(nav => {
         if (nav && nav.dataset) {
           nav.classList.toggle('active', nav.dataset.settingsPage === page);
         }
       });
-      
+
       // Update pages
       settingsPages.forEach(p => {
         if (p && p.id) {
@@ -450,27 +450,27 @@ window.accessibilityManager = accessibilityManager;
           p.classList.toggle('active', p.id === expectedId);
         }
       });
-      
+
       // Load system info when System tab is opened
       if (page === 'system') {
         setTimeout(loadSystemInfo, 100);
       }
-      
+
       // Load model selector when Model tab is opened (only once)
       if (page === 'model') {
         setTimeout(() => loadModelSelector(), 100);
       }
-      
+
       // Initialize theme gallery when Themes tab is opened
       if (page === 'themes') {
         setTimeout(() => initializeThemeGallery(), 100);
       }
-      
+
       // Initialize logs tab when Logs tab is opened
       if (page === 'logs') {
         setTimeout(initializeLogsTab, 100);
       }
-      
+
       console.log('Settings navigation complete. Current settings page:', currentSettingsPage);
     } catch (e) {
       console.error('Error in navigateToSettingsPage:', e);
@@ -519,7 +519,7 @@ window.accessibilityManager = accessibilityManager;
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.add('active');
-      
+
       // Load current values
       if (modalId === 'shortcuts-modal') {
         ipc.getSettings().then(s => {
@@ -540,7 +540,7 @@ window.accessibilityManager = accessibilityManager;
   const modalHoldHotkey = document.getElementById('modal-hold-hotkey');
   const modalToggleHotkey = document.getElementById('modal-toggle-hotkey');
   const modalNotesHotkey = document.getElementById('modal-notes-hotkey');
-  
+
   if (modalHoldHotkey) {
     modalHoldHotkey.addEventListener('focus', () => {
       ipc.startCaptureHotkey();
@@ -564,7 +564,7 @@ window.accessibilityManager = accessibilityManager;
       if (e.key === 'Enter') modalHoldHotkey.blur();
     });
   }
-  
+
   if (modalToggleHotkey) {
     modalToggleHotkey.addEventListener('focus', () => {
       ipc.startCaptureHotkey();
@@ -588,7 +588,7 @@ window.accessibilityManager = accessibilityManager;
       if (e.key === 'Enter') modalToggleHotkey.blur();
     });
   }
-  
+
   if (modalNotesHotkey) {
     modalNotesHotkey.addEventListener('focus', () => {
       ipc.startCaptureHotkey();
@@ -618,10 +618,10 @@ window.accessibilityManager = accessibilityManager;
     const holdHotkey = document.getElementById('modal-hold-hotkey').value.trim();
     const toggleHotkey = document.getElementById('modal-toggle-hotkey').value.trim();
     const notesHotkey = document.getElementById('modal-notes-hotkey').value.trim();
-    
+
     // Ensure hotkeys are unregistered before saving
     ipc.endCaptureHotkey();
-    
+
     await ipc.saveSettings({ holdHotkey, toggleHotkey, notesHotkey });
     closeModal('shortcuts-modal');
     showMessage('Shortcuts saved successfully');
@@ -780,7 +780,7 @@ window.accessibilityManager = accessibilityManager;
         localStorage.setItem('sonu-locale', locale);
         return true;
       },
-      applyLocale() {},
+      applyLocale() { },
       t(key) { return key; }
     };
   }
@@ -789,25 +789,25 @@ window.accessibilityManager = accessibilityManager;
   const saveLanguageBtn = document.getElementById('save-language-btn');
   if (saveLanguageBtn) {
     saveLanguageBtn.addEventListener('click', async () => {
-    const selected = document.getElementById('language-select').value;
-      
+      const selected = document.getElementById('language-select').value;
+
       // Save to settings
       await saveAppSettings({ app_language: selected });
-      
+
       // Update i18n system
       if (i18nManager) {
         await i18nManager.setLocale(selected);
       }
-      
+
       // Update display
       const languageDesc = document.getElementById('language-desc');
       if (languageDesc) {
         languageDesc.textContent = languageNames[selected] || 'English';
       }
-      
-    closeModal('language-modal');
-    showMessage('Language settings saved');
-      
+
+      closeModal('language-modal');
+      showMessage('Language settings saved');
+
       // Reload page to apply all translations
       setTimeout(() => {
         window.location.reload();
@@ -820,19 +820,19 @@ window.accessibilityManager = accessibilityManager;
     try {
       const settings = await ipc.getAppSettings();
       const currentLang = settings.app_language || settings.language || 'en';
-      
+
       // Set language select
       const languageSelect = document.getElementById('language-select');
       if (languageSelect) {
         languageSelect.value = currentLang;
       }
-      
+
       // Update description
       const languageDesc = document.getElementById('language-desc');
       if (languageDesc) {
         languageDesc.textContent = languageNames[currentLang] || 'English';
       }
-      
+
       // Set i18n locale
       if (i18nManager) {
         await i18nManager.setLocale(currentLang);
@@ -841,7 +841,7 @@ window.accessibilityManager = accessibilityManager;
       console.error('Error loading current language:', e);
     }
   };
-  
+
   // Load language when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadCurrentLanguage);
@@ -854,41 +854,41 @@ window.accessibilityManager = accessibilityManager;
   const waveformCanvas = document.getElementById('waveform-canvas');
   let waveformAnimationId = null;
   let waveformData = [];
-  
+
   // Helper function to check if waveform should be enabled
   function isWaveformEnabled() {
     const waveformToggle = document.getElementById('waveform-toggle');
     // Must check: toggle exists, toggle is checked, AND appSettings is explicitly true
-    return waveformToggle && 
-           waveformToggle.checked === true && 
-           appSettings.waveform_animation === true;
+    return waveformToggle &&
+      waveformToggle.checked === true &&
+      appSettings.waveform_animation === true;
   }
-  
+
   function drawWaveform() {
     if (!waveformCanvas || !waveformContainer) return;
-    
+
     // CRITICAL: Don't draw if waveform is not enabled
     if (!isWaveformEnabled()) {
       return;
     }
-    
+
     const ctx = waveformCanvas.getContext('2d', { alpha: true });
     const width = waveformCanvas.width;
     const height = waveformCanvas.height;
     const centerY = height / 2;
-    
+
     // Get theme colors from CSS variables
     const root = document.documentElement;
     const accentPurple = getComputedStyle(root).getPropertyValue('--accent-purple').trim() || '#7c5cff';
-    
+
     // Clear canvas with transparent background - ensure alpha channel is preserved
     ctx.clearRect(0, 0, width, height);
-    
+
     // Ensure canvas background is transparent
     if (waveformCanvas.style) {
       waveformCanvas.style.backgroundColor = 'transparent';
     }
-    
+
     // Generate waveform data if empty (more bars for smoother look)
     if (waveformData.length === 0) {
       const numBars = Math.floor(width / 4); // More bars for better visualization
@@ -896,36 +896,36 @@ window.accessibilityManager = accessibilityManager;
         waveformData.push(Math.random() * 0.3 + 0.4);
       }
     }
-    
+
     // Update waveform data with smooth animation
     for (let i = 0; i < waveformData.length; i++) {
       waveformData[i] += (Math.random() - 0.5) * 0.15;
       waveformData[i] = Math.max(0.3, Math.min(1, waveformData[i]));
     }
-    
+
     // Draw waveform bars with rounded tops and nice colors
     const barWidth = Math.max(2, width / waveformData.length - 1);
     const spacing = 1;
-    
+
     for (let i = 0; i < waveformData.length; i++) {
       const x = i * (barWidth + spacing);
       const amplitude = waveformData[i] * (height * 0.45);
       const y1 = centerY - amplitude;
       const y2 = centerY + amplitude;
       const barHeight = y2 - y1;
-      
+
       // Create beautiful gradient for each bar
       const barGradient = ctx.createLinearGradient(x, y1, x, y2);
       const color1 = accentPurple || '#7c5cff';
       const color2 = color1.replace(')', ', 0.7)').replace('rgb', 'rgba').replace('#', 'rgba(124, 92, 255,');
       const color3 = color1.replace(')', ', 0.4)').replace('rgb', 'rgba').replace('#', 'rgba(124, 92, 255,');
-      
+
       barGradient.addColorStop(0, color1);
       barGradient.addColorStop(0.5, color2 || color1);
       barGradient.addColorStop(1, color3 || color1);
-      
+
       ctx.fillStyle = barGradient;
-      
+
       // Draw rounded rectangle for each bar
       const radius = barWidth / 2;
       ctx.beginPath();
@@ -942,19 +942,32 @@ window.accessibilityManager = accessibilityManager;
       ctx.fill();
     }
   }
-  
+
   function startWaveformAnimation() {
+    console.log('[WAVEFORM DEBUG] startWaveformAnimation called');
+    console.log('[WAVEFORM DEBUG] waveformContainer exists:', !!waveformContainer);
+    console.log('[WAVEFORM DEBUG] isWaveformEnabled():', isWaveformEnabled());
+    console.log('[WAVEFORM DEBUG] appSettings.waveform_animation:', appSettings.waveform_animation);
+    const waveformToggle = document.getElementById('waveform-toggle');
+    console.log('[WAVEFORM DEBUG] waveformToggle exists:', !!waveformToggle);
+    console.log('[WAVEFORM DEBUG] waveformToggle.checked:', waveformToggle?.checked);
+
     // Always check first - if not enabled, stop and hide immediately
     if (!isWaveformEnabled()) {
+      console.log('[WAVEFORM DEBUG] Not enabled, stopping');
       stopWaveformAnimation();
       return;
     }
-    
+
     // Don't start if already running
-    if (waveformAnimationId) return;
-    
+    if (waveformAnimationId) {
+      console.log('[WAVEFORM DEBUG] Already running, skipping');
+      return;
+    }
+
     // Show container only if enabled - use multiple methods to ensure it's visible
     if (waveformContainer && isWaveformEnabled()) {
+      console.log('[WAVEFORM DEBUG] Showing container');
       waveformContainer.style.display = 'flex';
       waveformContainer.style.visibility = 'visible';
       waveformContainer.removeAttribute('hidden');
@@ -967,38 +980,38 @@ window.accessibilityManager = accessibilityManager;
       }
       return;
     }
-    
+
     function animate() {
       // Check on every frame - if disabled, stop immediately
       if (!isWaveformEnabled()) {
         stopWaveformAnimation();
         return;
       }
-      
+
       drawWaveform();
       waveformAnimationId = requestAnimationFrame(animate);
     }
-    
+
     animate();
   }
-  
+
   function stopWaveformAnimation() {
     if (waveformAnimationId) {
       cancelAnimationFrame(waveformAnimationId);
       waveformAnimationId = null;
     }
-    
+
     // Immediately hide the container - use multiple methods to ensure it's hidden
     if (waveformContainer) {
       waveformContainer.style.display = 'none';
       waveformContainer.style.visibility = 'hidden';
       waveformContainer.setAttribute('hidden', '');
     }
-    
+
     // Reset waveform data
     waveformData = [];
   }
-  
+
   // Continuous monitor to ensure container stays hidden when toggle is off
   // This runs every 100ms to catch any cases where it might be shown
   setInterval(() => {
@@ -1017,18 +1030,18 @@ window.accessibilityManager = accessibilityManager;
   // Recording handlers
   // Track if this is notes recording to prevent showing indicator
   let isNotesRecordingMode = false;
-  
+
   ipc.onRecordingStart(() => {
     // Don't show home page UI if this is notes recording
     if (isNotesRecordingMode && currentPage === 'notes') {
       return; // Skip home page recording UI
     }
-    
+
     isListening = true;
     recordingStartTime = Date.now();
     livePreview.style.display = 'block';
     livePreviewText.textContent = 'Listening...';
-    
+
     // Always ensure container state matches toggle - hide first if disabled
     if (!isWaveformEnabled()) {
       if (waveformContainer) {
@@ -1044,8 +1057,8 @@ window.accessibilityManager = accessibilityManager;
   });
 
   ipc.onRecordingStop(() => {
-      isListening = false;
-    
+    isListening = false;
+
     // Track recording duration
     if (recordingStartTime) {
       const duration = (Date.now() - recordingStartTime) / 1000; // in seconds
@@ -1054,10 +1067,10 @@ window.accessibilityManager = accessibilityManager;
       recordingStartTime = null;
       updateStatsDisplay();
     }
-    
+
     // Stop waveform animation
     stopWaveformAnimation();
-    
+
     setTimeout(() => {
       livePreview.style.display = 'none';
       livePreviewText.textContent = '';
@@ -1076,13 +1089,13 @@ window.accessibilityManager = accessibilityManager;
   // Final transcription
   ipc.onTranscription((text) => {
     if (!text) return;
-    
+
     // Hide live preview
     livePreview.style.display = 'none';
-    
+
     // Add to history
     addHistoryItem(text);
-    
+
     // Update stats
     updateStats(text);
   });
@@ -1092,7 +1105,7 @@ window.accessibilityManager = accessibilityManager;
     const now = new Date();
     const timeStr = formatTime(now);
     const entry = { text, time: timeStr, timestamp: now.getTime() };
-    
+
     // Add to history list (home page)
     const historyListFull = document.getElementById('history-list-full');
     if (historyListFull) {
@@ -1100,13 +1113,13 @@ window.accessibilityManager = accessibilityManager;
       const today = new Date().toDateString();
       const existingHeaders = historyListFull.querySelectorAll('.history-title');
       let todayHeader = null;
-      
+
       existingHeaders.forEach(header => {
         if (header.textContent === 'Today') {
           todayHeader = header;
         }
       });
-      
+
       if (!todayHeader) {
         // Create today header
         const dateHeader = document.createElement('h3');
@@ -1114,9 +1127,9 @@ window.accessibilityManager = accessibilityManager;
         dateHeader.textContent = 'Today';
         historyListFull.insertBefore(dateHeader, historyListFull.firstChild);
       }
-    
-    // Create history item element
-    const item = createHistoryItem(entry);
+
+      // Create history item element
+      const item = createHistoryItem(entry);
       const firstItem = historyListFull.querySelector('.history-item');
       if (firstItem) {
         historyListFull.insertBefore(item, firstItem);
@@ -1130,7 +1143,7 @@ window.accessibilityManager = accessibilityManager;
         }
       }
     }
-    
+
     // Update stats
     updateStats(text);
   }
@@ -1139,7 +1152,7 @@ window.accessibilityManager = accessibilityManager;
     const item = document.createElement('div');
     item.className = 'history-item';
     item.dataset.timestamp = entry.timestamp;
-    
+
     item.innerHTML = `
       <div class="history-time">${entry.time}</div>
       <div class="history-text-wrapper">
@@ -1167,7 +1180,7 @@ window.accessibilityManager = accessibilityManager;
         </button>
       </div>
     `;
-    
+
     // Copy functionality
     const copyBtn = item.querySelector('.copy-icon');
     if (copyBtn) {
@@ -1222,7 +1235,7 @@ window.accessibilityManager = accessibilityManager;
         }
       });
     }
-    
+
     // Flag functionality
     const flagBtn = item.querySelector('.flag-icon');
     if (flagBtn) {
@@ -1235,7 +1248,7 @@ window.accessibilityManager = accessibilityManager;
         showMessage(isFlagged ? 'Flagged' : 'Unflagged');
       });
     }
-    
+
     // More options functionality
     const moreBtn = item.querySelector('.more-icon');
     moreBtn.addEventListener('click', (e) => {
@@ -1243,25 +1256,25 @@ window.accessibilityManager = accessibilityManager;
       // Show context menu or dropdown
       showHistoryContextMenu(item, entry, e);
     });
-    
+
     // Double-click to edit
     const textEl = item.querySelector('.history-text');
     textEl.addEventListener('dblclick', () => {
       if (editingHistoryItem) {
         cancelEdit(editingHistoryItem);
       }
-      
+
       item.classList.add('editing');
       textEl.contentEditable = 'true';
       textEl.classList.add('editable');
       textEl.focus();
-      
+
       // Store original text
       textEl.dataset.originalText = textEl.textContent;
-      
+
       // Track if we're handling a keydown to prevent blur from firing
       let handlingKeyDown = false;
-      
+
       // Add Enter key handler to save
       const handleKeyDown = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -1284,7 +1297,7 @@ window.accessibilityManager = accessibilityManager;
           cancelEdit(item);
         }
       };
-      
+
       // Add blur handler to save when clicking away
       const handleBlur = (e) => {
         // Don't save if we're handling a keydown event
@@ -1300,13 +1313,13 @@ window.accessibilityManager = accessibilityManager;
         textEl.removeEventListener('blur', handleBlur);
         saveEdit(item, textEl);
       };
-      
+
       textEl.addEventListener('keydown', handleKeyDown);
       textEl.addEventListener('blur', handleBlur);
-      
+
       editingHistoryItem = item;
     });
-    
+
     return item;
   }
 
@@ -1316,7 +1329,7 @@ window.accessibilityManager = accessibilityManager;
     if (existingMenu) {
       existingMenu.remove();
     }
-    
+
     // Create context menu
     const menu = document.createElement('div');
     menu.className = 'history-context-menu';
@@ -1325,22 +1338,22 @@ window.accessibilityManager = accessibilityManager;
       <button class="context-menu-item" data-action="delete">Delete</button>
       <button class="context-menu-item" data-action="copy">Copy</button>
     `;
-    
+
     document.body.appendChild(menu);
-    
+
     // Get menu dimensions
     const menuRect = menu.getBoundingClientRect();
     const menuWidth = menuRect.width;
     const menuHeight = menuRect.height;
-    
+
     // Get viewport dimensions
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
+
     // Calculate initial position
     let left = event.clientX;
     let top = event.clientY;
-    
+
     // Adjust horizontal position to stay within viewport
     if (left + menuWidth > viewportWidth) {
       // Position to the left of the click point
@@ -1355,7 +1368,7 @@ window.accessibilityManager = accessibilityManager;
         left = viewportWidth - menuWidth - 8;
       }
     }
-    
+
     // Adjust vertical position to stay within viewport
     if (top + menuHeight > viewportHeight) {
       // Position above the click point
@@ -1370,33 +1383,33 @@ window.accessibilityManager = accessibilityManager;
         top = viewportHeight - menuHeight - 8;
       }
     }
-    
+
     // Apply calculated position
     menu.style.position = 'fixed';
     menu.style.left = left + 'px';
     menu.style.top = top + 'px';
     menu.style.zIndex = '10000';
-    
+
     // Handle menu actions
     menu.querySelectorAll('.context-menu-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const action = btn.dataset.action;
-        
+
         if (action === 'edit') {
           const textEl = item.querySelector('.history-text');
           if (editingHistoryItem) {
             cancelEdit(editingHistoryItem);
           }
-          
-        item.classList.add('editing');
-        textEl.contentEditable = 'true';
-        textEl.classList.add('editable');
-        textEl.focus();
-          
+
+          item.classList.add('editing');
+          textEl.contentEditable = 'true';
+          textEl.classList.add('editable');
+          textEl.focus();
+
           // Store original text
           textEl.dataset.originalText = textEl.textContent;
-      
+
           // Add Enter key handler to save
           const handleKeyDown = (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -1413,17 +1426,17 @@ window.accessibilityManager = accessibilityManager;
               cancelEdit(item);
             }
           };
-          
+
           // Add blur handler to save when clicking away
           const handleBlur = () => {
             textEl.removeEventListener('keydown', handleKeyDown);
             textEl.removeEventListener('blur', handleBlur);
             saveEdit(item, textEl);
           };
-          
+
           textEl.addEventListener('keydown', handleKeyDown);
           textEl.addEventListener('blur', handleBlur, { once: true });
-          
+
           editingHistoryItem = item;
         } else if (action === 'delete') {
           // Delete from history file
@@ -1480,13 +1493,13 @@ window.accessibilityManager = accessibilityManager;
             }
           }
         }
-        
+
         if (menu.parentNode) {
           document.body.removeChild(menu);
         }
       });
     });
-    
+
     // Close menu on outside click
     setTimeout(() => {
       const closeMenu = (e) => {
@@ -1498,7 +1511,7 @@ window.accessibilityManager = accessibilityManager;
       document.addEventListener('click', closeMenu);
     }, 0);
   }
-  
+
   // Delete history item from file
   async function deleteHistoryItem(timestamp) {
     try {
@@ -1512,49 +1525,49 @@ window.accessibilityManager = accessibilityManager;
 
   function saveEdit(item, textEl) {
     if (!textEl || !item) return;
-    
+
     const newText = textEl.textContent.trim();
     const originalText = textEl.dataset.originalText;
-    
+
     // Remove all event listeners by replacing the element
     const parent = textEl.parentNode;
     const newTextEl = document.createElement('div');
     newTextEl.className = 'history-text';
     newTextEl.contentEditable = 'false';
-    
+
     if (newText && newText !== originalText) {
       // Update the text
       newTextEl.textContent = newText;
       parent.replaceChild(newTextEl, textEl);
-      
+
       item.classList.remove('editing');
-      
+
       // Update history entry in file
       const timestamp = parseInt(item.dataset.timestamp);
       updateHistoryItem(timestamp, newText).then(() => {
         // Recalculate stats after update
         calculateStatsFromHistory();
       });
-      
+
       editingHistoryItem = null;
       showMessage('Changes saved');
     } else if (newText === originalText) {
       // No changes, just cancel edit
       newTextEl.textContent = originalText;
       parent.replaceChild(newTextEl, textEl);
-      
+
       item.classList.remove('editing');
       editingHistoryItem = null;
     } else {
       // Empty text, restore original
       newTextEl.textContent = originalText;
       parent.replaceChild(newTextEl, textEl);
-      
+
       item.classList.remove('editing');
       editingHistoryItem = null;
       showMessage('Edit cancelled');
     }
-    
+
     // Remove selection to prevent text staying selected
     if (window.getSelection) {
       const selection = window.getSelection();
@@ -1563,7 +1576,7 @@ window.accessibilityManager = accessibilityManager;
       }
     }
   }
-  
+
   // Update history item in file
   async function updateHistoryItem(timestamp, newText) {
     try {
@@ -1584,9 +1597,9 @@ window.accessibilityManager = accessibilityManager;
   function cancelEdit(item) {
     const textEl = item.querySelector('.history-text');
     if (!textEl) return;
-    
+
     const originalText = textEl.dataset.originalText || textEl.textContent;
-    
+
     // Remove all event listeners by replacing the element
     const parent = textEl.parentNode;
     const newTextEl = document.createElement('div');
@@ -1594,7 +1607,7 @@ window.accessibilityManager = accessibilityManager;
     newTextEl.textContent = originalText;
     newTextEl.contentEditable = 'false';
     parent.replaceChild(newTextEl, textEl);
-    
+
     item.classList.remove('editing');
     editingHistoryItem = null;
   }
@@ -1603,15 +1616,15 @@ window.accessibilityManager = accessibilityManager;
   function loadHistory() {
     const historyListFull = document.getElementById('history-list-full');
     if (!historyListFull) return;
-    
+
     // Clear existing items
     historyListFull.innerHTML = '';
-    
+
     ipc.getHistory().then((items) => {
       if (!items || items.length === 0) {
         return;
       }
-      
+
       // Group items by date
       const groupedByDate = {};
       items.reverse().forEach(entry => {
@@ -1623,7 +1636,7 @@ window.accessibilityManager = accessibilityManager;
         const timeStr = formatTime(date);
         groupedByDate[dateKey].push({ text: entry.text, time: timeStr, timestamp: entry.ts });
       });
-      
+
       // Display items grouped by date
       Object.keys(groupedByDate).forEach(dateKey => {
         const dateHeader = document.createElement('h3');
@@ -1631,7 +1644,7 @@ window.accessibilityManager = accessibilityManager;
         const date = new Date(dateKey);
         const today = new Date().toDateString();
         const yesterday = new Date(Date.now() - 86400000).toDateString();
-        
+
         if (dateKey === today) {
           dateHeader.textContent = 'Today';
         } else if (dateKey === yesterday) {
@@ -1639,15 +1652,15 @@ window.accessibilityManager = accessibilityManager;
         } else {
           dateHeader.textContent = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
         }
-        
+
         historyListFull.appendChild(dateHeader);
-        
+
         groupedByDate[dateKey].forEach(entry => {
           const item = createHistoryItem(entry);
           historyListFull.appendChild(item);
         });
       });
-      
+
       // Calculate stats from history
       calculateStatsFromHistory();
     }).catch(e => {
@@ -1662,25 +1675,25 @@ window.accessibilityManager = accessibilityManager;
     stats.totalTime = 0;
     stats.timeSaved = 0;
     stats.wpm = 0;
-    
-  ipc.getHistory().then((items) => {
+
+    ipc.getHistory().then((items) => {
       if (!items || items.length === 0) {
         updateStatsDisplay();
         return;
       }
-      
+
       // Calculate total words and track actual durations if available
       let totalActualDuration = 0;
       items.forEach(entry => {
-      const wordCount = entry.text.split(/\s+/).filter(w => w.length > 0).length;
-      stats.words += wordCount;
-        
+        const wordCount = entry.text.split(/\s+/).filter(w => w.length > 0).length;
+        stats.words += wordCount;
+
         // If entry has duration metadata, use it
         if (entry.duration) {
           totalActualDuration += entry.duration;
         }
       });
-      
+
       // Use actual durations if available, otherwise estimate
       if (totalActualDuration > 0) {
         stats.totalTime = totalActualDuration;
@@ -1693,7 +1706,7 @@ window.accessibilityManager = accessibilityManager;
         const totalMinutes = stats.words / avgDictationWPM;
         stats.totalTime = totalMinutes * 60; // Convert to seconds
       }
-      
+
       // Calculate average WPM
       if (stats.totalTime > 0) {
         stats.wpm = Math.round((stats.words / stats.totalTime) * 60);
@@ -1706,20 +1719,20 @@ window.accessibilityManager = accessibilityManager;
           stats.wpm = Math.round((avgWordsPerRecording / avgDuration) * 60);
         }
       }
-      
+
       // Estimate time saved (assuming average typing speed of 40 WPM)
       const avgTypingWPM = 40;
       const typingMinutes = stats.words / avgTypingWPM;
       const dictationMinutes = stats.totalTime / 60;
       stats.timeSaved = Math.max(0, (typingMinutes - dictationMinutes) * 60);
-      
+
       updateStatsDisplay();
     }).catch(e => {
       console.error('Error calculating stats from history:', e);
-    updateStatsDisplay();
-  });
+      updateStatsDisplay();
+    });
   }
-  
+
   // Load history on initialization
   loadHistory();
 
@@ -1727,7 +1740,7 @@ window.accessibilityManager = accessibilityManager;
   function updateStats(text) {
     const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
     stats.words += wordCount;
-    
+
     // Calculate WPM based on last recording duration
     if (recordingDurations.length > 0) {
       const lastDuration = recordingDurations[recordingDurations.length - 1];
@@ -1736,13 +1749,13 @@ window.accessibilityManager = accessibilityManager;
         stats.wpm = Math.round(wordCount / minutes);
       }
     }
-    
+
     // Estimate time saved (assuming average typing speed of 40 WPM)
     const avgTypingWPM = 40;
     const dictationMinutes = stats.totalTime / 60;
     const typingMinutes = stats.words / avgTypingWPM;
     stats.timeSaved = Math.max(0, (typingMinutes - dictationMinutes) * 60);
-    
+
     updateStatsDisplay();
   }
 
@@ -1818,12 +1831,12 @@ window.accessibilityManager = accessibilityManager;
         toast.remove();
       }
     });
-    
+
     // Create toast notification
     const toast = document.createElement('div');
     toast.className = 'toast-notification';
     toast.textContent = msg;
-    
+
     // Add animation keyframes if not already added
     if (!document.getElementById('toast-animations')) {
       const style = document.createElement('style');
@@ -1852,9 +1865,9 @@ window.accessibilityManager = accessibilityManager;
       `;
       document.head.appendChild(style);
     }
-    
+
     document.body.appendChild(toast);
-    
+
     setTimeout(() => {
       toast.style.animation = 'toastSlideOut 0.3s ease-in';
       setTimeout(() => {
@@ -1863,7 +1876,7 @@ window.accessibilityManager = accessibilityManager;
         }
       }, 300);
     }, 2000);
-    
+
     console.log(msg);
   }
 
@@ -1887,7 +1900,7 @@ window.accessibilityManager = accessibilityManager;
       }
     });
   }
-  
+
   // Make hotkey display clickable
   const hotkeyDisplay = document.getElementById('current-hold-hotkey');
   if (hotkeyDisplay) {
@@ -1909,7 +1922,7 @@ window.accessibilityManager = accessibilityManager;
       }
     });
   }
-  
+
   // Function to format hotkey for display
   function formatHotkeyForDisplay(hotkey) {
     if (!hotkey) return 'Ctrl+Win';
@@ -1918,7 +1931,7 @@ window.accessibilityManager = accessibilityManager;
       .replace(/Super/gi, 'Win')
       .replace(/\+/g, '+');
   }
-  
+
   // Update dictation box with current hotkey
   function updateDictationBoxHotkey() {
     ipc.getSettings().then((s) => {
@@ -1930,7 +1943,7 @@ window.accessibilityManager = accessibilityManager;
       }
     });
   }
-  
+
   // Initialize hotkey display on load
   updateDictationBoxHotkey();
 
@@ -1939,26 +1952,26 @@ window.accessibilityManager = accessibilityManager;
   const maximizeBtn = document.getElementById('maximize-btn');
   const closeBtn = document.getElementById('close-btn');
   const appContainer = document.querySelector('.app-container');
-  
+
   // Double-click on top part of app to maximize (Windows-style)
   if (appContainer) {
     appContainer.addEventListener('dblclick', (e) => {
       // Get the click position relative to the window
       const clickY = e.clientY;
       const windowHeight = window.innerHeight;
-      
+
       // Only maximize if double-clicking in the top 60px of the window
       // and not on interactive elements
       if (clickY <= 60) {
         // Exclude clicks on buttons, window controls, and interactive elements
-        const isInteractive = e.target.closest('.window-controls') || 
-                              e.target.closest('button') || 
-                              e.target.closest('.nav-item') ||
-                              e.target.closest('.theme-toggle-btn') ||
-                              e.target.closest('input') ||
-                              e.target.closest('select') ||
-                              e.target.closest('a');
-        
+        const isInteractive = e.target.closest('.window-controls') ||
+          e.target.closest('button') ||
+          e.target.closest('.nav-item') ||
+          e.target.closest('.theme-toggle-btn') ||
+          e.target.closest('input') ||
+          e.target.closest('select') ||
+          e.target.closest('a');
+
         if (!isInteractive) {
           if (ipc.maximizeWindow) {
             ipc.maximizeWindow();
@@ -2022,7 +2035,7 @@ window.accessibilityManager = accessibilityManager;
   // Theme toggle functionality
   const themeToggleBtn = document.getElementById('theme-toggle-btn');
   let currentTheme = 'light'; // Default to light theme
-  
+
   // Load saved theme preference
   function loadTheme() {
     const savedTheme = localStorage.getItem('sonu-theme') || 'light';
@@ -2032,21 +2045,21 @@ window.accessibilityManager = accessibilityManager;
       themeToggleBtn.setAttribute('data-theme', savedTheme);
     }
   }
-  
+
   // Apply theme - simplified to use CSS variables
   function applyTheme(theme, instant = false) {
     const body = document.body;
-    
+
     if (instant) {
       // Disable all transitions for instant theme switch
       body.classList.add('theme-switching');
-      
+
       // Force reflow
       void body.offsetHeight;
-      
+
       // Apply theme
       body.setAttribute('data-theme', theme);
-      
+
       // Re-enable transitions immediately
       requestAnimationFrame(() => {
         body.classList.remove('theme-switching');
@@ -2055,7 +2068,7 @@ window.accessibilityManager = accessibilityManager;
       // Normal theme application with transition
       body.setAttribute('data-theme', theme);
     }
-      
+
     // Update theme toggle button
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     if (themeToggleBtn) {
@@ -2067,10 +2080,10 @@ window.accessibilityManager = accessibilityManager;
         themeToggleBtn.setAttribute('data-theme', 'light');
       }
     }
-    
+
     console.log('Theme applied:', theme);
   }
-  
+
   if (themeToggleBtn) {
     try {
       themeToggleBtn.addEventListener('click', () => {
@@ -2079,15 +2092,15 @@ window.accessibilityManager = accessibilityManager;
           // Determine current base theme (light or dark)
           const isCurrentlyDark = currentTheme === 'dark' || currentTheme === 'midnight-purple';
           const newTheme = isCurrentlyDark ? 'light' : 'dark';
-          
+
           currentTheme = newTheme;
           localStorage.setItem('sonu-theme', newTheme);
           themeToggleBtn.setAttribute('data-theme', newTheme);
-          
+
           // Apply theme instantly for smooth, non-jittery toggle
           applyTheme(newTheme, true);
           saveAppSettings({ theme: newTheme });
-          
+
           // Update theme gallery active state
           requestAnimationFrame(() => {
             document.querySelectorAll('.theme-option').forEach(opt => {
@@ -2107,14 +2120,14 @@ window.accessibilityManager = accessibilityManager;
   } else {
     console.warn('Theme toggle button not found');
   }
-  
+
   // Initialize
   try {
     loadTheme();
     updateStatsDisplay();
     updateDictationBoxHotkey();
     console.log('Initialization complete');
-    
+
     // Mark app as ready for E2E tests
     if (document.body) {
       document.body.setAttribute('data-app-ready', '1');
@@ -2122,7 +2135,7 @@ window.accessibilityManager = accessibilityManager;
   } catch (e) {
     console.error('Error during initialization:', e);
   }
-  
+
   // Update dictation box when settings change
   ipc.onHotkeyRegistered(() => {
     updateDictationBoxHotkey();
@@ -2131,13 +2144,17 @@ window.accessibilityManager = accessibilityManager;
   // ============================================
   // Model Definitions
   // ============================================
-  
+
   const MODEL_DEFINITIONS = {
     tiny: { description: 'Fastest, lowest accuracy - best for real-time dictation' },
     base: { description: 'Balanced speed & accuracy - recommended for most users' },
     small: { description: 'Good accuracy, slower processing' },
     medium: { description: 'High accuracy, requires more resources' },
-    large: { description: 'Best accuracy, requires powerful hardware' }
+    large: { description: 'Best accuracy, requires powerful hardware' },
+    // Distil-Whisper models
+    'distil-small.en': { description: 'Instant & Accurate (English) - Recommended' },
+    'distil-medium.en': { description: 'Instant & Highly Accurate (English) - Recommended' },
+    'distil-large-v3': { description: 'Best Distil accuracy, fast processing' }
   };
 
   // ============================================
@@ -2150,7 +2167,7 @@ window.accessibilityManager = accessibilityManager;
   async function loadAppSettings() {
     try {
       appSettings = await ipc.getAppSettings() || {};
-      
+
       // Set defaults if not present (for first install)
       if (appSettings.sound_feedback === undefined) {
         appSettings.sound_feedback = true;
@@ -2158,7 +2175,7 @@ window.accessibilityManager = accessibilityManager;
       if (appSettings.waveform_animation === undefined) {
         appSettings.waveform_animation = true;
       }
-      
+
       // Save defaults if they were added
       if (appSettings.sound_feedback === true && appSettings.waveform_animation === true) {
         const currentSettings = await ipc.getAppSettings() || {};
@@ -2166,7 +2183,7 @@ window.accessibilityManager = accessibilityManager;
           await saveAppSettings({ sound_feedback: true, waveform_animation: true });
         }
       }
-      
+
       applyAppSettings();
     } catch (e) {
       console.error('Error loading app settings:', e);
@@ -2217,7 +2234,7 @@ window.accessibilityManager = accessibilityManager;
         toggle.checked = value === true;
       }
     });
-    
+
     // CRITICAL: Always ensure waveform container visibility matches toggle state
     // This runs whenever settings are applied, so we must enforce the toggle state
     if (waveformContainer) {
@@ -2281,7 +2298,7 @@ window.accessibilityManager = accessibilityManager;
     // Retry mechanism in case handler isn't ready yet
     let retries = 3;
     let info = null;
-    
+
     while (retries > 0 && !info) {
       try {
         if (ipc.getSystemInfo && typeof ipc.getSystemInfo === 'function') {
@@ -2303,7 +2320,7 @@ window.accessibilityManager = accessibilityManager;
       container.innerHTML = `<div class="system-info-loading" style="color: var(--text-muted);">Error loading system information. Please try refreshing the page or restarting the app.</div>`;
       return;
     }
-    
+
     container.innerHTML = '';
 
     const fields = ['Device', 'OS', 'CPU', 'Cores', 'Threads', 'RAM', 'GPU', 'Arch', 'App Version'];
@@ -2327,7 +2344,7 @@ window.accessibilityManager = accessibilityManager;
       setTimeout(loadSystemInfo, 100);
     });
   }
-  
+
   // Load system info on first load if System tab is active
   // Check if we're on settings page and system tab is active
   setTimeout(() => {
@@ -2346,12 +2363,12 @@ window.accessibilityManager = accessibilityManager;
   // Model Selector Tab - optimized with caching and parallel loading
   let modelSelectorLoaded = false;
   let systemProfileCache = null;
-  
+
   async function loadModelSelector() {
     // Prevent multiple simultaneous loads
     if (modelSelectorLoaded) return;
     modelSelectorLoaded = true;
-    
+
     try {
       // Load all data in parallel for faster loading
       const [systemProfile, spaceInfo, pathResult, suggestedModel] = await Promise.allSettled([
@@ -2360,59 +2377,59 @@ window.accessibilityManager = accessibilityManager;
         ipc.getModelDownloadPath && typeof ipc.getModelDownloadPath === 'function' ? ipc.getModelDownloadPath() : Promise.resolve(null),
         ipc.getSuggestedModel && typeof ipc.getSuggestedModel === 'function' ? ipc.getSuggestedModel() : Promise.resolve(null)
       ]);
-      
+
       // Cache system profile for future use
       if (systemProfile.status === 'fulfilled' && systemProfile.value) {
         systemProfileCache = systemProfile.value;
       }
-      
+
       // Display recommendation (non-blocking)
       if (systemProfile.status === 'fulfilled' && systemProfile.value) {
         const profile = systemProfile.value;
         console.log('System profile:', profile);
-          
-          // Display recommendation
-          const recommendationCard = document.getElementById('model-recommendation-card');
-          const recommendationText = document.getElementById('model-recommendation-text');
-          const hardwareInfo = document.getElementById('model-hardware-info');
-          
+
+        // Display recommendation
+        const recommendationCard = document.getElementById('model-recommendation-card');
+        const recommendationText = document.getElementById('model-recommendation-text');
+        const hardwareInfo = document.getElementById('model-hardware-info');
+
         if (recommendationCard && recommendationText && profile && profile.recommended) {
           const rec = profile.recommended;
-            recommendationText.innerHTML = `<strong>${rec.family}</strong> — <b>${rec.model}</b><br><span style="font-size: 0.9em; color: #6b21a8;">${rec.note || ''}</span>`;
-            
-            if (hardwareInfo) {
+          recommendationText.innerHTML = `<strong>${rec.family}</strong> — <b>${rec.model}</b><br><span style="font-size: 0.9em; color: #6b21a8;">${rec.note || ''}</span>`;
+
+          if (hardwareInfo) {
             const gpuText = profile.gpu ? 'Yes' : 'No';
             hardwareInfo.textContent = `CPU: ${profile.cpu_cores} cores | RAM: ${profile.ram_gb} GB | GPU: ${gpuText}`;
-            }
-            
-            recommendationCard.style.display = 'block';
-            
-            // Update the inline recommendation text
-            const recommendedModelName = document.getElementById('recommended-model-name');
-            if (recommendedModelName) {
-              recommendedModelName.textContent = rec.model.toUpperCase();
-            }
-            
-            // Auto-select recommended model if auto-pick is enabled
-            const autoModelToggle = document.getElementById('auto-model-toggle');
-            const modelSelect = document.getElementById('model-select');
-            if (autoModelToggle && autoModelToggle.checked && modelSelect) {
-              modelSelect.value = rec.model;
-              saveAppSettings({ selected_model: rec.model });
-            } else if (modelSelect && !modelSelect.value) {
-              // Set as default if no model is selected
-              modelSelect.value = rec.model;
+          }
+
+          recommendationCard.style.display = 'block';
+
+          // Update the inline recommendation text
+          const recommendedModelName = document.getElementById('recommended-model-name');
+          if (recommendedModelName) {
+            recommendedModelName.textContent = rec.model.toUpperCase();
+          }
+
+          // Auto-select recommended model if auto-pick is enabled
+          const autoModelToggle = document.getElementById('auto-model-toggle');
+          const modelSelect = document.getElementById('model-select');
+          if (autoModelToggle && autoModelToggle.checked && modelSelect) {
+            modelSelect.value = rec.model;
+            saveAppSettings({ selected_model: rec.model });
+          } else if (modelSelect && !modelSelect.value) {
+            // Set as default if no model is selected
+            modelSelect.value = rec.model;
           }
         }
       }
-      
+
       // Fallback to simple suggestion
       if (suggestedModel.status === 'fulfilled' && suggestedModel.value) {
         const modelSelect = document.getElementById('model-select');
         if (modelSelect && suggestedModel.value && !modelSelect.value) {
           modelSelect.value = suggestedModel.value;
         }
-        
+
         // Update recommendation text if not already set by system profile
         if (!systemProfileCache || !systemProfileCache.recommended) {
           const recommendedModelName = document.getElementById('recommended-model-name');
@@ -2421,7 +2438,7 @@ window.accessibilityManager = accessibilityManager;
           }
         }
       }
-      
+
       // Display disk space
       if (spaceInfo.status === 'fulfilled' && spaceInfo.value) {
         const space = spaceInfo.value;
@@ -2442,7 +2459,7 @@ window.accessibilityManager = accessibilityManager;
           }
         }
       }
-      
+
       // Display download path
       if (pathResult.status === 'fulfilled' && pathResult.value) {
         const path = pathResult.value;
@@ -2451,7 +2468,7 @@ window.accessibilityManager = accessibilityManager;
           pathInput.value = path.path || '';
         }
       }
-      
+
       // Check model status (non-blocking)
       checkModelStatus().catch(e => console.error('Error checking model status:', e));
     } catch (e) {
@@ -2460,7 +2477,7 @@ window.accessibilityManager = accessibilityManager;
       modelSelectorLoaded = false;
     }
   }
-  
+
   // Browse model download path button
   const browseModelPathBtn = document.getElementById('browse-model-path-btn');
   if (browseModelPathBtn) {
@@ -2473,7 +2490,7 @@ window.accessibilityManager = accessibilityManager;
             if (pathInput) {
               pathInput.value = result.path;
             }
-            
+
             // Save the path
             if (ipc.setModelDownloadPath && typeof ipc.setModelDownloadPath === 'function') {
               await ipc.setModelDownloadPath(result.path);
@@ -2508,15 +2525,15 @@ window.accessibilityManager = accessibilityManager;
   if (modelSelect) {
     modelSelect.addEventListener('change', async (e) => {
       const modelName = e.target.value;
-      
+
       // If a download is in progress, cancel it first when switching models
       const progressContainer = document.getElementById('model-progress');
-      const cancelBtn = document.getElementById('cancel-download-btn');
-      const isDownloading = !!(progressContainer && 
-                                progressContainer.style.display !== 'none' && 
-                                cancelBtn && 
-                                cancelBtn.style.display !== 'none');
-      
+      const actionBtn = document.getElementById('download-action-btn');
+      const isDownloading = !!(progressContainer &&
+        progressContainer.style.display !== 'none' &&
+        actionBtn &&
+        actionBtn.getAttribute('data-state') === 'downloading');
+
       if (isDownloading) {
         console.log('Model switched during download, cancelling current download...');
         // Cancel the current download
@@ -2530,12 +2547,12 @@ window.accessibilityManager = accessibilityManager;
           }
         }
       }
-      
+
       saveAppSettings({ selected_model: modelName });
-      
+
       // Check if model is downloaded and update button state
       await checkModelStatus();
-      
+
       // Update active model display
       await updateActiveModelDisplay();
     });
@@ -2546,7 +2563,7 @@ window.accessibilityManager = accessibilityManager;
   if (importModelBtn) {
     importModelBtn.addEventListener('click', async () => {
       console.log('Import model button clicked');
-      
+
       const progressContainer = document.getElementById('model-progress');
       const progressFill = document.getElementById('model-progress-fill');
       const progressText = document.getElementById('model-progress-text');
@@ -2563,13 +2580,13 @@ window.accessibilityManager = accessibilityManager;
         }
 
         const result = await ipc.importModel();
-        
+
         // Only show progress if a file was actually selected
         if (result && result.success) {
           if (progressContainer) progressContainer.style.display = 'block';
           if (progressFill) progressFill.style.width = '0%';
           if (progressSpeed) progressSpeed.style.display = 'none';
-          
+
           // Hide patience message for imports (only show for downloads)
           const patienceMessage = document.getElementById('download-patience-message');
           if (patienceMessage) patienceMessage.style.display = 'none';
@@ -2578,11 +2595,11 @@ window.accessibilityManager = accessibilityManager;
 
         if (result && result.success) {
           if (progressFill) progressFill.style.width = '100%';
-          
+
           const modelDisplay = result.model_display || (result.model ? result.model.toUpperCase() : 'Model');
           const sizeInfo = result.size_mb ? ` (${result.size_mb.toFixed(0)} MB)` : '';
           const pathInfo = result.path ? `\nLocation: ${result.path}` : '';
-          
+
           if (progressText) {
             if (result.cached) {
               progressText.textContent = `✅ ${modelDisplay} already imported${sizeInfo}`;
@@ -2590,49 +2607,49 @@ window.accessibilityManager = accessibilityManager;
               progressText.textContent = `✅ ${modelDisplay} imported successfully${sizeInfo}`;
             }
           }
-          
+
           // Status message removed - keeping UI clean
-          
+
           // Immediately update active model display with imported model
           const activeModelDesc = document.getElementById('active-model-desc');
           const activeModelStatus = document.getElementById('active-model-status');
-          
+
           if (activeModelDesc) {
             const modelInfo = MODEL_DEFINITIONS[result.model] || {};
             activeModelDesc.textContent = `${modelDisplay} - ${modelInfo.description || 'Imported model'}`;
           }
-          
+
           if (activeModelStatus) {
             activeModelStatus.innerHTML = '<span style="color: #10b981; font-weight: 600;">✓ Ready</span>';
           }
-          
+
           // Also update in background
           setTimeout(() => {
             checkModelStatus().catch(e => console.warn('Error checking model status:', e));
             updateActiveModelDisplay().catch(e => console.warn('Error updating active model display:', e));
           }, 100);
-          
+
           // Show success notification
           setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('show-toast', { 
-              detail: { 
-                message: `${modelDisplay} activated!`, 
-                type: 'success' 
-              } 
+            window.dispatchEvent(new CustomEvent('show-toast', {
+              detail: {
+                message: `${modelDisplay} activated!`,
+                type: 'success'
+              }
             }));
           }, 500);
-          
-              setTimeout(() => {
-                if (progressContainer) {
-                  progressContainer.style.display = 'none';
-                  progressContainer.classList.remove('active');
-                }
+
+          setTimeout(() => {
+            if (progressContainer) {
+              progressContainer.style.display = 'none';
+              progressContainer.classList.remove('active');
+            }
           }, 3000);
         } else {
           if (progressFill) progressFill.style.width = '0%';
           const errorMsg = (result && result.message) || (result && result.error) || 'Failed to import model';
           if (progressText) progressText.textContent = `❌ Import failed: ${errorMsg}`;
-          
+
           setTimeout(() => {
             if (progressContainer) {
               progressContainer.style.display = 'none';
@@ -2644,7 +2661,7 @@ window.accessibilityManager = accessibilityManager;
         console.error('Error importing model:', error);
         if (progressFill) progressFill.style.width = '0%';
         if (progressText) progressText.textContent = `❌ Error: ${error.message}`;
-        
+
         setTimeout(() => {
           if (progressContainer) progressContainer.style.display = 'none';
         }, 5000);
@@ -2660,7 +2677,7 @@ window.accessibilityManager = accessibilityManager;
   if (downloadModelBtn) {
     downloadModelBtn.addEventListener('click', async () => {
       console.log('Download button clicked');
-      
+
       const modelSelect = document.getElementById('model-select');
       const modelName = modelSelect ? modelSelect.value : 'base';
       const progressContainer = document.getElementById('model-progress');
@@ -2669,12 +2686,12 @@ window.accessibilityManager = accessibilityManager;
       const progressSpeed = document.getElementById('model-progress-speed');
 
       // Check if a download is already in progress
-      const cancelBtn = document.getElementById('cancel-download-btn');
-      const isDownloading = !!(progressContainer && 
-                                progressContainer.style.display !== 'none' && 
-                                cancelBtn && 
-                                cancelBtn.style.display !== 'none');
-      
+      const actionBtn = document.getElementById('download-action-btn');
+      const isDownloading = !!(progressContainer &&
+        progressContainer.style.display !== 'none' &&
+        actionBtn &&
+        actionBtn.getAttribute('data-state') === 'downloading');
+
       if (isDownloading) {
         console.log('Download already in progress, cancelling current download first...');
         // Cancel the current download before starting a new one
@@ -2709,10 +2726,10 @@ window.accessibilityManager = accessibilityManager;
         if (!ipc.checkModel || typeof ipc.checkModel !== 'function') {
           throw new Error('checkModel function not available');
         }
-        
+
         const checkResult = await ipc.checkModel(modelName);
         console.log('Model check result for', modelName, ':', checkResult);
-        
+
         if (checkResult && checkResult.exists) {
           // Model exists - proceed to download handler which will set it as active
           console.log('Model', modelName, 'exists, activating it...');
@@ -2722,9 +2739,9 @@ window.accessibilityManager = accessibilityManager;
           console.log('Model', modelName, 'not found, starting download...');
           if (progressText) progressText.textContent = `Initializing download for ${modelName.toUpperCase()}...`;
         }
-        
+
         if (progressSpeed) progressSpeed.style.display = 'block';
-        
+
         // CRITICAL: Show patience message - already visible by default in HTML now
         const patienceMessage = document.getElementById('download-patience-message');
         if (patienceMessage) {
@@ -2733,20 +2750,17 @@ window.accessibilityManager = accessibilityManager;
         } else {
           console.error('✗ Patience message element not found!');
         }
-        
-        // CRITICAL: Show Cancel button and hide Resume button when download starts
-        const cancelBtn = document.getElementById('cancel-download-btn');
-        const resumeBtn = document.getElementById('resume-download-btn');
-        if (cancelBtn) {
-          cancelBtn.style.display = 'flex';
-          console.log('✓ Cancel button shown for download');
+
+        // CRITICAL: Set unified action button to 'downloading' state
+        const actionBtn = document.getElementById('download-action-btn');
+        if (actionBtn) {
+          actionBtn.setAttribute('data-state', 'downloading');
+          actionBtn.querySelector('.btn-text').textContent = 'Cancel';
+          actionBtn.querySelector('.btn-icon-cancel').style.display = 'block';
+          actionBtn.querySelector('.btn-icon-resume').style.display = 'none';
+          console.log('✓ Action button set to downloading state');
         } else {
-          console.error('✗ CRITICAL: Cancel button not found in DOM!');
-        }
-        // Hide Resume button during active download
-        if (resumeBtn) {
-          resumeBtn.style.display = 'none';
-          console.log('✓ Resume button hidden for download');
+          console.error('✗ CRITICAL: Action button not found in DOM!');
         }
 
         // Track this download
@@ -2767,10 +2781,10 @@ window.accessibilityManager = accessibilityManager;
             if (data.percent !== undefined) {
               const currentPercent = data.percent;
               const currentTime = Date.now();
-              
+
               // Update progress bar
               if (progressFill) progressFill.style.width = `${currentPercent}%`;
-              
+
               // Once download actually starts (>5%), hide patience message
               if (currentPercent > 5) {
                 const patienceMsg = document.getElementById('download-patience-message');
@@ -2779,18 +2793,18 @@ window.accessibilityManager = accessibilityManager;
                   console.log('✓ Patience message hidden (download progressing at ' + currentPercent + '%)');
                 }
               }
-              
+
               // Handle speed display
               if (progressSpeed && data.speedKB !== undefined && data.speedKB > 0) {
-                const speedText = data.speedKB >= 1024 
-                  ? `${(data.speedKB / 1024).toFixed(2)} MB/s` 
+                const speedText = data.speedKB >= 1024
+                  ? `${(data.speedKB / 1024).toFixed(2)} MB/s`
                   : `${data.speedKB.toFixed(1)} KB/s`;
                 progressSpeed.textContent = speedText;
                 progressSpeed.style.display = 'block';
               } else if (progressSpeed) {
                 progressSpeed.style.display = 'none';
               }
-              
+
               // Show detailed download progress (bytes downloaded vs expected)
               const progressDetails = document.getElementById('model-progress-details');
               if (progressDetails && data.downloadedMB !== undefined && data.totalMB !== undefined) {
@@ -2801,11 +2815,11 @@ window.accessibilityManager = accessibilityManager;
                 progressDetails.textContent = data.message;
                 progressDetails.style.display = 'block';
               }
-              
+
               // Handle progress text with better messages
               if (progressText) {
                 let message = data.message || `Downloading ${modelName}...`;
-                
+
                 // Handle edge cases
                 if (currentPercent > 0 && currentPercent < 20 && message.includes('0 MB')) {
                   message = `Connecting to download source... (${currentPercent}%)`;
@@ -2816,13 +2830,13 @@ window.accessibilityManager = accessibilityManager;
                 } else if (currentPercent >= 98) {
                   message = `Finalizing download... (${currentPercent}%)`;
                 }
-                
+
                 progressText.textContent = message;
               }
-              
+
               // Don't update statusDesc during download - keep it clean
               // All info is shown in progressText, progressSpeed, and progressDetails
-              
+
               // Track progress for stuck detection
               if (currentPercent === lastProgressPercent) {
                 // Progress hasn't changed, check if stuck
@@ -2832,7 +2846,7 @@ window.accessibilityManager = accessibilityManager;
                   if (stuckProgressTimeout) {
                     clearTimeout(stuckProgressTimeout);
                   }
-                  
+
                   // Set timeout to show stuck message
                   stuckProgressTimeout = setTimeout(() => {
                     if (progressText) {
@@ -2860,26 +2874,26 @@ window.accessibilityManager = accessibilityManager;
         if (ipc.onModelComplete && typeof ipc.onModelComplete === 'function') {
           completeListener = (data) => {
             console.log('Download complete:', data);
-            
+
             // Clear stuck progress timeout
             if (stuckProgressTimeout) {
               clearTimeout(stuckProgressTimeout);
               stuckProgressTimeout = null;
             }
-            
+
             // Don't manually hide cancel button - it will hide when progressContainer hides
             // The CSS rule .model-progress[style*="display: none"] .cancel-download-button handles it
             const patienceMsg = document.getElementById('download-patience-message');
             if (patienceMsg) patienceMsg.style.display = 'none';
             activeDownloads.delete(modelName);
-            
+
             if (data.success) {
               if (progressFill) progressFill.style.width = '100%';
               if (progressSpeed) progressSpeed.style.display = 'none';
-              
+
               const sizeInfo = data.size_mb ? ` (${data.size_mb} MB)` : '';
               const pathInfo = data.path ? `\nLocation: ${data.path}` : '';
-              
+
               if (data.cached) {
                 // Model was already downloaded
                 if (progressText) progressText.textContent = `✅ ${modelName.toUpperCase()} already downloaded${sizeInfo}`;
@@ -2887,40 +2901,40 @@ window.accessibilityManager = accessibilityManager;
                 // Model was just downloaded
                 if (progressText) progressText.textContent = `✅ ${modelName.toUpperCase()} downloaded successfully${sizeInfo}`;
               }
-              
+
               if (data.path) {
                 console.log(`Model stored at: ${data.path}`);
               }
-              
+
               saveAppSettings({ selected_model: modelName });
-              
+
               // Refresh model status and active model display immediately
               setTimeout(() => {
                 checkModelStatus().catch(e => console.warn('Error checking model status:', e));
                 updateActiveModelDisplay().catch(e => console.warn('Error updating active model display:', e));
               }, 500);
-              
+
               // Show success notification
               if (window.voiceApp && window.voiceApp.onShowMessage) {
                 setTimeout(() => {
-                  const message = data.cached 
-                    ? `${modelName.toUpperCase()} model activated!` 
+                  const message = data.cached
+                    ? `${modelName.toUpperCase()} model activated!`
                     : `${modelName.toUpperCase()} model downloaded and activated!`;
-                  window.dispatchEvent(new CustomEvent('show-toast', { 
-                    detail: { message, type: 'success' } 
+                  window.dispatchEvent(new CustomEvent('show-toast', {
+                    detail: { message, type: 'success' }
                   }));
-              }, 1000);
+                }, 1000);
               }
             } else {
               if (progressFill) progressFill.style.width = '0%';
               if (progressSpeed) progressSpeed.style.display = 'none';
               if (progressText) progressText.textContent = `❌ Error: ${data.error || data.message || 'Unknown error'}`;
             }
-            
+
             setTimeout(() => {
               if (progressContainer) progressContainer.style.display = 'none';
             }, 5000);
-            
+
             downloadModelBtn.disabled = false;
           };
           ipc.onModelComplete(completeListener);
@@ -2931,25 +2945,25 @@ window.accessibilityManager = accessibilityManager;
         if (ipc.onModelError && typeof ipc.onModelError === 'function') {
           errorListener = async (data) => {
             console.error('Download error:', data);
-            
+
             // Clear stuck progress timeout
             if (stuckProgressTimeout) {
               clearTimeout(stuckProgressTimeout);
               stuckProgressTimeout = null;
             }
-            
+
             // Don't manually hide cancel button - it will hide when progressContainer hides
             // The CSS rule .model-progress[style*="display: none"] .cancel-download-button handles it
             const patienceMsg = document.getElementById('download-patience-message');
             if (patienceMsg) patienceMsg.style.display = 'none';
             activeDownloads.delete(modelName);
-            
+
             if (progressFill) progressFill.style.width = '0%';
             if (progressSpeed) progressSpeed.style.display = 'none';
-            
+
             const errorMessage = data.error || data.message || 'Unknown error';
             let userFriendlyMessage = errorMessage;
-            
+
             // Provide user-friendly error messages
             if (errorMessage.includes('timeout')) {
               userFriendlyMessage = 'Download timed out. Please check your internet connection and try again.';
@@ -2958,16 +2972,16 @@ window.accessibilityManager = accessibilityManager;
             } else if (errorMessage.includes('mirror') || errorMessage.includes('source')) {
               userFriendlyMessage = 'Download source unavailable. Trying alternative sources...';
             }
-            
+
             if (progressText) progressText.textContent = `❌ Error: ${userFriendlyMessage}`;
-            
+
             // Show manual download section on error
             await showManualDownloadLinks();
-            
+
             setTimeout(() => {
               if (progressContainer) progressContainer.style.display = 'none';
             }, 5000);
-            
+
             downloadModelBtn.disabled = false;
           };
           ipc.onModelError(errorListener);
@@ -2980,10 +2994,10 @@ window.accessibilityManager = accessibilityManager;
         if (!ipc.downloadModel || typeof ipc.downloadModel !== 'function') {
           throw new Error('downloadModel function not available');
         }
-        
+
         const result = await ipc.downloadModel(modelName);
         console.log('Download result:', result);
-        
+
         // If we got a result immediately (shouldn't happen with progress system, but handle it)
         if (result && !result.type) {
           if (result.success) {
@@ -2992,24 +3006,24 @@ window.accessibilityManager = accessibilityManager;
             const sizeInfo = result.size_mb ? ` (${result.size_mb} MB)` : '';
             const pathInfo = result.path ? `\nLocation: ${result.path}` : '';
             if (progressText) progressText.textContent = `✅ ${modelName} ready${sizeInfo}`;
-            
+
             if (result.path) {
               console.log(`Model stored at: ${result.path}`);
             }
-            
+
             saveAppSettings({ selected_model: modelName });
           } else {
             if (progressFill) progressFill.style.width = '0%';
             if (progressText) progressText.textContent = `❌ Error: ${result.error || result.message || 'Unknown error'}`;
           }
-          
+
           setTimeout(() => {
             if (progressContainer) {
               progressContainer.style.display = 'none';
               progressContainer.classList.remove('active');
             }
           }, 5000);
-          
+
           downloadModelBtn.disabled = false;
         }
       } catch (e) {
@@ -3022,172 +3036,173 @@ window.accessibilityManager = accessibilityManager;
       }
     });
   }
-  
+
   // Track current model for resume
   let currentDownloadModel = null;
-  
-  // Cancel download button handler
-  const cancelDownloadBtn = document.getElementById('cancel-download-btn');
-  const resumeDownloadBtn = document.getElementById('resume-download-btn');
-  
-  if (cancelDownloadBtn) {
-    cancelDownloadBtn.addEventListener('click', async () => {
-      console.log('Cancel button clicked');
-      
-      // Store current model for resume
-      const modelSelect = document.getElementById('model-select');
-      if (modelSelect) {
-        currentDownloadModel = modelSelect.value;
-      }
-      
-      // Mark all active downloads as cancelled
-      for (const [modelName, downloadInfo] of activeDownloads.entries()) {
-        downloadInfo.cancelled = true;
-        console.log(`Cancelling download: ${modelName}`);
-      }
-      
-      // Call IPC to cancel download
-      if (ipc.cancelDownload && typeof ipc.cancelDownload === 'function') {
-        try {
-          const result = await ipc.cancelDownload();
-          console.log('Cancel result:', result);
-        } catch (e) {
-          console.error('Error cancelling download:', e);
+
+  // Unified Download Action Button Handler (Cancel / Resume toggle)
+  const downloadActionBtn = document.getElementById('download-action-btn');
+
+  if (downloadActionBtn) {
+    downloadActionBtn.addEventListener('click', async () => {
+      const currentState = downloadActionBtn.getAttribute('data-state');
+      console.log(`Action button clicked, current state: ${currentState}`);
+
+      if (currentState === 'downloading') {
+        // Cancel the download
+        console.log('Cancelling download...');
+
+        // Store current model for resume
+        const modelSelect = document.getElementById('model-select');
+        if (modelSelect) {
+          currentDownloadModel = modelSelect.value;
         }
-      }
-      
-      // Hide Cancel button, show Resume button
-      cancelDownloadBtn.style.display = 'none';
-      if (resumeDownloadBtn) {
-        resumeDownloadBtn.style.display = 'flex';
-      }
-      
-      // Hide patience message
-      const patienceMsg = document.getElementById('download-patience-message');
-      if (patienceMsg) patienceMsg.style.display = 'none';
-      
-      const progressContainer = document.getElementById('model-progress');
-      const progressText = document.getElementById('model-progress-text');
-      const progressFill = document.getElementById('model-progress-fill');
-      
-      if (progressText) progressText.textContent = '⏸️ Download paused - Click Resume to continue';
-      // Keep progress bar at current position for visual feedback
-      
-      // Re-enable download button
-      const downloadModelBtn = document.getElementById('download-model-btn');
-      if (downloadModelBtn) downloadModelBtn.disabled = false;
-      
-      // Clear active downloads
-      activeDownloads.clear();
-    });
-  }
-  
-  // Resume download button handler
-  if (resumeDownloadBtn) {
-    resumeDownloadBtn.addEventListener('click', async () => {
-      console.log('Resume button clicked');
-      
-      const modelSelect = document.getElementById('model-select');
-      const modelName = currentDownloadModel || (modelSelect ? modelSelect.value : null);
-      
-      if (!modelName) {
-        console.error('No model to resume');
-        return;
-      }
-      
-      console.log(`Resuming download for model: ${modelName}`);
-      
-      // Hide Resume button, show Cancel button
-      resumeDownloadBtn.style.display = 'none';
-      if (cancelDownloadBtn) {
-        cancelDownloadBtn.style.display = 'flex';
-      }
-      
-      const progressText = document.getElementById('model-progress-text');
-      const progressContainer = document.getElementById('model-progress');
-      const downloadModelBtn = document.getElementById('download-model-btn');
-      
-      if (progressText) progressText.textContent = '🔄 Resuming download...';
-      if (progressContainer) {
-        progressContainer.style.display = 'block';
-        progressContainer.classList.add('active');
-      }
-      if (downloadModelBtn) downloadModelBtn.disabled = true;
-      
-      // Call IPC to resume download
-      if (ipc.resumeDownload && typeof ipc.resumeDownload === 'function') {
-        try {
-          const result = await ipc.resumeDownload(modelName);
-          console.log('Resume result:', result);
-        } catch (e) {
-          console.error('Error resuming download:', e);
-          if (progressText) progressText.textContent = `❌ Resume failed: ${e.message}`;
+
+        // Mark all active downloads as cancelled
+        for (const [modelName, downloadInfo] of activeDownloads.entries()) {
+          downloadInfo.cancelled = true;
+          console.log(`Cancelling download: ${modelName}`);
+        }
+
+        // Call IPC to cancel download
+        if (ipc.cancelDownload && typeof ipc.cancelDownload === 'function') {
+          try {
+            const result = await ipc.cancelDownload();
+            console.log('Cancel result:', result);
+          } catch (e) {
+            console.error('Error cancelling download:', e);
+          }
+        }
+
+        // Switch to paused state
+        downloadActionBtn.setAttribute('data-state', 'paused');
+        downloadActionBtn.querySelector('.btn-text').textContent = 'Resume';
+        downloadActionBtn.querySelector('.btn-icon-cancel').style.display = 'none';
+        downloadActionBtn.querySelector('.btn-icon-resume').style.display = 'block';
+
+        // Hide patience message
+        const patienceMsg = document.getElementById('download-patience-message');
+        if (patienceMsg) patienceMsg.style.display = 'none';
+
+        const progressText = document.getElementById('model-progress-text');
+        if (progressText) progressText.textContent = '⏸️ Download paused - Click Resume to continue';
+
+        // Re-enable download button
+        const downloadModelBtn = document.getElementById('download-model-btn');
+        if (downloadModelBtn) downloadModelBtn.disabled = false;
+
+        // Clear active downloads
+        activeDownloads.clear();
+
+      } else if (currentState === 'paused') {
+        // Resume the download
+        console.log('Resuming download...');
+
+        const modelSelect = document.getElementById('model-select');
+        const modelName = currentDownloadModel || (modelSelect ? modelSelect.value : null);
+
+        if (!modelName) {
+          console.error('No model to resume');
+          return;
+        }
+
+        console.log(`Resuming download for model: ${modelName}`);
+
+        // Switch to downloading state
+        downloadActionBtn.setAttribute('data-state', 'downloading');
+        downloadActionBtn.querySelector('.btn-text').textContent = 'Cancel';
+        downloadActionBtn.querySelector('.btn-icon-cancel').style.display = 'block';
+        downloadActionBtn.querySelector('.btn-icon-resume').style.display = 'none';
+
+        const progressText = document.getElementById('model-progress-text');
+        const progressContainer = document.getElementById('model-progress');
+        const downloadModelBtn = document.getElementById('download-model-btn');
+
+        if (progressText) progressText.textContent = '🔄 Resuming download...';
+        if (progressContainer) {
+          progressContainer.style.display = 'block';
+          progressContainer.classList.add('active');
+        }
+        if (downloadModelBtn) downloadModelBtn.disabled = true;
+
+        // Call IPC to resume download
+        if (ipc.resumeDownload && typeof ipc.resumeDownload === 'function') {
+          try {
+            const result = await ipc.resumeDownload(modelName);
+            console.log('Resume result:', result);
+          } catch (e) {
+            console.error('Error resuming download:', e);
+            if (progressText) progressText.textContent = `❌ Resume failed: ${e.message}`;
+            if (downloadModelBtn) downloadModelBtn.disabled = false;
+          }
+        } else {
+          console.error('resumeDownload not available');
+          if (progressText) progressText.textContent = '❌ Resume not available';
           if (downloadModelBtn) downloadModelBtn.disabled = false;
         }
-      } else {
-        console.error('resumeDownload not available');
-        if (progressText) progressText.textContent = '❌ Resume not available';
-        if (downloadModelBtn) downloadModelBtn.disabled = false;
       }
     });
   }
-  
+
   // Handle model:cancelled event
   if (ipc.onModelCancelled && typeof ipc.onModelCancelled === 'function') {
     ipc.onModelCancelled((data) => {
       console.log('Model cancelled event:', data);
-      
+
       const progressText = document.getElementById('model-progress-text');
-      const resumeBtn = document.getElementById('resume-download-btn');
-      
-      if (data.canResume && resumeBtn) {
-        resumeBtn.style.display = 'flex';
+      const actionBtn = document.getElementById('download-action-btn');
+
+      if (data.canResume && actionBtn) {
+        actionBtn.setAttribute('data-state', 'paused');
+        actionBtn.querySelector('.btn-text').textContent = 'Resume';
+        actionBtn.querySelector('.btn-icon-cancel').style.display = 'none';
+        actionBtn.querySelector('.btn-icon-resume').style.display = 'block';
         if (progressText) progressText.textContent = '⏸️ Download paused - Click Resume to continue';
       }
     });
   }
-  
+
   // Delete model button handler
   const deleteModelBtn = document.getElementById('delete-model-btn');
   if (deleteModelBtn) {
     deleteModelBtn.addEventListener('click', async () => {
       const modelSelect = document.getElementById('model-select');
       const modelName = modelSelect ? modelSelect.value : null;
-      
+
       if (!modelName) {
         console.error('No model selected to delete');
         return;
       }
-      
+
       // Confirm deletion
       const confirmed = confirm(`Are you sure you want to delete the ${modelName.toUpperCase()} model?\n\nThis will remove all cached model files and you will need to download the model again.`);
-      
+
       if (!confirmed) {
         return;
       }
-      
+
       console.log(`Deleting model: ${modelName}`);
       deleteModelBtn.disabled = true;
       deleteModelBtn.textContent = 'Deleting...';
-      
+
       try {
         if (ipc.deleteModel && typeof ipc.deleteModel === 'function') {
           const result = await ipc.deleteModel(modelName);
           console.log('Delete result:', result);
-          
+
           if (result.success) {
             // Show success message
             const progressContainer = document.getElementById('model-progress');
             const progressText = document.getElementById('model-progress-text');
             const progressFill = document.getElementById('model-progress-fill');
-            
+
             if (progressContainer) {
               progressContainer.style.display = 'block';
               progressContainer.classList.add('active');
             }
             if (progressFill) progressFill.style.width = '100%';
             if (progressText) progressText.textContent = `🗑️ ${modelName.toUpperCase()} model deleted successfully`;
-            
+
             // Hide after 3 seconds
             setTimeout(() => {
               if (progressContainer) {
@@ -3195,7 +3210,7 @@ window.accessibilityManager = accessibilityManager;
                 progressContainer.classList.remove('active');
               }
             }, 3000);
-            
+
             // Refresh model status
             checkModelStatus().catch(e => console.warn('Error checking model status:', e));
           } else {
@@ -3222,7 +3237,7 @@ window.accessibilityManager = accessibilityManager;
       }
     });
   }
-  
+
   // Check model status on load - wrapped to prevent breaking the script
   async function checkModelStatus() {
     try {
@@ -3230,14 +3245,14 @@ window.accessibilityManager = accessibilityManager;
       const statusDesc = document.getElementById('model-status-desc');
       const downloadBtn = document.getElementById('download-model-btn');
       const deleteBtn = document.getElementById('delete-model-btn');
-      
+
       if (!modelSelect || !statusDesc) {
         // Elements don't exist yet, that's okay
         return;
       }
-      
+
       const modelName = modelSelect.value || 'base';
-      
+
       if (ipc.checkModel && typeof ipc.checkModel === 'function') {
         try {
           const checkResult = await ipc.checkModel(modelName);
@@ -3245,7 +3260,7 @@ window.accessibilityManager = accessibilityManager;
             const sizeInfo = checkResult.size_mb ? ` (${checkResult.size_mb} MB)` : '';
             const pathInfo = checkResult.path || checkResult.cache_path || '';
             // Model ready - status removed for clean UI
-            
+
             // Disable download button if model exists
             if (downloadBtn) {
               downloadBtn.disabled = true;
@@ -3259,7 +3274,7 @@ window.accessibilityManager = accessibilityManager;
             }
           } else {
             // Model not downloaded - status removed for clean UI
-            
+
             // Enable download button if model doesn't exist
             if (downloadBtn) {
               downloadBtn.disabled = false;
@@ -3318,7 +3333,7 @@ window.accessibilityManager = accessibilityManager;
       }
     }
   }
-  
+
   // Check model status when model selector changes - only set up if elements exist
   // Delay to ensure DOM is fully loaded and prevent breaking the script
   setTimeout(() => {
@@ -3332,7 +3347,7 @@ window.accessibilityManager = accessibilityManager;
           });
         });
       }
-      
+
       // Check model status on initial load (only if we're on the settings page)
       if (currentPage === 'settings' || currentSettingsPage === 'model') {
         checkModelStatus().catch(e => {
@@ -3346,46 +3361,46 @@ window.accessibilityManager = accessibilityManager;
 
   // Themes Tab - Initialize theme gallery
   function initializeThemeGallery() {
-  const themeOptions = document.querySelectorAll('.theme-option');
+    const themeOptions = document.querySelectorAll('.theme-option');
     if (themeOptions.length === 0) {
       // Retry if elements aren't loaded yet
       setTimeout(initializeThemeGallery, 500);
-        return;
-      }
-      
+      return;
+    }
+
     // Set active theme on load
     const savedTheme = currentTheme || 'light';
     themeOptions.forEach(opt => {
       if (opt.dataset.theme === savedTheme) {
         opt.classList.add('active');
-              } else {
+      } else {
         opt.classList.remove('active');
-              }
-            });
-            
-            themeOptions.forEach(option => {
+      }
+    });
+
+    themeOptions.forEach(option => {
       // Remove any existing listeners by cloning
       const newOption = option.cloneNode(true);
       option.parentNode.replaceChild(newOption, option);
-      
+
       newOption.addEventListener('click', () => {
         const theme = newOption.dataset.theme;
         if (!theme) return;
-      
+
         // Custom themes take priority and override main toggle
         currentTheme = theme;
         applyTheme(theme);
         saveAppSettings({ theme });
-          
+
         // Update active state
         document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
         newOption.classList.add('active');
       });
     });
-    
+
     console.log('Theme gallery initialized with', themeOptions.length, 'themes');
-        }
-        
+  }
+
   // Initialize theme gallery when settings page is opened
   setTimeout(() => {
     initializeThemeGallery();
@@ -3430,12 +3445,12 @@ window.accessibilityManager = accessibilityManager;
       const newValue = e.target.checked === true;
       appSettings.waveform_animation = newValue;
       saveAppSettings({ waveform_animation: newValue });
-      
+
       // Notify the widget about the setting change
       if (ipc.notifyWidgetWaveformChange) {
         ipc.notifyWidgetWaveformChange(newValue);
       }
-      
+
       // CRITICAL: Always hide container and stop animation when toggle is off
       if (!newValue) {
         if (waveformContainer) {
@@ -3523,7 +3538,7 @@ window.accessibilityManager = accessibilityManager;
   // Sound feedback handler
   let audioContext = null;
   let audioContextInitialized = false;
-  
+
   function getAudioContext() {
     if (!audioContext) {
       try {
@@ -3548,7 +3563,7 @@ window.accessibilityManager = accessibilityManager;
     }
     return audioContext;
   }
-  
+
   // Initialize audio context on user interaction (required by browsers)
   // Use multiple event types to ensure initialization
   const initAudioContext = () => {
@@ -3564,7 +3579,7 @@ window.accessibilityManager = accessibilityManager;
       }
     }
   };
-  
+
   // Initialize on any user interaction
   ['click', 'keydown', 'mousedown', 'touchstart'].forEach(eventType => {
     document.addEventListener(eventType, initAudioContext, { once: true, passive: true });
@@ -3573,13 +3588,13 @@ window.accessibilityManager = accessibilityManager;
   function playBeep(freq = 880, duration = 120, type = 'sine') {
     const ctx = getAudioContext();
     if (!ctx) return;
-    
+
     try {
       // Ensure context is running
       if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
         ctx.resume().catch(e => console.error('Failed to resume audio context:', e));
       }
-      
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = type;
@@ -3595,7 +3610,7 @@ window.accessibilityManager = accessibilityManager;
           osc.stop();
           osc.disconnect();
           gain.disconnect();
-        } catch (e) {}
+        } catch (e) { }
       }, duration + 20);
     } catch (e) {
       console.error('Error playing beep:', e);
@@ -3616,16 +3631,16 @@ window.accessibilityManager = accessibilityManager;
       // Check if sound feedback is enabled by checking the toggle directly
       const soundFeedbackToggle = document.getElementById('sound-feedback-toggle');
       let isEnabled = false;
-      
+
       if (soundFeedbackToggle) {
         isEnabled = soundFeedbackToggle.checked;
       } else {
         // Fallback to appSettings if toggle not found
         isEnabled = appSettings.sound_feedback !== false; // Default to true if not set
       }
-      
+
       console.log('Sound feedback event:', type, 'Toggle checked:', soundFeedbackToggle?.checked, 'Is enabled:', isEnabled);
-      
+
       if (isEnabled) {
         // Ensure audio context is initialized and resumed
         const ctx = getAudioContext();
@@ -3633,7 +3648,7 @@ window.accessibilityManager = accessibilityManager;
           console.warn('AudioContext not available');
           return;
         }
-        
+
         // Resume if suspended
         if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
           ctx.resume().then(() => {
@@ -3674,19 +3689,19 @@ window.accessibilityManager = accessibilityManager;
       const settings = await ipc.getSettings();
       const holdHotkey = settings.holdHotkey || 'CommandOrControl+Super+Space';
       const toggleHotkey = settings.toggleHotkey || 'CommandOrControl+Shift+Space';
-      
+
       const formatHotkey = (hotkey) => {
         return hotkey
           .replace(/CommandOrControl/gi, 'Ctrl')
           .replace(/Super/gi, 'Win')
           .replace(/\+/g, '+');
       };
-      
+
       const holdDisplay = document.getElementById('current-hold-hotkey-display');
       const toggleDisplay = document.getElementById('current-toggle-hotkey-display');
       const notesDisplay = document.getElementById('current-notes-hotkey-display');
       const notesHotkey = settings.notesHotkey || 'CommandOrControl+Super+N';
-      
+
       if (holdDisplay) holdDisplay.textContent = formatHotkey(holdHotkey);
       if (toggleDisplay) toggleDisplay.textContent = formatHotkey(toggleHotkey);
       if (notesDisplay) notesDisplay.textContent = formatHotkey(notesHotkey);
@@ -3708,7 +3723,7 @@ window.accessibilityManager = accessibilityManager;
           option.textContent = device.name || 'Auto-detect (Audio)';
           select.appendChild(option);
         });
-        
+
         // Update description with current selection
         const desc = document.getElementById('microphone-desc');
         if (desc && devices.length > 0) {
@@ -3745,26 +3760,26 @@ window.accessibilityManager = accessibilityManager;
   // Dictionary functionality
   let editingSnippetId = null;
   let editingDictionaryWord = null;
-  
+
   async function loadDictionary() {
     try {
       const words = await ipc.getDictionary();
       const dictionaryList = document.getElementById('dictionary-list');
       const dictionaryEmpty = document.getElementById('dictionary-empty');
-      
+
       if (!dictionaryList) return;
-      
+
       dictionaryList.innerHTML = '';
-      
+
       if (words.length === 0) {
         dictionaryList.style.display = 'none';
         if (dictionaryEmpty) dictionaryEmpty.style.display = 'block';
         return;
       }
-      
+
       dictionaryList.style.display = 'flex';
       if (dictionaryEmpty) dictionaryEmpty.style.display = 'none';
-      
+
       words.forEach(word => {
         const item = document.createElement('div');
         item.className = 'dictionary-item';
@@ -3794,12 +3809,12 @@ window.accessibilityManager = accessibilityManager;
             </button>
           </div>
         `;
-        
+
         const wordInput = item.querySelector('.dictionary-word-input');
         const copyBtn = item.querySelector('.dictionary-copy-btn');
         const editBtn = item.querySelector('.dictionary-edit-btn');
         const deleteBtn = item.querySelector('.dictionary-delete-btn');
-        
+
         // Copy functionality
         if (copyBtn) {
           copyBtn.addEventListener('click', (e) => {
@@ -3853,7 +3868,7 @@ window.accessibilityManager = accessibilityManager;
             }
           });
         }
-        
+
         // Edit functionality
         if (editBtn) {
           editBtn.addEventListener('click', () => {
@@ -3869,17 +3884,17 @@ window.accessibilityManager = accessibilityManager;
                 }
               }
             }
-            
+
             editingDictionaryWord = word;
             item.classList.add('editing');
-            
+
             // Remove any existing listeners by cloning the input
             const newInput = wordInput.cloneNode(true);
             wordInput.parentNode.replaceChild(newInput, wordInput);
             newInput.readOnly = false;
             newInput.focus();
             newInput.select();
-            
+
             // Save on Enter or blur
             const saveEdit = async () => {
               const newWord = newInput.value.trim().toLowerCase();
@@ -3894,7 +3909,7 @@ window.accessibilityManager = accessibilityManager;
                   editingDictionaryWord = null;
                   return;
                 }
-                
+
                 // Update word
                 const result = await ipc.updateDictionaryWord(word, newWord);
                 if (result.success) {
@@ -3918,7 +3933,7 @@ window.accessibilityManager = accessibilityManager;
               }
               editingDictionaryWord = null;
             };
-            
+
             const handleDictionaryKeyDown = (e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -3937,18 +3952,18 @@ window.accessibilityManager = accessibilityManager;
                 editingDictionaryWord = null;
               }
             };
-            
+
             const handleDictionaryBlur = () => {
               newInput.removeEventListener('keydown', handleDictionaryKeyDown);
               newInput.removeEventListener('blur', handleDictionaryBlur);
               saveEdit();
             };
-            
+
             newInput.addEventListener('keydown', handleDictionaryKeyDown);
             newInput.addEventListener('blur', handleDictionaryBlur);
           });
         }
-        
+
         // Delete functionality
         if (deleteBtn) {
           deleteBtn.addEventListener('click', async () => {
@@ -3956,10 +3971,10 @@ window.accessibilityManager = accessibilityManager;
             loadDictionary();
           });
         }
-        
+
         dictionaryList.appendChild(item);
       });
-      } catch (e) {
+    } catch (e) {
       console.error('Error loading dictionary:', e);
     }
   }
@@ -3970,20 +3985,20 @@ window.accessibilityManager = accessibilityManager;
       const snippets = await ipc.getSnippets();
       const snippetsList = document.getElementById('snippets-list');
       const snippetsEmpty = document.getElementById('snippets-empty');
-      
+
       if (!snippetsList) return;
-      
+
       snippetsList.innerHTML = '';
-      
+
       if (snippets.length === 0) {
         snippetsList.style.display = 'none';
         if (snippetsEmpty) snippetsEmpty.style.display = 'block';
         return;
       }
-      
+
       snippetsList.style.display = 'flex';
       if (snippetsEmpty) snippetsEmpty.style.display = 'none';
-      
+
       snippets.forEach(snippet => {
         const item = document.createElement('div');
         item.className = 'snippets-item';
@@ -4013,11 +4028,11 @@ window.accessibilityManager = accessibilityManager;
             </button>
           </div>
         `;
-        
+
         const copyBtn = item.querySelector('.snippet-copy-btn');
         const editBtn = item.querySelector('.snippet-edit-btn');
         const deleteBtn = item.querySelector('.snippet-delete-btn');
-        
+
         if (copyBtn) {
           copyBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -4032,7 +4047,7 @@ window.accessibilityManager = accessibilityManager;
             }
           });
         }
-        
+
         if (editBtn) {
           editBtn.addEventListener('click', () => {
             editingSnippetId = snippet.id;
@@ -4044,25 +4059,25 @@ window.accessibilityManager = accessibilityManager;
             if (editModal) editModal.classList.add('active');
           });
         }
-        
+
         if (deleteBtn) {
           deleteBtn.addEventListener('click', async () => {
             await ipc.deleteSnippet(snippet.id);
             loadSnippets();
           });
         }
-        
+
         snippetsList.appendChild(item);
       });
     } catch (e) {
       console.error('Error loading snippets:', e);
-      }
+    }
   }
 
   // Style page functionality
   let currentStyleCategory = 'personal';
   let currentStyle = 'none';
-  
+
   // Listen for context auto-updates
   if (ipc && ipc.onStyleCategoryAutoUpdated) {
     ipc.onStyleCategoryAutoUpdated((category) => {
@@ -4079,16 +4094,16 @@ window.accessibilityManager = accessibilityManager;
       }
     });
   }
-  
+
   async function initStylePage() {
     try {
       console.log('🎨 Initializing style page...');
       console.log('📋 IPC object:', ipc);
       console.log('📋 window.voiceApp:', window.voiceApp);
-      
+
       // Wait a bit for DOM to be ready
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Verify IPC is available
       if (!ipc || !ipc.getAvailableStyles) {
         console.error('❌ IPC not available or getAvailableStyles missing!');
@@ -4100,7 +4115,7 @@ window.accessibilityManager = accessibilityManager;
         }
         return;
       }
-      
+
       // Test IPC communication
       try {
         console.log('🧪 Testing IPC getAvailableStyles with category: personal');
@@ -4115,26 +4130,26 @@ window.accessibilityManager = accessibilityManager;
         }
         return;
       }
-      
+
       // Load current settings
       const appSettings = await ipc.getAppSettings();
       currentStyleCategory = appSettings.text_style_category || 'personal';
       currentStyle = appSettings.text_style || 'none';
-      
+
       console.log('📋 Style settings loaded:', { category: currentStyleCategory, style: currentStyle });
-      
+
       // Initialize category tabs
       setupStyleCategoryTabs();
-      
+
       // Initialize style options for current category
       await renderStyleOptions(currentStyleCategory);
-      
+
       // Initialize LLM toggle
       setupStyleLLMToggle();
-      
+
       // Update banner text
       await updateStyleBanner(currentStyleCategory);
-      
+
       console.log('✅ Style page initialized successfully');
     } catch (e) {
       console.error('❌ Error initializing style page:', e);
@@ -4145,7 +4160,7 @@ window.accessibilityManager = accessibilityManager;
       }
     }
   }
-  
+
   function setupStyleCategoryTabs() {
     const tabs = document.querySelectorAll('.style-category-tab');
     console.log('Found style category tabs:', tabs.length);
@@ -4153,16 +4168,16 @@ window.accessibilityManager = accessibilityManager;
       console.error('No style category tabs found!');
       return;
     }
-    
+
     // Remove old listeners by cloning nodes (prevents duplicate listeners)
     tabs.forEach(tab => {
       const newTab = tab.cloneNode(true);
       tab.parentNode.replaceChild(newTab, tab);
     });
-    
+
     // Re-query after cloning
     const freshTabs = document.querySelectorAll('.style-category-tab');
-    
+
     freshTabs.forEach(tab => {
       tab.addEventListener('click', async () => {
         const category = tab.dataset.category;
@@ -4176,21 +4191,21 @@ window.accessibilityManager = accessibilityManager;
           tab.classList.add('active');
           tab.style.borderBottomColor = 'var(--accent-blue)';
           tab.style.color = 'var(--accent-blue)';
-          
+
           // Update category
           currentStyleCategory = category;
           saveAppSettings({ text_style_category: category });
-          
+
           // Render style options for new category
           // Note: currentStyle might not be available in new category, so we'll check after rendering
           await renderStyleOptions(category);
-          
+
           // Update banner
           updateStyleBanner(category);
         }
       });
     });
-    
+
     // Set initial active tab
     freshTabs.forEach(tab => {
       if (tab.dataset.category === currentStyleCategory) {
@@ -4203,10 +4218,10 @@ window.accessibilityManager = accessibilityManager;
         tab.style.color = 'var(--text-secondary)';
       }
     });
-    
+
     console.log('✅ Style category tabs initialized with', freshTabs.length, 'tabs');
   }
-  
+
   async function updateStyleBanner(category) {
     const bannerText = document.getElementById('style-banner-text');
     if (bannerText) {
@@ -4214,7 +4229,7 @@ window.accessibilityManager = accessibilityManager;
       bannerText.textContent = bannerTextContent;
     }
   }
-  
+
   async function renderStyleOptions(category) {
     const container = document.getElementById('style-options-container');
     if (!container) {
@@ -4222,33 +4237,33 @@ window.accessibilityManager = accessibilityManager;
       return;
     }
     console.log('🎨 Rendering style options for category:', category);
-    
+
     // Show loading state
     container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px; text-align: center;">Loading styles...</p>';
-    
+
     // Declare styles outside try block to ensure it's available after catch
     let styles = [];
-    
+
     try {
       // Verify IPC is available
       if (!ipc || !ipc.getAvailableStyles) {
         throw new Error('IPC getAvailableStyles not available');
       }
-      
+
       // Get available styles for category using style_transformer
       console.log('📞 Calling IPC getAvailableStyles with category:', category);
       styles = await ipc.getAvailableStyles(category);
       console.log('✅ Available styles for category:', category, styles);
-      
+
       if (!styles || styles.length === 0) {
         console.warn('⚠️ No styles available for category:', category, '- Using fallback');
         // Use fallback styles
-        const fallbackStyles = category === 'personal' 
-          ? ['formal', 'casual', 'very_casual'] 
+        const fallbackStyles = category === 'personal'
+          ? ['formal', 'casual', 'very_casual']
           : ['formal', 'casual', 'excited'];
         return await renderStyleOptionsWithFallback(container, fallbackStyles, category);
       }
-      
+
       // Style display names
       const styleNames = {
         'none': 'None (Original)',
@@ -4257,10 +4272,10 @@ window.accessibilityManager = accessibilityManager;
         'very_casual': 'very casual',
         'excited': 'Excited!'
       };
-      
+
       // Clear container
       container.innerHTML = '';
-      
+
       // Add "None" option first
       const noneCard = document.createElement('div');
       noneCard.className = 'style-option-card';
@@ -4304,7 +4319,7 @@ window.accessibilityManager = accessibilityManager;
         }
       });
       container.appendChild(noneCard);
-      
+
       // Create style cards for other styles
       for (const style of styles) {
         // Get style description and example from style_transformer
@@ -4319,7 +4334,7 @@ window.accessibilityManager = accessibilityManager;
           description = 'Style description';
           example = 'Example text';
         }
-        
+
         const card = document.createElement('div');
         card.className = 'style-option-card';
         card.dataset.style = style;
@@ -4332,7 +4347,7 @@ window.accessibilityManager = accessibilityManager;
           transition: all 0.2s;
           ${currentStyle === style ? 'border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);' : ''}
         `;
-        
+
         card.innerHTML = `
           <div style="margin-bottom: 12px;">
             <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 600; color: var(--text-primary);">${styleNames[style]}</h3>
@@ -4340,12 +4355,12 @@ window.accessibilityManager = accessibilityManager;
           </div>
           <div class="style-example">${example}</div>
         `;
-        
+
         card.addEventListener('click', () => {
           // Update selected style
           currentStyle = style;
           saveAppSettings({ text_style: style });
-          
+
           // Update UI
           document.querySelectorAll('.style-option-card').forEach(c => {
             c.style.borderColor = 'var(--border-color)';
@@ -4354,21 +4369,21 @@ window.accessibilityManager = accessibilityManager;
           card.style.borderColor = 'var(--accent-blue)';
           card.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
         });
-        
+
         card.addEventListener('mouseenter', () => {
           if (currentStyle !== style) {
             card.style.borderColor = 'var(--accent-blue)';
             card.style.transform = 'translateY(-2px)';
           }
         });
-        
+
         card.addEventListener('mouseleave', () => {
           if (currentStyle !== style) {
             card.style.borderColor = 'var(--border-color)';
             card.style.transform = 'translateY(0)';
           }
         });
-        
+
         container.appendChild(card);
       }
     } catch (e) {
@@ -4376,7 +4391,7 @@ window.accessibilityManager = accessibilityManager;
       container.innerHTML = `<p style="color: var(--text-secondary); padding: 20px;">Error loading styles: ${e.message}</p>`;
       return;
     }
-    
+
     // Layout styles - ensure container is visible
     container.style.cssText = `
       display: grid;
@@ -4385,7 +4400,7 @@ window.accessibilityManager = accessibilityManager;
       margin-bottom: 24px;
       min-height: 200px;
     `;
-    
+
     // After rendering, check if currentStyle is still valid for this category
     // If not, reset to first available style or 'none'
     // Only check if styles array is defined and has values
@@ -4411,15 +4426,15 @@ window.accessibilityManager = accessibilityManager;
         }
       }
     }
-    
+
     console.log('✅ Style options rendered successfully');
   }
-  
+
   // Fallback function to render styles without IPC (for debugging)
   async function renderStyleOptionsWithFallback(container, styles, category) {
     console.log('🔄 Using fallback renderer for styles:', styles);
     container.innerHTML = '';
-    
+
     const styleNames = {
       'none': 'None (Original)',
       'formal': 'Formal.',
@@ -4427,14 +4442,14 @@ window.accessibilityManager = accessibilityManager;
       'very_casual': 'very casual',
       'excited': 'Excited!'
     };
-    
+
     const styleDescriptions = {
       'formal': 'Caps + Punctuation',
       'casual': 'Caps + Less punctuation',
       'very_casual': 'No Caps + Less punctuation',
       'excited': 'More exclamations'
     };
-    
+
     const styleExamples = {
       'personal': {
         'formal': 'Hey, are you free for lunch tomorrow? Let\'s do 12 if that works for you.',
@@ -4448,11 +4463,11 @@ window.accessibilityManager = accessibilityManager;
         'excited': 'Hey, if you\'re free, let\'s chat about the great results!'
       }
     };
-    
+
     // Add "None" option
     const noneCard = createStyleCard('none', 'None (Original)', 'Use the original transcription without any style transformation.', 'Original transcription text', currentStyle === 'none');
     container.appendChild(noneCard);
-    
+
     // Add other styles
     for (const style of styles) {
       const description = styleDescriptions[style] || 'Style description';
@@ -4460,7 +4475,7 @@ window.accessibilityManager = accessibilityManager;
       const card = createStyleCard(style, styleNames[style] || style, description, example, currentStyle === style);
       container.appendChild(card);
     }
-    
+
     container.style.cssText = `
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -4469,7 +4484,7 @@ window.accessibilityManager = accessibilityManager;
       min-height: 200px;
     `;
   }
-  
+
   function createStyleCard(style, title, description, example, isSelected) {
     const card = document.createElement('div');
     card.className = 'style-option-card';
@@ -4483,7 +4498,7 @@ window.accessibilityManager = accessibilityManager;
       transition: all 0.2s;
       ${isSelected ? 'border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);' : ''}
     `;
-    
+
     card.innerHTML = `
       <div style="margin-bottom: 12px;">
         <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 600; color: var(--text-primary);">${title}</h3>
@@ -4491,7 +4506,7 @@ window.accessibilityManager = accessibilityManager;
       </div>
       <div class="style-example">${example}</div>
     `;
-    
+
     card.addEventListener('click', () => {
       currentStyle = style;
       saveAppSettings({ text_style: style });
@@ -4502,38 +4517,38 @@ window.accessibilityManager = accessibilityManager;
       card.style.borderColor = 'var(--accent-blue)';
       card.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
     });
-    
+
     card.addEventListener('mouseenter', () => {
       if (currentStyle !== style) {
         card.style.borderColor = 'var(--accent-blue)';
         card.style.transform = 'translateY(-2px)';
       }
     });
-    
+
     card.addEventListener('mouseleave', () => {
       if (currentStyle !== style) {
         card.style.borderColor = 'var(--border-color)';
         card.style.transform = 'translateY(0)';
       }
     });
-    
+
     return card;
   }
-  
+
   async function setupStyleLLMToggle() {
     const toggle = document.getElementById('llm-processing-toggle-style');
     const statusText = document.getElementById('llm-model-status-text-style');
     const downloadBtn = document.getElementById('download-llm-model-btn-style');
-    
+
     // Load current setting
     const appSettings = await ipc.getAppSettings();
     if (toggle) {
       toggle.checked = appSettings.llm_processing || false;
     }
-    
+
     // Check model status
     checkStyleLLMModelStatus();
-    
+
     // Toggle handler
     if (toggle) {
       toggle.addEventListener('change', async (e) => {
@@ -4544,21 +4559,21 @@ window.accessibilityManager = accessibilityManager;
         }
       });
     }
-    
+
     // Download button handler
     if (downloadBtn) {
       downloadBtn.addEventListener('click', async () => {
         try {
           downloadBtn.disabled = true;
           downloadBtn.textContent = 'Downloading...';
-          
+
           if (statusText) {
             statusText.textContent = 'Downloading TinyLlama 1.1B (~700MB)...';
             statusText.style.color = 'var(--text-secondary)';
           }
-          
+
           const result = await ipc.downloadLLMModel();
-          
+
           if (result.success) {
             downloadBtn.style.display = 'none';
             if (statusText) {
@@ -4582,14 +4597,14 @@ window.accessibilityManager = accessibilityManager;
       });
     }
   }
-  
+
   async function checkStyleLLMModelStatus() {
     const statusText = document.getElementById('llm-model-status-text-style');
     const downloadBtn = document.getElementById('download-llm-model-btn-style');
-    
+
     try {
       const status = await ipc.checkLLMModel();
-      
+
       if (statusText) {
         if (status.exists && status.ready) {
           statusText.textContent = '✓ Model ready';
@@ -4602,7 +4617,7 @@ window.accessibilityManager = accessibilityManager;
           statusText.style.color = 'var(--text-muted)';
         }
       }
-      
+
       if (downloadBtn) {
         downloadBtn.style.display = status.exists ? 'none' : 'inline-block';
       }
@@ -4618,13 +4633,13 @@ window.accessibilityManager = accessibilityManager;
   // Notes functionality
   let isNotesRecording = false;
   let notesRecordingText = '';
-  
+
   async function loadNotes() {
     try {
       console.log('📝 Loading notes...');
       console.log('📋 IPC object:', ipc);
       console.log('📋 ipc.getNotes:', ipc ? ipc.getNotes : 'undefined');
-      
+
       if (!ipc || !ipc.getNotes) {
         console.error('❌ IPC getNotes not available!');
         const notesList = document.getElementById('notes-list');
@@ -4633,43 +4648,43 @@ window.accessibilityManager = accessibilityManager;
         }
         return;
       }
-      
+
       const notes = await ipc.getNotes();
       console.log('✅ Notes loaded:', notes);
-      
+
       const notesList = document.getElementById('notes-list');
       const notesEmpty = document.getElementById('notes-empty');
-      
+
       if (!notesList) {
         console.error('❌ notes-list element not found!');
         return;
       }
-      
+
       notesList.innerHTML = '';
-      
+
       if (notes.length === 0) {
         console.log('📝 No notes found, showing empty state');
         notesList.style.display = 'none';
         if (notesEmpty) notesEmpty.style.display = 'block';
         return;
       }
-      
+
       console.log(`📝 Rendering ${notes.length} notes`);
       notesList.style.display = 'flex';
       if (notesEmpty) notesEmpty.style.display = 'none';
-      
+
       notes.forEach(note => {
         const item = document.createElement('div');
         item.className = 'notes-item';
         const date = new Date(note.timestamp);
-        const timeStr = date.toLocaleString('en-US', { 
-          month: 'short', 
-          day: 'numeric', 
+        const timeStr = date.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
           year: 'numeric',
           hour: 'numeric',
           minute: '2-digit'
         });
-        
+
         item.innerHTML = `
           <div class="note-content">
             <div class="note-text">${escapeHtml(note.text || '')}</div>
@@ -4690,10 +4705,10 @@ window.accessibilityManager = accessibilityManager;
             </button>
           </div>
         `;
-        
+
         const copyBtn = item.querySelector('.note-copy-btn');
         const deleteBtn = item.querySelector('.note-delete-btn');
-        
+
         if (copyBtn) {
           copyBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -4707,14 +4722,14 @@ window.accessibilityManager = accessibilityManager;
             }
           });
         }
-        
+
         if (deleteBtn) {
           deleteBtn.addEventListener('click', async () => {
             await ipc.deleteNote(note.id);
             loadNotes();
           });
         }
-        
+
         notesList.appendChild(item);
       });
     } catch (e) {
@@ -4738,14 +4753,14 @@ window.accessibilityManager = accessibilityManager;
   } catch (e) {
     console.error('Error in loadAppSettings:', e);
   }
-  
+
   // Update keyboard shortcuts display on initialization
   try {
     updateKeyboardShortcutsDisplay();
   } catch (e) {
     console.error('Error updating keyboard shortcuts display:', e);
   }
-  
+
   // Update when settings change
   try {
     if (ipc.onHotkeyRegistered) {
@@ -4760,31 +4775,31 @@ window.accessibilityManager = accessibilityManager;
   } catch (e) {
     console.error('Error setting up hotkey registered listener:', e);
   }
-  
+
   // Comprehensive initialization function
   function initializeAll() {
     console.log('Initializing all app functionality...');
-    
+
     try {
       // Re-query all elements
       navItems = document.querySelectorAll('.nav-item[data-page]');
       pages = document.querySelectorAll('.page');
       settingsNavItems = document.querySelectorAll('.settings-nav-item[data-settings-page]');
       settingsPages = document.querySelectorAll('.settings-page');
-      
+
       console.log('Elements found:', {
         navItems: navItems.length,
         pages: pages.length,
         settingsNavItems: settingsNavItems.length,
         settingsPages: settingsPages.length
       });
-      
+
       // Setup navigation
       setupNavigation();
-      
+
       // Setup settings navigation
       setupSettingsNavigation();
-      
+
       // Initialize History retention dropdown (now on home page)
       const historyRetentionSelect = document.getElementById('history-retention');
       if (historyRetentionSelect) {
@@ -4794,19 +4809,19 @@ window.accessibilityManager = accessibilityManager;
             historyRetentionSelect.value = settings.history_retention;
           }
         });
-        
+
         historyRetentionSelect.addEventListener('change', async (e) => {
           const retention = e.target.value;
           await ipc.saveAppSettings({ history_retention: retention });
           showMessage('History retention setting saved');
         });
       }
-      
+
       // Initialize Dictionary tab
       const newWordBtn = document.getElementById('new-word-btn');
       const addWordSubmitBtn = document.getElementById('add-word-submit-btn');
       const newWordInput = document.getElementById('new-word-input');
-      
+
       if (newWordBtn) {
         newWordBtn.addEventListener('click', () => {
           const modal = document.getElementById('add-word-modal');
@@ -4818,19 +4833,19 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       if (addWordSubmitBtn) {
         addWordSubmitBtn.addEventListener('click', async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          
+
           if (newWordInput && newWordInput.value.trim()) {
             try {
               const word = newWordInput.value.trim();
               console.log('Attempting to add word:', word);
               const result = await ipc.addDictionaryWord(word);
               console.log('Add word result:', result);
-              
+
               if (result && result.success) {
                 newWordInput.value = '';
                 const modal = document.getElementById('add-word-modal');
@@ -4851,18 +4866,18 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       if (newWordInput) {
         newWordInput.addEventListener('keypress', async (e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
-            
+
             if (newWordInput.value.trim()) {
               try {
                 const word = newWordInput.value.trim();
                 const result = await ipc.addDictionaryWord(word);
-                
+
                 if (result && result.success) {
                   newWordInput.value = '';
                   const modal = document.getElementById('add-word-modal');
@@ -4883,12 +4898,12 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       // Initialize Snippets tab
       const newSnippetBtn = document.getElementById('new-snippet-btn');
       const addSnippetSubmitBtn = document.getElementById('add-snippet-submit-btn');
       const editSnippetSubmitBtn = document.getElementById('edit-snippet-submit-btn');
-      
+
       if (newSnippetBtn) {
         newSnippetBtn.addEventListener('click', () => {
           const modal = document.getElementById('add-snippet-modal');
@@ -4904,7 +4919,7 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       if (addSnippetSubmitBtn) {
         addSnippetSubmitBtn.addEventListener('click', async () => {
           const titleInput = document.getElementById('snippet-title-input');
@@ -4922,7 +4937,7 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       if (editSnippetSubmitBtn) {
         editSnippetSubmitBtn.addEventListener('click', async () => {
           if (editingSnippetId) {
@@ -4941,7 +4956,7 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       // Initialize Notes tab
       const notesMicBtn = document.getElementById('notes-mic-btn');
       const notesInputContent = document.getElementById('notes-input-content');
@@ -4949,7 +4964,7 @@ window.accessibilityManager = accessibilityManager;
       const notesRefreshBtn = document.getElementById('notes-refresh-btn');
       const notesSearchBtn = document.getElementById('notes-search-btn');
       const notesViewToggleBtn = document.getElementById('notes-view-toggle-btn');
-      
+
       // Listen for notes recording events
       if (ipc.onNotesRecordingStart) {
         ipc.onNotesRecordingStart(() => {
@@ -4957,13 +4972,13 @@ window.accessibilityManager = accessibilityManager;
           // Don't show indicator - keep it within Notes tab only
         });
       }
-      
+
       if (ipc.onNotesRecordingStop) {
         ipc.onNotesRecordingStop(() => {
           isNotesRecordingMode = false;
         });
       }
-      
+
       if (notesMicBtn) {
         notesMicBtn.addEventListener('click', () => {
           if (!isNotesRecording) {
@@ -4986,7 +5001,7 @@ window.accessibilityManager = accessibilityManager;
             notesMicBtn.classList.remove('recording');
             // Use new method that doesn't hide window
             ipc.stopNotesRecording();
-            
+
             // Note will be saved automatically when transcription arrives
             // If we already have text from a previous transcription, save it now
             if (notesRecordingText.trim()) {
@@ -5007,13 +5022,13 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       if (notesRefreshBtn) {
         notesRefreshBtn.addEventListener('click', () => {
           loadNotes();
         });
       }
-      
+
       // Notes search functionality
       if (notesSearchBtn) {
         notesSearchBtn.addEventListener('click', () => {
@@ -5021,16 +5036,16 @@ window.accessibilityManager = accessibilityManager;
           if (searchTerm && searchTerm.trim()) {
             // Filter notes by search term
             ipc.getNotes().then(notes => {
-              const filtered = notes.filter(note => 
+              const filtered = notes.filter(note =>
                 note.text.toLowerCase().includes(searchTerm.toLowerCase())
               );
               const notesList = document.getElementById('notes-list');
               const notesEmpty = document.getElementById('notes-empty');
-              
+
               if (!notesList) return;
-              
+
               notesList.innerHTML = '';
-              
+
               if (filtered.length === 0) {
                 notesList.style.display = 'none';
                 if (notesEmpty) {
@@ -5039,22 +5054,22 @@ window.accessibilityManager = accessibilityManager;
                 }
                 return;
               }
-              
+
               notesList.style.display = 'flex';
               if (notesEmpty) notesEmpty.style.display = 'none';
-              
+
               filtered.forEach(note => {
                 const item = document.createElement('div');
                 item.className = 'notes-item';
                 const date = new Date(note.timestamp);
-                const timeStr = date.toLocaleString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric', 
+                const timeStr = date.toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
                   year: 'numeric',
                   hour: 'numeric',
                   minute: '2-digit'
                 });
-                
+
                 item.innerHTML = `
                   <div class="note-content">
                     <div class="note-text">${escapeHtml(note.text || '')}</div>
@@ -5075,10 +5090,10 @@ window.accessibilityManager = accessibilityManager;
                     </button>
                   </div>
                 `;
-                
+
                 const copyBtn = item.querySelector('.note-copy-btn');
                 const deleteBtn = item.querySelector('.note-delete-btn');
-                
+
                 if (copyBtn) {
                   copyBtn.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -5092,21 +5107,21 @@ window.accessibilityManager = accessibilityManager;
                     }
                   });
                 }
-                
+
                 if (deleteBtn) {
                   deleteBtn.addEventListener('click', async () => {
                     await ipc.deleteNote(note.id);
                     loadNotes();
                   });
                 }
-                
+
                 notesList.appendChild(item);
               });
             });
           }
         });
       }
-      
+
       // Notes view toggle functionality (grid/list view)
       let notesViewMode = 'list'; // 'list' or 'grid'
       if (notesViewToggleBtn) {
@@ -5134,7 +5149,7 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       // Listen for final transcriptions in Notes tab (no live updates)
       if (ipc.onTranscription) {
         ipc.onTranscription((text) => {
@@ -5145,7 +5160,7 @@ window.accessibilityManager = accessibilityManager;
             if (notesInputContent) {
               notesInputContent.textContent = text;
             }
-            
+
             // Auto-save the note when transcription arrives (if recording was stopped)
             // Check if we're not currently recording (button not in recording state)
             const micBtn = document.getElementById('notes-mic-btn');
@@ -5168,7 +5183,7 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       // Listen for recording stop event - save note and ensure we stay in notes tab
       if (ipc.onRecordingStop) {
         ipc.onRecordingStop(() => {
@@ -5196,7 +5211,7 @@ window.accessibilityManager = accessibilityManager;
             }
             isNotesRecording = false;
             if (notesMicBtn) notesMicBtn.classList.remove('recording');
-            
+
             // Ensure we stay in notes tab (don't navigate away)
             if (currentPage !== 'notes') {
               navigateToPage('notes');
@@ -5204,7 +5219,7 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       // Listen for notes hotkey press - toggle notes recording
       if (ipc.onNotesHotkeyPressed) {
         ipc.onNotesHotkeyPressed(() => {
@@ -5225,7 +5240,7 @@ window.accessibilityManager = accessibilityManager;
           }
         });
       }
-      
+
       // Re-initialize hotkey display click handler
       const hotkeyDisplay = document.getElementById('current-hold-hotkey');
       if (hotkeyDisplay) {
@@ -5253,7 +5268,7 @@ window.accessibilityManager = accessibilityManager;
         newHotkeyDisplay.style.cursor = 'pointer';
         newHotkeyDisplay.addEventListener('click', newHandler);
       }
-      
+
       // Initialize App Version Display (with retry logic)
       const initVersion = () => {
         const versionEl = document.getElementById('app-version');
@@ -5267,21 +5282,21 @@ window.accessibilityManager = accessibilityManager;
         }
       };
       setTimeout(initVersion, 100);
-      
+
       // Note: Style category tabs are initialized when navigating to style page via initStylePage()
       // This ensures they're set up with proper state and IPC communication
-      
+
       // Note: Model tab is initialized when navigating to model settings page via navigateToSettingsPage()
       // The loadModelSelector() is called there, so no need to duplicate here
-      
+
       console.log('All initialization complete');
       // Flag app readiness for tests
-      try { document.body.dataset.appReady = '1'; } catch(_) {}
+      try { document.body.dataset.appReady = '1'; } catch (_) { }
     } catch (e) {
       console.error('Error in comprehensive initialization:', e);
     }
   }
-  
+
   // Initialize when DOM is ready - ensure it happens after everything is loaded
   function ensureInitialization() {
     // Wait for DOM to be fully ready
@@ -5305,10 +5320,10 @@ window.accessibilityManager = accessibilityManager;
       }, 200);
     }
   }
-  
+
   // Call initialization
   ensureInitialization();
-  
+
   // Also try to initialize after a longer delay as a fallback
   setTimeout(() => {
     if (!navigationSetup) {
@@ -5319,20 +5334,20 @@ window.accessibilityManager = accessibilityManager;
       console.warn('Settings navigation not set up after delay, retrying...');
       setupSettingsNavigation();
     }
-    
+
     // Mark app as ready after navigation setup completes
     if (document.body && navigationSetup && settingsNavigationSetup) {
       document.body.setAttribute('data-app-ready', '1');
     }
   }, 1000);
-  
+
   // Ensure basic navigation works even if other parts fail
   console.log('Renderer script loaded. Navigation items:', navItems?.length || 0, 'Settings nav items:', settingsNavItems?.length || 0);
-  
+
   // ========================================
   // App Version Display
   // ========================================
-  
+
   async function initializeAppVersion() {
     try {
       if (window.voiceApp.getAppVersion && typeof window.voiceApp.getAppVersion === 'function') {
@@ -5348,7 +5363,7 @@ window.accessibilityManager = accessibilityManager;
       console.error('Failed to get app version:', e);
     }
   }
-  
+
   // Initialize app version immediately - read from package.json via IPC
   async function initializeAppVersionNow() {
     try {
@@ -5358,20 +5373,20 @@ window.accessibilityManager = accessibilityManager;
         console.warn('⚠️ Version element not found, will retry...');
         return false;
       }
-      
+
       console.log('✅ Version element found:', versionElement);
-      
+
       // If version is already set (by main.js injection), don't overwrite it
       const currentText = versionElement.textContent.trim();
       console.log('Current version text:', currentText);
-      
+
       if (currentText && currentText.startsWith('SONU v')) {
         console.log('✅ Version already set in HTML:', currentText);
         // Ensure click handler is set up
         setupVersionClickHandler();
         return true;
       }
-      
+
       // Try to get version via IPC
       if (window.voiceApp && window.voiceApp.getAppVersion) {
         console.log('📞 Calling IPC getAppVersion...');
@@ -5395,14 +5410,14 @@ window.accessibilityManager = accessibilityManager;
         console.warn('⚠️ window.voiceApp.getAppVersion not available');
         console.log('window.voiceApp:', window.voiceApp);
       }
-      
+
       // If IPC fails and element is still empty, set a fallback
       if (!currentText || currentText === 'Loading...' || currentText === '') {
         console.warn('⚠️ Could not get version via IPC, setting fallback');
         versionElement.textContent = 'SONU v?.?.?';
         versionElement.title = 'Version unavailable';
       }
-      
+
       return false;
     } catch (e) {
       console.error('❌ Version initialization error:', e);
@@ -5410,7 +5425,7 @@ window.accessibilityManager = accessibilityManager;
       return false;
     }
   }
-  
+
   // Try to initialize version immediately, but only if not already set
   // This runs early to catch version if main.js injection didn't work
   function tryInitializeVersion() {
@@ -5422,7 +5437,7 @@ window.accessibilityManager = accessibilityManager;
     }
     initializeAppVersionNow();
   }
-  
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       tryInitializeVersion();
@@ -5447,7 +5462,7 @@ window.accessibilityManager = accessibilityManager;
       }
     }, 200);
   }
-  
+
   // Add click handler to version element for update checking
   function setupVersionClickHandler() {
     const versionElement = document.getElementById('app-version');
@@ -5493,25 +5508,25 @@ window.accessibilityManager = accessibilityManager;
       });
     }
   }
-  
+
   // Setup click handler when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setupVersionClickHandler);
   } else {
     setupVersionClickHandler();
   }
-  
+
   // Also setup after a delay to ensure element exists
   setTimeout(setupVersionClickHandler, 500);
-  
+
   // ========================================
   // Logs & Debugging Functionality
   // ========================================
-  
+
   async function initializeLogsTab() {
     // Logs tab initialization (if needed in the future)
   }
-  
+
   // Open logs folder button
   const openLogsBtn = document.getElementById('open-logs-btn');
   if (openLogsBtn) {
@@ -5524,26 +5539,26 @@ window.accessibilityManager = accessibilityManager;
       }
     });
   }
-  
+
   // View logs buttons
   const logsViewer = document.getElementById('logs-viewer');
-  
+
   async function viewLogs(category, buttonElement) {
     if (!logsViewer) return;
-    
+
     try {
       // Disable button while loading
       if (buttonElement) {
         buttonElement.disabled = true;
         buttonElement.textContent = 'Loading...';
       }
-      
+
       const result = await window.voiceApp.getRecentLogs(category, 100);
-      
+
       if (result.success) {
         logsViewer.textContent = result.logs || 'No logs available.';
         logsViewer.style.display = 'block';
-        
+
         // Scroll to bottom
         logsViewer.scrollTop = logsViewer.scrollHeight;
       } else {
@@ -5569,12 +5584,12 @@ window.accessibilityManager = accessibilityManager;
       }
     }
   }
-  
+
   const viewMainLogsBtn = document.getElementById('view-main-logs-btn');
   const viewTypingLogsBtn = document.getElementById('view-typing-logs-btn');
   const viewDownloadLogsBtn = document.getElementById('view-download-logs-btn');
   const viewWhisperLogsBtn = document.getElementById('view-whisper-logs-btn');
-  
+
   if (viewMainLogsBtn) {
     viewMainLogsBtn.addEventListener('click', () => viewLogs('main', viewMainLogsBtn));
   }
@@ -5587,7 +5602,7 @@ window.accessibilityManager = accessibilityManager;
   if (viewWhisperLogsBtn) {
     viewWhisperLogsBtn.addEventListener('click', () => viewLogs('whisper', viewWhisperLogsBtn));
   }
-  
+
   // Initialize logs tab when it becomes active
   const logsNavBtn = document.querySelector('[data-settings-page="logs"]');
   if (logsNavBtn) {
@@ -5595,24 +5610,24 @@ window.accessibilityManager = accessibilityManager;
       setTimeout(initializeLogsTab, 100);
     });
   }
-  
+
   console.log('Logs & Debugging functionality initialized');
-  
+
   // ========================================
   // Active Model Display & Updates
   // ========================================
-  
+
   async function updateActiveModelDisplay() {
     try {
       const result = await window.voiceApp.getActiveModel();
       if (result.success) {
         const activeModelDesc = document.getElementById('active-model-desc');
         const activeModelStatus = document.getElementById('active-model-status');
-        
+
         if (activeModelDesc) {
           activeModelDesc.textContent = `${result.model.toUpperCase()} (${result.size_mb} MB) - ${result.description}`;
         }
-        
+
         if (activeModelStatus) {
           if (result.ready) {
             activeModelStatus.textContent = '✓ Ready';
@@ -5627,7 +5642,7 @@ window.accessibilityManager = accessibilityManager;
       console.error('Failed to update active model display:', e);
     }
   }
-  
+
   // Update active model display on load and when settings tab is opened
   const modelNavBtn = document.querySelector('[data-settings-page="model"]');
   if (modelNavBtn) {
@@ -5635,7 +5650,7 @@ window.accessibilityManager = accessibilityManager;
       setTimeout(updateActiveModelDisplay, 100);
     });
   }
-  
+
   // Listen for whisper-loading event (model is loading)
   // Note: modelLoadStartTime is already declared at the top of the file
   if (window.voiceApp.onWhisperLoading) {
@@ -5650,7 +5665,7 @@ window.accessibilityManager = accessibilityManager;
       }
     });
   }
-  
+
   // Listen for whisper-ready event
   window.voiceApp.onWhisperReady((data) => {
     console.log('Whisper model ready:', data);
@@ -5659,7 +5674,7 @@ window.accessibilityManager = accessibilityManager;
     console.log(`✓ Model loaded in ${(loadTime / 1000).toFixed(1)}s`);
     updateActiveModelDisplay();
   });
-  
+
   // Listen for whisper-error event
   window.voiceApp.onWhisperError((error) => {
     console.error('Whisper model error:', error);
@@ -5670,16 +5685,16 @@ window.accessibilityManager = accessibilityManager;
       activeModelStatus.style.color = 'rgba(255, 71, 87, 1)'; // Red
     }
   });
-  
+
   // Update model display on page load
   setTimeout(updateActiveModelDisplay, 1000);
-  
+
   console.log('Active model display functionality initialized');
-  
+
   // ============================================
   // Tray Menu Handlers
   // ============================================
-  
+
   // Navigate to settings from tray
   if (window.voiceApp.onNavigateToSettings) {
     window.voiceApp.onNavigateToSettings(() => {
@@ -5687,34 +5702,34 @@ window.accessibilityManager = accessibilityManager;
       navigateToPage('settings');
     });
   }
-  
+
   // Open dictionary from tray
   if (window.voiceApp.onOpenDictionary) {
     window.voiceApp.onOpenDictionary(() => {
       console.log('Opening dictionary from tray menu');
       navigateToPage('settings');
       // Navigate to a hypothetical dictionary tab (you can implement this later)
-      window.dispatchEvent(new CustomEvent('show-toast', { 
-        detail: { 
-          message: 'Dictionary feature coming soon!', 
-          type: 'info' 
-        } 
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: 'Dictionary feature coming soon!',
+          type: 'info'
+        }
       }));
     });
   }
-  
+
   // Handle microphone changes from tray
   if (window.voiceApp.onMicrophoneChanged) {
     window.voiceApp.onMicrophoneChanged((deviceId) => {
       console.log('Microphone changed to:', deviceId);
-      window.dispatchEvent(new CustomEvent('show-toast', { 
-        detail: { 
-          message: 'Microphone updated successfully', 
-          type: 'success' 
-        } 
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: 'Microphone updated successfully',
+          type: 'success'
+        }
       }));
     });
   }
-  
+
   console.log('Tray menu handlers initialized');
 })();

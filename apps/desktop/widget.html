@@ -4,166 +4,264 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Indicator</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>SONU</title>
     <style>
-      html, body { 
-        height: 100%; 
-        margin: 0; 
-        padding: 0; 
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        height: 100%;
+        width: 100%;
         background: transparent;
-        -webkit-app-region: drag;
-        user-select: none;
-        -webkit-user-select: none;
-        cursor: default;
-        pointer-events: auto;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
       }
-      .wrap { 
-        width: 100%; 
-        height: 100%; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        gap: 8px;
-        padding: 0 6px;
-        -webkit-app-region: drag;
-        user-select: none;
-        -webkit-user-select: none;
-        cursor: default;
-        pointer-events: auto;
-      }
-      .widget-container {
+
+      .widget {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         display: flex;
         align-items: center;
-        gap: 6px;
-        background: rgba(11, 15, 26, 0.5);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-radius: 16px;
-        padding: 4px 8px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgba(255, 255, 255, 0.05) inset;
         -webkit-app-region: drag;
-        user-select: none;
-        -webkit-user-select: none;
-        cursor: default;
-        pointer-events: auto;
+        cursor: grab;
+        transition: all 0.2s ease;
       }
-      .widget-button {
+
+      .widget:active {
+        cursor: grabbing;
+      }
+
+      /* Cancel button */
+      .btn {
         width: 22px;
         height: 22px;
         border-radius: 50%;
+        border: none;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        border: none;
-        flex-shrink: 0;
         -webkit-app-region: no-drag;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
       }
-      .widget-button.cancel {
-        background: #e0e0e0;
-        color: #333;
+
+      .btn-cancel {
+        background: rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.8);
       }
-      .widget-button.cancel:hover {
-        background: #d0d0d0;
-      }
-      .widget-button.stop {
-        background: #ff4444;
+
+      .btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.25);
         color: white;
       }
-      .widget-button.stop:hover {
-        background: #ff3333;
-      }
-      .widget-button .icon {
-        font-size: 12px;
+
+      .btn-cancel .icon {
+        font-size: 14px;
         font-weight: bold;
         line-height: 1;
       }
-      .widget-button .stop-icon {
+
+      .btn-stop {
+        background: #ef4444;
+        color: white;
+      }
+
+      .btn-stop:hover {
+        background: #dc2626;
+        transform: scale(1.1);
+      }
+
+      .btn-stop .stop-icon {
         width: 8px;
         height: 8px;
         background: white;
         border-radius: 2px;
       }
-      .waveform-container {
+
+      /* Waveform bars - Wispr Flow style */
+      .waveform {
         display: flex;
         align-items: center;
         gap: 2px;
-        height: 22px;
+        height: 20px;
         padding: 0 4px;
-        -webkit-app-region: drag;
-        cursor: default;
-        pointer-events: auto;
       }
-      .waveform-bar {
-        width: 2px;
-        background: #23c9ff;
+
+      .bar {
+        width: 3px;
         border-radius: 2px;
-        animation: waveform 1.2s ease-in-out infinite;
+        background: linear-gradient(180deg, #00D4FF 0%, #0099CC 100%);
+        animation: wave 1s ease-in-out infinite;
+        opacity: 0.9;
       }
-      .waveform-bar:nth-child(1) { animation-delay: 0s; height: 6px; }
-      .waveform-bar:nth-child(2) { animation-delay: 0.1s; height: 12px; }
-      .waveform-bar:nth-child(3) { animation-delay: 0.2s; height: 18px; }
-      .waveform-bar:nth-child(4) { animation-delay: 0.3s; height: 15px; }
-      .waveform-bar:nth-child(5) { animation-delay: 0.4s; height: 9px; }
-      .waveform-bar:nth-child(6) { animation-delay: 0.5s; height: 14px; }
-      .waveform-bar:nth-child(7) { animation-delay: 0.6s; height: 16px; }
-      .waveform-bar:nth-child(8) { animation-delay: 0.7s; height: 11px; }
-      @keyframes waveform {
-        0%, 100% { transform: scaleY(0.3); opacity: 0.6; }
-        50% { transform: scaleY(1); opacity: 1; }
+
+      .bar:nth-child(1) { height: 8px; animation-delay: 0.0s; }
+      .bar:nth-child(2) { height: 14px; animation-delay: 0.1s; }
+      .bar:nth-child(3) { height: 18px; animation-delay: 0.2s; }
+      .bar:nth-child(4) { height: 12px; animation-delay: 0.3s; }
+      .bar:nth-child(5) { height: 16px; animation-delay: 0.15s; }
+
+      @keyframes wave {
+        0%, 100% {
+          transform: scaleY(0.4);
+          opacity: 0.6;
+        }
+        50% {
+          transform: scaleY(1);
+          opacity: 1;
+        }
+      }
+
+      /* Processing state - purple gradient */
+      .widget.processing .bar {
+        background: linear-gradient(180deg, #A855F7 0%, #7C3AED 100%);
+        animation: pulse 0.6s ease-in-out infinite;
+      }
+
+      .widget.processing .btn-stop {
+        display: none;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          transform: scaleY(0.5);
+          opacity: 0.7;
+        }
+        50% {
+          transform: scaleY(1.1);
+          opacity: 1;
+        }
+      }
+
+      /* Done state - green with checkmark */
+      .widget.done .waveform {
+        display: none;
+      }
+
+      .widget.done .btn {
+        display: none;
+      }
+
+      .widget.done .checkmark {
+        display: flex;
+      }
+
+      .checkmark {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        animation: popIn 0.25s ease-out;
+      }
+
+      .checkmark svg {
+        width: 20px;
+        height: 20px;
+        stroke: #22C55E;
+        stroke-width: 2.5;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      @keyframes popIn {
+        0% { transform: scale(0); opacity: 0; }
+        70% { transform: scale(1.2); }
+        100% { transform: scale(1); opacity: 1; }
       }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <div class="widget-container">
-        <button class="widget-button cancel" title="Cancel" id="cancel-btn">
-          <span class="icon">×</span>
-        </button>
-        <div class="waveform-container">
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-          <div class="waveform-bar"></div>
-        </div>
-        <button class="widget-button stop" title="Stop" id="stop-btn">
-          <div class="stop-icon"></div>
-        </button>
+    <div class="widget" id="widget">
+      <button class="btn btn-cancel" id="cancel-btn" title="Cancel">
+        <span class="icon">×</span>
+      </button>
+
+      <div class="waveform">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
       </div>
-    <script>
-      (() => {
-        const widgetApp = window.widgetApp || {
-          stopRecording: () => console.log('Stop recording'),
-          cancelRecording: () => console.log('Cancel recording')
-        };
-        
-        const cancelBtn = document.getElementById('cancel-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        
-        if (cancelBtn) {
-          cancelBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            widgetApp.cancelRecording();
-          });
-        }
-        
-        if (stopBtn) {
-          stopBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            widgetApp.stopRecording();
-          });
-        }
-      })();
-    </script>
+
+      <div class="checkmark">
+        <svg viewBox="0 0 24 24">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+
+      <button class="btn btn-stop" id="stop-btn" title="Stop">
+        <div class="stop-icon"></div>
+      </button>
     </div>
+
+    <script>
+      const widget = document.getElementById('widget');
+      const cancelBtn = document.getElementById('cancel-btn');
+      const stopBtn = document.getElementById('stop-btn');
+
+      // Expose state change function to main process
+      window.setWidgetState = (state) => {
+        widget.classList.remove('recording', 'processing', 'done');
+
+        if (state === 'processing') {
+          widget.classList.add('processing');
+        } else if (state === 'done') {
+          widget.classList.add('done');
+          // Auto-hide after done
+          setTimeout(() => {
+            if (window.widgetApp && window.widgetApp.hide) {
+              window.widgetApp.hide();
+            }
+          }, 800);
+        }
+        // 'recording' is the default state (no class needed)
+      };
+
+      // Button handlers
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('[WIDGET-HTML] Cancel button clicked');
+          if (window.widgetApp && window.widgetApp.cancelRecording) {
+            window.widgetApp.cancelRecording();
+          } else {
+            console.error('[WIDGET-HTML] widgetApp.cancelRecording not available');
+          }
+        });
+      }
+
+      if (stopBtn) {
+        stopBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('[WIDGET-HTML] Stop button clicked');
+          if (window.widgetApp && window.widgetApp.stopRecording) {
+            window.widgetApp.stopRecording();
+          } else {
+            console.error('[WIDGET-HTML] widgetApp.stopRecording not available');
+          }
+        });
+      }
+    </script>
   </body>
 </html>
-

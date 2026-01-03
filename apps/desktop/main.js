@@ -1,53 +1,34 @@
 // Electron imports - must be first
-const electron = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, clipboard, screen, shell, nativeTheme, dialog } = require('electron');
 
-if (!electron) {
-  console.error('Failed to require electron');
-  process.exit(1);
+// Check if electron loaded correctly
+if (!app) {
+  console.error('FATAL: Failed to load electron app object. require("electron") returned:', require('electron'));
 }
-
-if (!electron.app) {
-  console.error('electron.app is undefined');
-  process.exit(1);
-}
-
-const app = electron.app;
-const BrowserWindow = electron.BrowserWindow;
-const globalShortcut = electron.globalShortcut;
-const ipcMain = electron.ipcMain;
-const Tray = electron.Tray;
-const Menu = electron.Menu;
-const nativeImage = electron.nativeImage;
-const clipboard = electron.clipboard;
-const screen = electron.screen;
-const shell = electron.shell;
-const nativeTheme = electron.nativeTheme;
-const dialog = electron.dialog;
 
 // Model downloader integration
 const { ModelDownloader } = require('./src/model_downloader.js');
 const modelDownloader = new ModelDownloader();
-// Style transformer integration
-const { applyStyle, getStyleDescription, getStyleExample, getAvailableStyles, getCategoryBannerText } = require('./src/style_transformer.js');
+
+// LLM Manager for flow refinement and text transformation
+const llmManager = require('./src/llm_manager.js');
 
 // Performance monitoring integration (optional - gracefully handle if not available)
 let performanceMonitor = null;
 try {
-const { PerformanceMonitor } = require('./src/performance_monitor.js');
+  const { PerformanceMonitor } = require('./src/performance_monitor.js');
   performanceMonitor = new PerformanceMonitor();
 
-// Initialize performance monitoring
-app.whenReady().then(() => {
+  // Initialize performance monitoring
+  app.whenReady().then(() => {
     if (performanceMonitor) {
-  // Performance monitoring is already initialized in the constructor
-  console.log('Performance monitoring ready');
+      // Performance monitoring is already initialized in the constructor
+      console.log('Performance monitoring ready');
     }
-});
+  });
 } catch (e) {
   console.warn('Performance monitoring not available:', e.message);
 }
-
-// Other imports
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
@@ -59,11 +40,12 @@ const { pipeline } = require('stream/promises');
 const os = require('os');
 const { getLogger } = require('./logger');
 
-// Development mode detection - will be set after app ready
-let isDevelopment = process.env.NODE_ENV === 'development';
+// LLM & Context Integration
+const contextManager = require('./src/context_manager.js');
+let llmProcess = null;
+let llmServiceReady = false;
+let llmStdoutBuffer = '';
 
-// Single instance logic will be set up after app is ready
-let gotTheLock = false;
 
 const isShowcaseMode = String(process.env.SHOWCASE_CAPTURE || '').toLowerCase() === '1' ||
   String(process.env.SHOWCASE_CAPTURE || '').toLowerCase() === 'true';
@@ -73,12 +55,9 @@ let mainWindow;
 let tray;
 let whisperProcess;
 let whisperStdoutBuffer = ''; // Buffer for incomplete stdout lines
-let llmProcess = null; // LLM service process
-let llmProcessReady = false; // Whether LLM service is ready
 let isRecording = false;
 let robot;
-let robotType = null; // 'insert-text', 'robot-js', or 'robotjs'
-let insertTextNative = null; // Modern native addon for instant typing
+let robotType = null; // 'robot-js' or 'robotjs'
 let lastTypedText = ''; // Track what we've already typed for incremental typing
 let pendingTypingQueue = []; // Queue for typing operations to prevent overlap
 const isTestMode = String(process.env.NODE_ENV || '').toLowerCase() === 'test' ||
@@ -87,62 +66,92 @@ const isTestMode = String(process.env.NODE_ENV || '').toLowerCase() === 'test' |
 let indicatorWindow;
 let fadeTimer = null;
 let indicatorState = 'hidden';
+let widgetVisualState = 'recording'; // Track widget visual state: 'recording', 'processing', 'done'
 let typedSoFar = '';
 let settings = {
   holdHotkey: 'CommandOrControl+Super+Space',
   toggleHotkey: 'CommandOrControl+Shift+Space',
-  notesHotkey: 'CommandOrControl+Super+N', // Default notes hotkey
-  activeModel: 'tiny' // Default model
+  activeModel: 'tiny', // Default model
+  flowRefinement: true, // Enable Wispr Flow-style auto-refinement by default
+  context_awareness: true, // Enable Chameleon Mode - auto style switching by context
+  activeStyle: 'neutral' // Current style (auto-updated by context manager)
 };
-const configPath = path.join(__dirname, 'config.json');
 const historyPath = path.join(__dirname, 'history.json');
 let logger = null; // Initialize after app ready
 let whisperModelReady = false; // Track if whisper model is loaded
 let activeDownloadProcess = null; // Track active download process for cancellation
 let pendingRecordingAction = null; // Queue recording action if model not ready yet
 
-// Load typing libraries in order of preference (fastest/most reliable first)
-if (!isTestMode) {
-  // Method 1: Modern native addon (fastest, most reliable - like Wispr Flow)
-  try {
-    insertTextNative = require('@xitanggg/node-insert-text');
-    robotType = 'insert-text';
-    console.log('✓ @xitanggg/node-insert-text loaded successfully (modern native addon - fastest method)');
-  } catch (e0) {
-    // Method 2: robot-js
-    try {
-      robot = require('robot-js');
-      robotType = 'robot-js';
-      console.log('✓ robot-js loaded successfully');
-    } catch (e1) {
-      // Method 3: robotjs (fallback)
-      try {
-        robot = require('robotjs');
-        robotType = 'robotjs';
-        console.log('✓ robotjs loaded successfully');
-      } catch (e2) {
-        robot = null;
-        robotType = null;
-        insertTextNative = null;
-        console.warn('⚠ No typing library available; auto-typing will use clipboard only.');
-        console.warn('Install one of: npm install @xitanggg/node-insert-text (recommended) or npm install robotjs');
-        console.error('insert-text error:', e0.message);
-        console.error('robot-js error:', e1.message);
-        console.error('robotjs error:', e2.message);
+// ============================================
+// WPM Stats Tracking (module-level)
+// ============================================
+let sessionStats = {
+  wordsTyped: 0,
+  charsTyped: 0,
+  transcriptionCount: 0,
+  sessionStartTime: Date.now(),
+  wpmHistory: [],
+  lastTranscriptionTime: 0
+};
+
+// Track transcription for WPM calculation
+function trackTranscriptionForWPM(text) {
+  if (!text || typeof text !== 'string') return;
+
+  const now = Date.now();
+  const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+  const chars = text.length;
+
+  sessionStats.wordsTyped += words;
+  sessionStats.charsTyped += chars;
+  sessionStats.transcriptionCount++;
+
+  // Calculate instantaneous WPM if we have timing data
+  if (sessionStats.lastTranscriptionTime > 0) {
+    const timeDiffMs = now - sessionStats.lastTranscriptionTime;
+    if (timeDiffMs > 0 && timeDiffMs < 60000) { // Within 1 minute
+      const instantWPM = (words / timeDiffMs) * 60000;
+      sessionStats.wpmHistory.push({ wpm: instantWPM, time: now });
+
+      // Keep last 20 WPM measurements
+      if (sessionStats.wpmHistory.length > 20) {
+        sessionStats.wpmHistory.shift();
       }
+    }
+  }
+
+  sessionStats.lastTranscriptionTime = now;
+}
+
+if (!isTestMode) {
+  try {
+    robot = require('robot-js');
+    robotType = 'robot-js';
+    console.log('✓ robot-js loaded successfully');
+  } catch (e1) {
+    try {
+      robot = require('robotjs');
+      robotType = 'robotjs';
+      console.log('✓ robotjs loaded successfully');
+    } catch (e2) {
+      robot = null;
+      robotType = null;
+      console.warn('⚠ robot automation library not available; auto-typing disabled.');
+      console.warn('Install robotjs: npm install robotjs');
+      console.error('robot-js error:', e1.message);
+      console.error('robotjs error:', e2.message);
     }
   }
 } else {
   robot = null;
   robotType = null;
-  insertTextNative = null;
-  console.log('Test mode detected: skipping typing libraries for E2E stability');
+  console.log('Test mode detected: skipping robot libraries for E2E stability');
 }
 
 // Helper function to find Python executable
 function findPythonExecutable() {
   const pythonCommands = ['python3', 'python', 'py'];
-  
+
   // On Windows, try to find Python in common locations
   if (process.platform === 'win32') {
     // Try using 'where' command to find Python
@@ -166,7 +175,7 @@ function findPythonExecutable() {
           // Command not found, continue
         }
       }
-      
+
       // Try common installation paths
       const commonPaths = [
         path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python'),
@@ -176,7 +185,7 @@ function findPythonExecutable() {
         path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'Python3'),
         path.join(process.env.USERPROFILE || '', 'AppData', 'Local', 'Programs', 'Python'),
       ];
-      
+
       for (const basePath of commonPaths) {
         if (fs.existsSync(basePath)) {
           // Look for python.exe in subdirectories
@@ -205,7 +214,7 @@ function findPythonExecutable() {
       console.warn('Error finding Python:', e);
     }
   }
-  
+
   // Fallback: try commands in order
   for (const cmd of pythonCommands) {
     try {
@@ -217,7 +226,7 @@ function findPythonExecutable() {
       // Command not found, continue
     }
   }
-  
+
   return null;
 }
 
@@ -254,362 +263,20 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
-      contextIsolation: true,
-      webSecurity: false  // Disable web security to prevent caching issues
+      contextIsolation: true
     },
-    show: false  // Don't show until ready (prevents white flash)
+    show: isShowcaseMode || isTestMode
   });
-  
-  // Ensure window can be focused from taskbar (Windows-specific)
-  if (process.platform === 'win32') {
-    mainWindow.setFocusable(true);
-  }
-  
-  // Windows-specific: Handle taskbar icon clicks
-  // On Windows, clicking the taskbar icon should restore and focus the window
-  if (process.platform === 'win32') {
-    // Handle when window is shown (including from taskbar click)
-    mainWindow.on('show', () => {
-      console.log('Window shown event - ensuring focus');
-      // Use setImmediate to ensure this runs after the window is fully shown
-      setImmediate(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          // Windows-specific: Use more aggressive focus method
-          try {
-            // On Windows, setVisibleOnAllWorkspaces might not support options parameter
-            if (process.platform === 'win32') {
-              mainWindow.setVisibleOnAllWorkspaces(true);
-            } else {
-              mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-            }
-          } catch (e) {
-            console.warn('setVisibleOnAllWorkspaces failed:', e.message);
-          }
-          // Ensure window is focusable
-          mainWindow.setFocusable(true);
-          mainWindow.focus();
-          // Bring to front using moveTop (Windows-specific)
-          mainWindow.moveTop();
-          // Temporarily bring to front, then set back to normal
-          mainWindow.setAlwaysOnTop(true);
-          setTimeout(() => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.setAlwaysOnTop(false);
-              try {
-                mainWindow.setVisibleOnAllWorkspaces(false);
-              } catch (e) {
-                // Ignore errors when resetting
-              }
-              // Ensure it's still focusable and on top
-              mainWindow.setFocusable(true);
-              mainWindow.focus();
-              mainWindow.moveTop();
-              // Force focus again after a short delay
-              setTimeout(() => {
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                  mainWindow.focus();
-                }
-              }, 50);
-            }
-          }, 150);
-        }
-      });
-    });
-    
-    // Also handle when window is requested to be shown (from taskbar)
-    mainWindow.on('restore', () => {
-      console.log('Window restore event - ensuring focus');
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        // Windows-specific: Use more aggressive focus method
-        try {
-          if (process.platform === 'win32') {
-            mainWindow.setVisibleOnAllWorkspaces(true);
-          } else {
-            mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-          }
-        } catch (e) {
-          console.warn('setVisibleOnAllWorkspaces failed:', e.message);
-        }
-        mainWindow.setFocusable(true);
-        mainWindow.show();
-        mainWindow.focus();
-        mainWindow.moveTop();
-        mainWindow.setAlwaysOnTop(true);
-        setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setAlwaysOnTop(false);
-            try {
-              mainWindow.setVisibleOnAllWorkspaces(false);
-            } catch (e) {
-              // Ignore errors when resetting
-            }
-            mainWindow.focus();
-            mainWindow.moveTop();
-            // Force focus again after a short delay
-            setTimeout(() => {
-              if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.focus();
-              }
-            }, 50);
-          }
-        }, 150);
-      }
-    });
-    
-    // Handle minimize event to ensure proper restoration
-    mainWindow.on('minimize', () => {
-      console.log('Window minimized');
-      // Don't hide on minimize - keep in taskbar
-    });
-  }
-  
-  // Immediately set up window showing logic (before any async operations)
-  // This ensures the window appears reliably when launched from agents
-  if (!isShowcaseMode && !isTestMode) {
-    // Show window immediately after a very short delay (allows window to initialize)
-    setImmediate(() => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        console.log('🚀 Immediate window show attempt');
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    });
-  }
 
-  // Aggressively clear all cache and storage (do this BEFORE loading)
-  // This ensures we always load the latest files, not cached versions
-  mainWindow.webContents.session.clearCache();
-  mainWindow.webContents.session.clearStorageData();
-  mainWindow.webContents.session.clearHostResolverCache();
-  
-  // Load file from apps/desktop directory (explicit path to avoid confusion with root files)
-  // Use absolute path to ensure we're loading the correct file
-  const indexPath = path.resolve(__dirname, 'index.html');
-  const appVersion = app.getVersion();
-  
-  // Debug: Log the actual path being used
-  console.log('__dirname:', __dirname);
-  console.log('Loading index.html from:', indexPath);
-  console.log('File exists:', fs.existsSync(indexPath));
-  if (!fs.existsSync(indexPath)) {
-    console.error('ERROR: index.html not found at:', indexPath);
-    console.log('Current directory files:', fs.readdirSync(__dirname).filter(f => f.endsWith('.html')));
+  mainWindow.loadFile('index.html');
+  if (!isShowcaseMode && !isTestMode) {
+    // Show window on startup for easier development/testing
+    // mainWindow.hide();
+    mainWindow.show();
   }
-  
-  // Verify we're loading from apps/desktop, not root
-  if (!indexPath.includes('apps\\desktop') && !indexPath.includes('apps/desktop')) {
-    console.error('WARNING: Loading index.html from wrong location!', indexPath);
-  }
-  
-  // Read package.json directly to get the latest version (always up-to-date)
-  const packageJsonPath = path.join(__dirname, 'package.json');
-  let currentVersion = appVersion;
-  try {
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    currentVersion = packageJson.version;
-    console.log('Version from package.json:', currentVersion);
-  } catch (e) {
-    console.warn('Could not read package.json, using app.getVersion():', e.message);
-  }
-  
-  // Inject version directly into HTML before loading - simple and reliable
-  try {
-    let htmlContent = fs.readFileSync(indexPath, 'utf8');
-    console.log('✓ Read HTML file successfully');
-    console.log('Current version to inject:', currentVersion);
-    
-    // Replace version - match any version text (or empty) in the app-version element
-    // Use a more flexible pattern that handles whitespace and newlines
-    const versionPattern = /<span[^>]*id=["']app-version["'][^>]*>[\s\S]*?<\/span>/;
-    const replacement = `<span class="version-text" id="app-version" style="cursor: pointer;" title="Click to check for updates">SONU v${currentVersion}</span>`;
-    
-    if (versionPattern.test(htmlContent)) {
-      htmlContent = htmlContent.replace(versionPattern, replacement);
-      console.log('✓ Version replaced in HTML');
-    } else {
-      console.error('✗ Could not find app-version element in HTML!');
-      console.error('HTML snippet around app-version:', htmlContent.substring(
-        Math.max(0, htmlContent.indexOf('app-version') - 100),
-        Math.min(htmlContent.length, htmlContent.indexOf('app-version') + 200)
-      ));
-    }
-    
-    // Verify replacement worked
-    if (!htmlContent.includes(`SONU v${currentVersion}`)) {
-      console.error('✗ Version replacement verification failed!');
-      console.error('HTML does not contain:', `SONU v${currentVersion}`);
-    } else {
-      console.log('✓ Version confirmed in HTML content');
-    }
-    
-    // Write to temp file and load it
-    const tempIndexPath = path.join(__dirname, `index.temp.${Date.now()}.html`);
-    fs.writeFileSync(tempIndexPath, htmlContent, 'utf8');
-    console.log('✓ Temp file written:', tempIndexPath);
-    
-    // Verify temp file has correct version
-    const tempContent = fs.readFileSync(tempIndexPath, 'utf8');
-    if (tempContent.includes(`SONU v${currentVersion}`)) {
-      console.log('✓ Version confirmed in temp file');
-    } else {
-      console.error('✗ Version NOT in temp file!');
-      console.error('Temp file content snippet:', tempContent.substring(
-        Math.max(0, tempContent.indexOf('app-version') - 100),
-        Math.min(tempContent.length, tempContent.indexOf('app-version') + 200)
-      ));
-    }
-    
-    mainWindow.loadFile(tempIndexPath);
-    console.log('✓ Loading temp file');
-    
-    // Set version immediately after load - no delays
-    mainWindow.webContents.once('did-finish-load', () => {
-      console.log('Page loaded, setting version immediately...');
-      // Set version IMMEDIATELY - synchronous execution
-      const jsCode = `
-        (function() {
-          const el = document.getElementById('app-version');
-          console.log('Version element found:', el);
-          if (el) {
-            const oldText = el.textContent;
-            el.textContent = 'SONU v${currentVersion}';
-            el.style.cursor = 'pointer';
-            el.title = 'Click to check for updates';
-            console.log('Version changed from "' + oldText + '" to "SONU v${currentVersion}"');
-            return true;
-          }
-          console.error('Version element NOT found!');
-          return false;
-        })();
-      `;
-      mainWindow.webContents.executeJavaScript(jsCode).then(result => {
-        console.log('Version JS injection result:', result);
-      }).catch(err => {
-        console.error('Version JS injection error:', err);
-      });
-      
-      // Clean up temp files after a delay
-      setTimeout(() => {
-        try {
-          const files = fs.readdirSync(__dirname);
-          files.forEach(file => {
-            if (file.startsWith('index.temp.') && file.endsWith('.html')) {
-              fs.unlinkSync(path.join(__dirname, file));
-            }
-          });
-        } catch (e) {}
-      }, 2000);
-    });
-  } catch (e) {
-    console.error('Failed to inject version into HTML:', e);
-    console.error('Error stack:', e.stack);
-    // Fallback: load original file and inject via JS immediately
-    mainWindow.loadFile(indexPath);
-    mainWindow.webContents.once('did-finish-load', () => {
-      const jsCode = `
-        (function() {
-          const el = document.getElementById('app-version');
-          if (el) {
-            el.textContent = 'SONU v${currentVersion}';
-            el.style.cursor = 'pointer';
-            el.title = 'Click to check for updates';
-            console.log('Version set via fallback to: SONU v${currentVersion}');
-          }
-        })();
-      `;
-      mainWindow.webContents.executeJavaScript(jsCode).catch((err) => {
-        console.error('Fallback version injection error:', err);
-      });
-    });
-  }
-  
-  // Show and focus the main window when ready (recommended Electron pattern)
-  mainWindow.once('ready-to-show', () => {
-    console.log('✅ ready-to-show event fired');
-    if (!isShowcaseMode && !isTestMode) {
-      // Restore window if minimized
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      // Show and focus the window to bring it to front
-      mainWindow.show();
-      mainWindow.focus();
-      // Bring to front
-      mainWindow.setAlwaysOnTop(true);
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.setAlwaysOnTop(false);
-        }
-      }, 200);
-      console.log('✅ Window shown via ready-to-show');
-    }
-  });
-  
-  // Also ensure window is shown and focused after page fully loads
-  mainWindow.webContents.once('did-finish-load', () => {
-    console.log('✅ did-finish-load event fired');
-    if (!isShowcaseMode && !isTestMode) {
-      if (!mainWindow.isVisible()) {
-        console.log('🔍 Window not visible after load, showing now');
-        if (mainWindow.isMinimized()) {
-          mainWindow.restore();
-        }
-        mainWindow.show();
-      }
-      mainWindow.focus();
-      // Bring to front
-      mainWindow.setAlwaysOnTop(true);
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.setAlwaysOnTop(false);
-        }
-      }, 200);
-      console.log('✅ Window shown via did-finish-load');
-    }
-  });
-  
-  // Aggressive fallbacks: Ensure window is shown even if ready-to-show doesn't fire
-  // This is critical when launching from other agents/tools
-  // Multiple fallbacks at different intervals to ensure window appears
-  const showWindowAggressively = () => {
-    if (mainWindow && !mainWindow.isDestroyed() && !isShowcaseMode && !isTestMode) {
-      if (!mainWindow.isVisible()) {
-        console.log('🔍 Fallback: Showing window (window not visible)');
-        if (mainWindow.isMinimized()) {
-          mainWindow.restore();
-        }
-        mainWindow.show();
-        mainWindow.focus();
-        // Bring to front
-        mainWindow.setAlwaysOnTop(true);
-        setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setAlwaysOnTop(false);
-          }
-        }, 200);
-      } else {
-        // Window is visible, just ensure it's focused
-        mainWindow.focus();
-        mainWindow.moveTop();
-      }
-    }
-  };
-  
-  // Immediate check (100ms)
-  setTimeout(showWindowAggressively, 100);
-  // Short fallback (500ms)
-  setTimeout(showWindowAggressively, 500);
-  // Medium fallback (1 second)
-  setTimeout(showWindowAggressively, 1000);
-  // Long fallback (2 seconds) - last resort
-  setTimeout(showWindowAggressively, 2000);
   if (isShowcaseMode) {
     mainWindow.setResizable(false);
     mainWindow.center();
-    mainWindow.once('ready-to-show', () => {
-      mainWindow.show();
-      mainWindow.focus();
-    });
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(() => {
         runShowcaseCapture().catch((error) => {
@@ -623,44 +290,6 @@ function createWindow() {
     });
   }
 
-  // Add error handlers to diagnose loading issues
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-    console.error('❌ Page failed to load:', {
-      errorCode,
-      errorDescription,
-      validatedURL,
-      isMainFrame
-    });
-    if (logger) {
-      logger.error('Page failed to load', { errorCode, errorDescription, validatedURL });
-    }
-  });
-
-  mainWindow.webContents.on('crashed', (event, killed) => {
-    console.error('❌ Renderer process crashed!', { killed });
-    if (logger) {
-      logger.error('Renderer process crashed', { killed });
-    }
-    // Reload the window after a short delay
-    setTimeout(() => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        console.log('🔄 Attempting to reload after crash...');
-        mainWindow.reload();
-      }
-    }, 1000);
-  });
-
-  mainWindow.webContents.on('unresponsive', () => {
-    console.warn('⚠️ Renderer process became unresponsive');
-    if (logger) {
-      logger.warn('Renderer process unresponsive');
-    }
-  });
-
-  mainWindow.webContents.on('responsive', () => {
-    console.log('✅ Renderer process became responsive again');
-  });
-
   // Add keyboard shortcut for reloading (Ctrl+R or Cmd+R)
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if ((input.control || input.meta) && input.key.toLowerCase() === 'r') {
@@ -670,57 +299,6 @@ function createWindow() {
       }
     }
   });
-  
-  // Handle window events for taskbar icon clicks
-  // When window is minimized and user clicks taskbar icon, restore and focus
-  mainWindow.on('minimize', () => {
-    console.log('Window minimized');
-  });
-  
-  mainWindow.on('restore', () => {
-    console.log('Window restored - ensuring focus and bringing to front');
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.show();
-      mainWindow.focus();
-      // Bring to front when restored from taskbar
-      mainWindow.setAlwaysOnTop(true);
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.setAlwaysOnTop(false);
-        }
-      }, 200);
-    }
-  });
-  
-  // Handle window focus events
-  mainWindow.on('focus', () => {
-    console.log('Window focused');
-  });
-  
-  mainWindow.on('blur', () => {
-    console.log('Window blurred');
-  });
-  
-  // Additional show event handler (complements Windows-specific handler above)
-  // This ensures focus even if Windows-specific handler doesn't fire
-  mainWindow.on('show', () => {
-    console.log('Window shown event (general) - ensuring focus');
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      // Small delay to ensure window is fully shown before focusing
-      setImmediate(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.focus();
-          // Bring to front
-          mainWindow.setAlwaysOnTop(true);
-          setTimeout(() => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.setAlwaysOnTop(false);
-            }
-          }, 100);
-        }
-      });
-    }
-  });
 
   createTray();
 }
@@ -728,16 +306,16 @@ function createWindow() {
 function createIndicatorWindow() {
   // Load saved widget position
   const widgetPosition = loadWidgetPosition();
-  
+
   indicatorWindow = new BrowserWindow({
-    width: 150,
-    height: 32,
+    width: 200,
+    height: 48,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,
-    focusable: false,
+    focusable: true,  // Changed to true - required for button click events to work
     movable: true,
     x: widgetPosition.x !== null ? widgetPosition.x : undefined,
     y: widgetPosition.y !== null ? widgetPosition.y : undefined,
@@ -747,18 +325,13 @@ function createIndicatorWindow() {
       contextIsolation: true
     }
   });
-  const widgetPath = path.join(__dirname, 'widget.html');
-  if (!fs.existsSync(widgetPath)) {
-    console.error('Widget file not found at:', widgetPath);
-    return;
-  }
-  indicatorWindow.loadFile(widgetPath);
-  
+  indicatorWindow.loadFile('widget.html');
+
   // CRITICAL: Allow mouse events so the window can be dragged
   // The CSS -webkit-app-region: drag in widget.html will handle dragging
   // Buttons have -webkit-app-region: no-drag to remain clickable
   indicatorWindow.setIgnoreMouseEvents(false);
-  
+
   // Wait for window to load before setting up drag
   indicatorWindow.webContents.once('did-finish-load', () => {
     // Ensure window is movable and mouse events are enabled
@@ -766,7 +339,7 @@ function createIndicatorWindow() {
     indicatorWindow.setIgnoreMouseEvents(false);
     console.log('Widget window loaded and configured for dragging');
   });
-  
+
   // Save position when window is moved (debounced to avoid too many writes)
   let savePositionTimeout = null;
   indicatorWindow.on('moved', () => {
@@ -782,7 +355,7 @@ function createIndicatorWindow() {
       }, 500); // Save after 500ms of no movement
     }
   });
-  
+
   // Also save position when window is closed or hidden
   indicatorWindow.on('close', () => {
     if (indicatorWindow && !indicatorWindow.isDestroyed()) {
@@ -790,10 +363,10 @@ function createIndicatorWindow() {
       saveWidgetPosition(bounds.x, bounds.y);
     }
   });
-  
+
   // If no saved position, center it
   if (widgetPosition.x === null || widgetPosition.y === null) {
-  positionIndicator();
+    positionIndicator();
     // Save the centered position
     setTimeout(() => {
       if (indicatorWindow && !indicatorWindow.isDestroyed()) {
@@ -802,8 +375,8 @@ function createIndicatorWindow() {
       }
     }, 100);
   }
-  
-  try { indicatorWindow.setOpacity(0); } catch (e) {}
+
+  try { indicatorWindow.setOpacity(0); } catch (e) { }
   indicatorWindow.hide();
 }
 
@@ -815,7 +388,7 @@ function positionIndicator() {
     const cx = x + Math.floor((width - w) / 2);
     const cy = y + Math.floor((height - h) / 2);
     indicatorWindow.setBounds({ x: cx, y: cy, width: w, height: h });
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function loadWidgetPosition() {
@@ -823,22 +396,22 @@ function loadWidgetPosition() {
     const settingsPath = path.join(__dirname, 'data', 'settings.json');
     if (fs.existsSync(settingsPath)) {
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-      if (settings.widgetPosition && 
-          typeof settings.widgetPosition.x === 'number' && 
-          typeof settings.widgetPosition.y === 'number' &&
-          !isNaN(settings.widgetPosition.x) &&
-          !isNaN(settings.widgetPosition.y)) {
+      if (settings.widgetPosition &&
+        typeof settings.widgetPosition.x === 'number' &&
+        typeof settings.widgetPosition.y === 'number' &&
+        !isNaN(settings.widgetPosition.x) &&
+        !isNaN(settings.widgetPosition.y)) {
         // Validate position is within screen bounds
         const display = screen.getPrimaryDisplay();
         const { width, height, x, y } = display.workArea;
         const widgetWidth = 150;
         const widgetHeight = 32;
-        
+
         // Check if saved position is within screen bounds
-        if (settings.widgetPosition.x >= x && 
-            settings.widgetPosition.y >= y &&
-            settings.widgetPosition.x + widgetWidth <= x + width &&
-            settings.widgetPosition.y + widgetHeight <= y + height) {
+        if (settings.widgetPosition.x >= x &&
+          settings.widgetPosition.y >= y &&
+          settings.widgetPosition.x + widgetWidth <= x + width &&
+          settings.widgetPosition.y + widgetHeight <= y + height) {
           return { x: settings.widgetPosition.x, y: settings.widgetPosition.y };
         } else {
           console.log('Saved widget position is out of bounds, will center');
@@ -866,57 +439,26 @@ function saveWidgetPosition(x, y) {
 }
 
 function showIndicator() {
-  // Don't show indicator for notes recording - keep it within Notes tab only
-  if (isNotesRecording) {
-    console.log('Notes recording active - not showing indicator widget');
-    return;
-  }
   if (!indicatorWindow) return;
   if (indicatorState === 'visible' || indicatorState === 'fading_in') return;
-  
-  // CRITICAL: Check waveform animation setting - don't show widget if disabled
-  const settingsPath = path.join(__dirname, 'data', 'settings.json');
-  try {
-    if (fs.existsSync(settingsPath)) {
-      const raw = fs.readFileSync(settingsPath, 'utf8');
-      const settings = JSON.parse(raw);
-      console.log('Checking waveform_animation setting:', settings.waveform_animation);
-      if (settings.waveform_animation === false) {
-        console.log('Widget NOT shown - waveform animation is disabled');
-        indicatorState = 'hidden'; // Keep state as hidden
-        return;
-      }
-      console.log('Widget WILL be shown - waveform animation is enabled or not set (default true)');
-    } else {
-      console.log('Settings file not found - widget will be shown (default behavior)');
-    }
-  } catch (e) {
-    console.error('Error reading waveform setting for widget:', e);
-  }
-  
   if (fadeTimer) { clearInterval(fadeTimer); fadeTimer = null; }
   indicatorState = 'visible';
-  try { 
+  try {
     // CRITICAL: Set ignore mouse events to FALSE to allow dragging
     // The CSS -webkit-app-region: drag will handle the dragging
     indicatorWindow.setIgnoreMouseEvents(false);
-    
+
     // Ensure the window is on top and can be moved
     indicatorWindow.setAlwaysOnTop(true);
     indicatorWindow.setMovable(true);
-    
-    // INSTANT SHOW - No delays, show immediately
-    indicatorWindow.show(); // Use show() instead of showInactive() for instant display
+
+    // Show the window
+    indicatorWindow.showInactive();
     indicatorWindow.setOpacity(1); // Show instantly - no fade
-    indicatorWindow.setVisibleOnAllWorkspaces(true); // Ensure visible on all workspaces
-    
-    // Send waveform start event IMMEDIATELY (waveform is already in HTML, just ensure it's visible)
-    if (indicatorWindow && !indicatorWindow.isDestroyed()) {
-      indicatorWindow.webContents.send('start-waveform');
-    }
-    
-    // Force window to be movable and ensure drag works (non-blocking)
-    setImmediate(() => {
+
+    // Force window to be movable and ensure drag works
+    // Wait for window to be fully rendered
+    setTimeout(() => {
       if (indicatorWindow && !indicatorWindow.isDestroyed()) {
         indicatorWindow.setMovable(true);
         indicatorWindow.setIgnoreMouseEvents(false);
@@ -924,9 +466,14 @@ function showIndicator() {
         indicatorWindow.webContents.executeJavaScript(`
           document.body.style.pointerEvents = 'auto';
           document.body.style.cursor = 'default';
-        `).catch(() => {});
+        `).catch(() => { });
+        // Set widget to recording state (cyan glow, waveform animation)
+        setWidgetState('recording');
+        // Play start sound
+        indicatorWindow.webContents.send('play-sound', 'start');
+        console.log('Widget shown and should be draggable');
       }
-    });
+    }, 50);
   } catch (e) {
     console.error('Error showing indicator:', e);
   }
@@ -937,12 +484,22 @@ function hideIndicator() {
   if (indicatorState === 'hidden' || indicatorState === 'fading_out') return;
   if (fadeTimer) { clearInterval(fadeTimer); fadeTimer = null; }
   indicatorState = 'hidden';
-  try { 
+  try {
     // CRITICAL: Hide window FIRST for instant visual feedback
     // Position saving can happen asynchronously
-    indicatorWindow.hide(); // Hide instantly - no fade
-    indicatorWindow.setOpacity(0);
-    
+    // Play stop sound before hiding
+    if (indicatorWindow.webContents) {
+      indicatorWindow.webContents.send('play-sound', 'stop');
+    }
+    // Small delay to let sound start, then hide
+    setTimeout(() => {
+      try {
+        indicatorWindow.hide();
+        indicatorWindow.setOpacity(0);
+      } catch (e) { }
+    }, 50);
+
+
     // Save position asynchronously (non-blocking)
     if (indicatorWindow && !indicatorWindow.isDestroyed()) {
       setImmediate(() => {
@@ -966,14 +523,262 @@ function hideIndicator() {
   }
 }
 
+// Set widget visual state: 'recording', 'processing', 'done'
+// This communicates with the widget window to update animations and status text
+function setWidgetState(state) {
+  if (!indicatorWindow || indicatorWindow.isDestroyed()) return;
+
+  widgetVisualState = state;
+
+  try {
+    // Call the setWidgetState function in the widget window
+    indicatorWindow.webContents.executeJavaScript(`
+      if (window.setWidgetState) {
+        window.setWidgetState('${state}');
+      }
+    `).catch(() => { });
+
+    console.log(`Widget state changed to: ${state}`);
+  } catch (e) {
+    console.error('Error setting widget state:', e);
+  }
+}
+
+// Apply Wispr Flow-style refinement to final transcription
+// Removes filler words, fixes stuttering, adds natural punctuation
+function applyFlowRefinement(originalText, callback) {
+  if (!settings.flowRefinement) {
+    // Flow refinement disabled, return original
+    callback(originalText);
+    return;
+  }
+
+  // Use LLM manager to refine the text
+  llmManager.flowRefine(originalText, (refinedText) => {
+    if (refinedText && refinedText.trim()) {
+      console.log(`Flow refinement: "${originalText}" → "${refinedText}"`);
+      callback(refinedText);
+    } else {
+      // Fallback to original if refinement failed
+      callback(originalText);
+    }
+  });
+
+  // Set a timeout in case LLM takes too long (don't block indefinitely)
+  setTimeout(() => {
+    // If callback hasn't been called yet, use original
+    // (This is a safety net - the actual callback timing depends on llmManager)
+  }, 5000);
+}
+
+// Correct already-typed text with refined version
+// Backspaces to remove what was typed and types the refined version
+function correctTypedText(originalTyped, refinedText) {
+  if (!robot || !robotType) return;
+  if (originalTyped === refinedText) return; // No correction needed
+
+  try {
+    // Calculate how much to backspace
+    const backspaceCount = originalTyped.length;
+
+    // Backspace to remove original
+    for (let i = 0; i < backspaceCount; i++) {
+      if (robotType === 'robot-js') {
+        const key = robot.Key.Backspace;
+        robot.Keyboard.click(key);
+      } else if (robotType === 'robotjs') {
+        robot.keyTap('backspace');
+      }
+    }
+
+    // Small delay then type refined version
+    setTimeout(() => {
+      typeStringRobot(refinedText);
+      console.log(`✓ Corrected text: "${originalTyped}" → "${refinedText}"`);
+    }, 50);
+  } catch (e) {
+    console.error('Error correcting text:', e);
+  }
+}
+
+// Voice trigger patterns for snippet activation
+const SNIPPET_TRIGGER_PATTERNS = [
+  /^insert\s+(.+)$/i,           // "insert [snippet name]"
+  /^paste\s+(.+)$/i,            // "paste [snippet name]"
+  /^use\s+(.+)\s+snippet$/i,    // "use [name] snippet"
+  /^add\s+my\s+(.+)$/i,         // "add my [signature/address/etc]"
+  /^put\s+(.+)$/i,              // "put [snippet name]"
+];
+
+// Check if transcription matches a voice trigger for snippets
+// Returns { matched: boolean, snippetText: string, originalTrigger: string }
+function checkVoiceTriggers(transcription) {
+  if (!transcription || !transcription.trim()) {
+    return { matched: false };
+  }
+
+  const text = transcription.trim().toLowerCase();
+
+  // Load snippets
+  const snippetsPath = path.join(__dirname, 'data', 'snippets.json');
+  let snippets = [];
+  try {
+    if (fs.existsSync(snippetsPath)) {
+      snippets = JSON.parse(fs.readFileSync(snippetsPath, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Error loading snippets for voice triggers:', e);
+    return { matched: false };
+  }
+
+  if (!snippets || snippets.length === 0) {
+    return { matched: false };
+  }
+
+  // Check each trigger pattern
+  for (const pattern of SNIPPET_TRIGGER_PATTERNS) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const requestedName = match[1].trim().toLowerCase();
+
+      // Find matching snippet (fuzzy match on title or trigger field)
+      const matchingSnippet = snippets.find(s => {
+        if (!s) return false;
+        // Check custom trigger field first
+        if (s.trigger && s.trigger.toLowerCase() === requestedName) {
+          return true;
+        }
+        // Check title (fuzzy match)
+        if (s.title && s.title.toLowerCase().includes(requestedName)) {
+          return true;
+        }
+        if (s.title && requestedName.includes(s.title.toLowerCase())) {
+          return true;
+        }
+        return false;
+      });
+
+      if (matchingSnippet && matchingSnippet.text) {
+        console.log(`✨ Voice trigger matched: "${transcription}" → snippet "${matchingSnippet.title}"`);
+        return {
+          matched: true,
+          snippetText: matchingSnippet.text,
+          snippetTitle: matchingSnippet.title,
+          originalTrigger: transcription
+        };
+      }
+    }
+  }
+
+  // Also check for direct trigger phrases (if snippet has a custom trigger)
+  for (const snippet of snippets) {
+    if (snippet.trigger && text.includes(snippet.trigger.toLowerCase())) {
+      console.log(`✨ Custom trigger matched: "${transcription}" → snippet "${snippet.title}"`);
+      return {
+        matched: true,
+        snippetText: snippet.text,
+        snippetTitle: snippet.title,
+        originalTrigger: transcription
+      };
+    }
+  }
+
+  return { matched: false };
+}
+
+// Command mode patterns - detect voice commands for text editing
+const COMMAND_PATTERNS = [
+  { pattern: /^make\s+(this|it)\s+more\s+(formal|casual|concise|professional|friendly|shorter|longer)$/i, type: 'style', extract: 2 },
+  { pattern: /^(rewrite|rephrase)\s+(this|it)\s*(as|to be)?\s*(formal|casual|concise|professional|friendly)?$/i, type: 'rewrite', extract: 4 },
+  { pattern: /^(fix|correct)\s+(the\s+)?(grammar|spelling|punctuation)$/i, type: 'fix', extract: 3 },
+  { pattern: /^format\s+(this|it)\s+as\s+(bullet points|bullets|a list|numbered list|paragraphs?)$/i, type: 'format', extract: 2 },
+  { pattern: /^summarize\s+(this|it)$/i, type: 'summarize' },
+  { pattern: /^expand\s+(this|it)$/i, type: 'expand' },
+  { pattern: /^translate\s+(this|it)?\s*to\s+(.+)$/i, type: 'translate', extract: 2 },
+  { pattern: /^simplify\s+(this|it)?$/i, type: 'simplify' },
+];
+
+// Check if transcription is a voice command
+// Returns { isCommand: boolean, command: object, targetText: string }
+function checkVoiceCommand(transcription) {
+  if (!transcription || !transcription.trim()) {
+    return { isCommand: false };
+  }
+
+  const text = transcription.trim().toLowerCase();
+
+  for (const cmdDef of COMMAND_PATTERNS) {
+    const match = text.match(cmdDef.pattern);
+    if (match) {
+      // Get the clipboard content as the target text
+      let targetText = '';
+      try {
+        targetText = clipboard.readText() || '';
+      } catch (e) {
+        console.error('Error reading clipboard for command:', e);
+      }
+
+      const extractedValue = cmdDef.extract ? match[cmdDef.extract] : '';
+
+      console.log(`🎤 Voice command detected: "${transcription}" → type: ${cmdDef.type}, value: ${extractedValue}`);
+
+      return {
+        isCommand: true,
+        commandType: cmdDef.type,
+        commandValue: extractedValue || cmdDef.type,
+        targetText: targetText,
+        originalCommand: transcription
+      };
+    }
+  }
+
+  return { isCommand: false };
+}
+
+// Execute a voice command using the LLM
+function executeVoiceCommand(command, callback) {
+  if (!command.targetText || !command.targetText.trim()) {
+    console.log('Command mode: No target text (clipboard empty)');
+    callback(null, 'No text selected. Copy text to clipboard first.');
+    return;
+  }
+
+  // Map command types to LLM prompts
+  const commandPrompts = {
+    'style': `Transform this text to be more ${command.commandValue}. Output ONLY the transformed text:\n${command.targetText}`,
+    'rewrite': `Rewrite this text${command.commandValue ? ' to be more ' + command.commandValue : ''}. Output ONLY the rewritten text:\n${command.targetText}`,
+    'fix': `Fix the ${command.commandValue} in this text. Output ONLY the corrected text:\n${command.targetText}`,
+    'format': `Format this text as ${command.commandValue}. Output ONLY the formatted text:\n${command.targetText}`,
+    'summarize': `Summarize this text concisely. Output ONLY the summary:\n${command.targetText}`,
+    'expand': `Expand this text with more detail. Output ONLY the expanded text:\n${command.targetText}`,
+    'translate': `Translate this text to ${command.commandValue}. Output ONLY the translation:\n${command.targetText}`,
+    'simplify': `Simplify this text for easier understanding. Output ONLY the simplified text:\n${command.targetText}`,
+  };
+
+  const prompt = commandPrompts[command.commandType] || commandPrompts['rewrite'];
+
+  // Use LLM manager to execute the command
+  // We'll use a custom TRANSFORM command format for commands
+  const safeText = prompt.replace(/\n/g, '\\n');
+  const cmd = `TRANSFORM:command:personal:${safeText}\n`;
+
+  llmManager.transformText(prompt, 'command', (result) => {
+    if (result && result.trim()) {
+      callback(result.trim(), null);
+    } else {
+      callback(null, 'Command execution failed');
+    }
+  });
+}
+
 // Incremental typing: type only new words that haven't been typed yet
 // Optimized for instant output like Wispr Flow and Typeless
 function typeIncrementalText(newText, isPartial = false) {
   if (!newText || !newText.trim()) return '';
-  
+
   // Extract only the NEW words that haven't been typed yet
   let textToType = '';
-  
+
   if (lastTypedText && newText.startsWith(lastTypedText)) {
     // New text extends what we've already typed - type only the delta (fastest path)
     textToType = newText.slice(lastTypedText.length);
@@ -1011,125 +816,66 @@ function typeIncrementalText(newText, isPartial = false) {
       textToType = newText;
     }
   }
-  
+
   // Type immediately if there's new text to type
   if (textToType && textToType.trim().length > 0) {
     typeStringRobot(textToType);
     lastTypedText = newText; // Update what we've typed
   }
-  
+
   return textToType;
 }
 
 function typeStringRobot(text) {
   const startTime = Date.now();
-  
-  // CRITICAL: Never type or hide window for notes recording
-  // Notes recording text should only go to Notes UI, not be typed system-wide
-  if (isNotesRecording) {
-    console.log('⚠ typeStringRobot called during notes recording - skipping typing and window hiding');
-    if (logger) logger.typing('Skipped typing - notes recording active');
-    return false;
-  }
-  
+
   if (!text || text.trim() === '') {
     if (logger) logger.typing('Empty text, skipping');
     return false;
   }
-  
-  if (logger) logger.typing('Starting typing', { 
-    textLength: text.length, 
+
+  if (logger) logger.typing('Starting typing', {
+    textLength: text.length,
     preview: text.substring(0, 50),
     robotType: robotType,
     robotAvailable: !!robot
   });
-  
+
   // CRITICAL: Completely hide and unfocus ALL windows IMMEDIATELY
   // This must happen synchronously before any typing - NO DELAYS
-  // BUT: Only if not notes recording (checked above)
-  if (mainWindow && !mainWindow.isDestroyed()) {
+  if (mainWindow) {
     mainWindow.setAlwaysOnTop(false);
-    mainWindow.blur();
     mainWindow.hide();
     mainWindow.minimize();
-    // Force window to lose focus
-    if (process.platform === 'win32') {
-      // On Windows, minimize ensures focus is released
-      mainWindow.minimize();
-    }
+    mainWindow.blur();
   }
-  
+
   // Also hide indicator window to prevent focus stealing
   if (indicatorWindow && !indicatorWindow.isDestroyed()) {
     indicatorWindow.hide();
-    indicatorWindow.setAlwaysOnTop(false);
   }
-  
-  // INSTANT TYPING: Multiple methods in order of preference
-  // Method 1: Modern native addon (fastest, most reliable - like Wispr Flow)
-  if (insertTextNative && insertTextNative.insertText) {
-    // Hide window first
-    setTimeout(() => {
-      try {
-        insertTextNative.insertText(text);
-        const totalTime = Date.now() - startTime;
-        if (logger) logger.typing('✓ Typed instantly with native insertText', { total_duration_ms: totalTime });
-        console.log(`✓ Typed instantly in ${totalTime}ms (native insertText method)`);
-      } catch (insertErr) {
-        if (logger) logger.typingError('Native insertText failed', insertErr);
-        console.error('❌ Native insertText failed:', insertErr.message || insertErr);
-        // Fall through to clipboard method
-        typeStringRobotClipboard(text, startTime);
-      }
-    }, 100); // Minimal delay for window hiding
-    return true;
-  }
-  
-  // Method 2: Clipboard + Ctrl+V (fast, reliable - what Wispr Flow uses)
+
+  // INSTANT TYPING: Use clipboard+paste for ALL text (fastest method, no character delays)
   // This is how Wispr Flow, Typeless, and MacWhisper achieve instant output
   if (robot && robot.keyTap) {
     // Write to clipboard synchronously (fast)
     try {
       clipboard.writeText(text);
       if (logger) logger.typing('Text copied to clipboard', { duration_ms: Date.now() - startTime });
-      
-      // CRITICAL: Small delay to ensure window is fully hidden and focus has switched
-      // Windows needs a moment to switch focus to the previous application
-      setTimeout(() => {
+
+      // Paste immediately using process.nextTick (faster than setImmediate/setTimeout)
+      // Window is already hidden synchronously above, so we can paste with minimal delay
+      process.nextTick(() => {
         try {
-          // Use correct robotjs syntax for Ctrl+V on Windows
-          // robotjs keyTap syntax: keyTap(key, [modifier1, modifier2])
-          if (process.platform === 'win32') {
-            // Try Ctrl+V - robotjs uses 'control' or 'ctrl' as modifier
-            robot.keyTap('v', 'control');
-            console.log('✓ Sent Ctrl+V paste command');
-          } else if (process.platform === 'darwin') {
-            // Mac uses Command
-            robot.keyTap('v', 'command');
-            console.log('✓ Sent Cmd+V paste command');
-          } else {
-            // Linux uses Ctrl
-            robot.keyTap('v', 'control');
-            console.log('✓ Sent Ctrl+V paste command');
-          }
+          robot.keyTap('v', 'control');
           const totalTime = Date.now() - startTime;
           if (logger) logger.typing('✓ Pasted instantly with Ctrl+V', { total_duration_ms: totalTime });
           console.log(`✓ Typed instantly in ${totalTime}ms (clipboard method)`);
         } catch (pasteErr) {
           if (logger) logger.typingError('Paste failed', pasteErr);
-          console.error('❌ Paste failed:', pasteErr.message || pasteErr);
           console.warn('Text is in clipboard, use Ctrl+V manually');
-          // Try alternative syntax if first attempt failed
-          try {
-            console.log('Trying alternative robotjs syntax...');
-            if (process.platform === 'win32') {
-              robot.keyTap('v', ['control']);
-            }
-          } catch (altErr) {
-            console.error('Alternative syntax also failed:', altErr.message || altErr);
-          }
         }
-      }, 200); // 200ms delay to ensure focus has switched and window is fully hidden
+      });
       return true;
     } catch (clipErr) {
       if (logger) logger.typingError('Clipboard failed', clipErr);
@@ -1137,10 +883,10 @@ function typeStringRobot(text) {
       // Fall through to alternative methods
     }
   }
-  
+
   // FALLBACK: Try robot-js if clipboard method failed
   if (robot && robotType === 'robot-js' && robot.Keyboard && robot.Keyboard.typeString) {
-    setTimeout(() => {
+    process.nextTick(() => {
       try {
         robot.Keyboard.typeString(text);
         const totalTime = Date.now() - startTime;
@@ -1149,13 +895,13 @@ function typeStringRobot(text) {
       } catch (e) {
         if (logger) logger.typingError('robot-js.Keyboard.typeString failed', e);
       }
-    }, 150);
+    });
     return true;
   }
-  
+
   // FALLBACK: Try typeStringDelayed with 0 delay (for very short text only)
   if (robot && robotType === 'robotjs' && robot.typeStringDelayed && text.length < 10) {
-    setTimeout(() => {
+    process.nextTick(() => {
       try {
         robot.typeStringDelayed(text, 0); // 0 delay = maximum speed
         const totalTime = Date.now() - startTime;
@@ -1164,74 +910,21 @@ function typeStringRobot(text) {
       } catch (e) {
         if (logger) logger.typingError('robotjs.typeStringDelayed failed', e);
       }
-    }, 150);
+    });
     return true;
   }
-  
-  // FINAL FALLBACK: Clipboard only (no robotjs available)
-  // Text is already in clipboard from the first attempt, but log a message
-  if (!robot) {
-    console.warn('⚠ robotjs not available - Text is in clipboard (use Ctrl+V to paste manually)');
-    console.warn('To enable auto-typing, install robotjs: npm install robotjs');
-  } else {
-    try {
-      clipboard.writeText(text);
-      if (logger) logger.typing('Text copied to clipboard (fallback)');
-      console.log('Text copied to clipboard (use Ctrl+V to paste)');
-    } catch (clipErr) {
-      if (logger) logger.typingError('All typing methods failed', clipErr);
-      console.error('Failed to copy to clipboard:', clipErr);
-    }
-  }
-  
-  return true;
-}
 
-// Clipboard + Ctrl+V method (extracted for reuse)
-function typeStringRobotClipboard(text, startTime = Date.now()) {
-  if (!text || text.trim() === '') {
-    return false;
-  }
-  
-  // Write to clipboard synchronously (fast)
+  // FINAL FALLBACK: Clipboard only (no robotjs available)
   try {
     clipboard.writeText(text);
-    if (logger) logger.typing('Text copied to clipboard', { duration_ms: Date.now() - startTime });
-    
-    // CRITICAL: Small delay to ensure window is fully hidden and focus has switched
-    // Windows needs a moment to switch focus to the previous application
-    setTimeout(() => {
-      try {
-        // Use correct robotjs syntax for Ctrl+V on Windows
-        if (robot && robot.keyTap) {
-          if (process.platform === 'win32') {
-            robot.keyTap('v', 'control');
-            console.log('✓ Sent Ctrl+V paste command');
-          } else if (process.platform === 'darwin') {
-            robot.keyTap('v', 'command');
-            console.log('✓ Sent Cmd+V paste command');
-          } else {
-            robot.keyTap('v', 'control');
-            console.log('✓ Sent Ctrl+V paste command');
-          }
-          const totalTime = Date.now() - startTime;
-          if (logger) logger.typing('✓ Pasted instantly with Ctrl+V', { total_duration_ms: totalTime });
-          console.log(`✓ Typed instantly in ${totalTime}ms (clipboard method)`);
-        } else {
-          console.warn('⚠ robotjs not available - Text is in clipboard (use Ctrl+V manually)');
-        }
-      } catch (pasteErr) {
-        if (logger) logger.typingError('Paste failed', pasteErr);
-        console.error('❌ Paste failed:', pasteErr.message || pasteErr);
-        console.warn('Text is in clipboard, use Ctrl+V manually');
-      }
-    }, 200); // 200ms delay to ensure focus has switched
-    return true;
+    if (logger) logger.typing('Text copied to clipboard (fallback)');
+    console.log('Text copied to clipboard (use Ctrl+V to paste)');
   } catch (clipErr) {
-    if (logger) logger.typingError('Clipboard failed', clipErr);
+    if (logger) logger.typingError('All typing methods failed', clipErr);
     console.error('Failed to copy to clipboard:', clipErr);
-    return false;
   }
+
+  return true;
 }
 
 // Removed typeDelta - we now type the full final text instead of deltas
@@ -1306,7 +999,7 @@ async function getAudioInputDevices() {
 // Build microphone submenu
 async function buildMicrophoneSubmenu() {
   const devices = await getAudioInputDevices();
-  
+
   if (devices.length === 0) {
     return [
       {
@@ -1315,7 +1008,7 @@ async function buildMicrophoneSubmenu() {
       }
     ];
   }
-  
+
   return devices.map(device => ({
     label: device.label,
     type: 'radio',
@@ -1332,7 +1025,7 @@ async function buildMicrophoneSubmenu() {
 
 function updateTrayMenu() {
   if (!tray) return;
-  
+
   // Build microphone submenu (async)
   buildMicrophoneSubmenu().then(micSubmenu => {
     const contextMenu = Menu.buildFromTemplate([
@@ -1386,84 +1079,84 @@ function updateTrayMenu() {
       { type: 'separator' },
       {
         label: 'Paste Last Transcript',
-      enabled: false // Description item
-    },
-    { type: 'separator' },
-    {
-      label: 'Shortcuts',
-      submenu: [
-        {
-          label: 'Hold Hotkey',
-          sublabel: settings.holdHotkey || 'Not set',
-          click: () => {
-            if (mainWindow) {
-              mainWindow.show();
-              mainWindow.focus();
-              // Focus on hold hotkey input
-              mainWindow.webContents.send('focus-hold-hotkey');
+        enabled: false // Description item
+      },
+      { type: 'separator' },
+      {
+        label: 'Shortcuts',
+        submenu: [
+          {
+            label: 'Hold Hotkey',
+            sublabel: settings.holdHotkey || 'Not set',
+            click: () => {
+              if (mainWindow) {
+                mainWindow.show();
+                mainWindow.focus();
+                // Focus on hold hotkey input
+                mainWindow.webContents.send('focus-hold-hotkey');
+              }
+            }
+          },
+          {
+            label: 'Toggle Hotkey',
+            sublabel: settings.toggleHotkey || 'Not set',
+            click: () => {
+              if (mainWindow) {
+                mainWindow.show();
+                mainWindow.focus();
+                // Focus on toggle hotkey input
+                mainWindow.webContents.send('focus-toggle-hotkey');
+              }
+            }
+          },
+          { type: 'separator' },
+          {
+            label: 'Paste Last Transcript',
+            accelerator: 'Alt+Shift+Z',
+            click: pasteLastTranscript
+          },
+          {
+            label: 'Talk to Support',
+            accelerator: 'Super+/',
+            click: talkToSupport
+          },
+          {
+            label: 'Exit',
+            accelerator: 'Super+Q',
+            click: () => app.quit()
+          }
+        ]
+      },
+      {
+        label: 'Microphone',
+        submenu: [
+          {
+            label: 'Microphone Settings',
+            click: () => {
+              if (mainWindow) {
+                mainWindow.show();
+                mainWindow.focus();
+              }
+            }
+          },
+          { type: 'separator' },
+          {
+            label: isRecording ? 'Stop Recording' : 'Start Recording',
+            click: () => {
+              toggleRecording();
             }
           }
-        },
-        {
-          label: 'Toggle Hotkey',
-          sublabel: settings.toggleHotkey || 'Not set',
-          click: () => {
-            if (mainWindow) {
-              mainWindow.show();
-              mainWindow.focus();
-              // Focus on toggle hotkey input
-              mainWindow.webContents.send('focus-toggle-hotkey');
-            }
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Paste Last Transcript',
-          accelerator: 'Alt+Shift+Z',
-          click: pasteLastTranscript
-        },
-        {
-          label: 'Talk to Support',
-          accelerator: 'Super+/',
-          click: talkToSupport
-        },
-        {
-          label: 'Exit',
-          accelerator: 'Super+Q',
-          click: () => app.quit()
-        }
-      ]
-    },
-    {
-      label: 'Microphone',
-      submenu: [
-        {
-          label: 'Microphone Settings',
-          click: () => {
-            if (mainWindow) {
-              mainWindow.show();
-              mainWindow.focus();
-            }
-          }
-        },
-        { type: 'separator' },
-        {
-          label: isRecording ? 'Stop Recording' : 'Start Recording',
-          click: () => {
-            toggleRecording();
-          }
-        }
-      ]
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit SONU',
-      accelerator: 'CmdOrCtrl+Q',
-      click: () => app.quit()
-    }
-  ]);
+        ]
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit SONU',
+        accelerator: 'CmdOrCtrl+Q',
+        click: () => app.quit()
+      }
+    ]);
 
-  tray.setContextMenu(contextMenu);
+    tray.setContextMenu(contextMenu);
   }).catch(err => {
     console.error('Error building tray menu:', err);
   });
@@ -1488,182 +1181,270 @@ function createTray() {
 
   tray.setToolTip('Offline Voice Typing');
   tray.on('click', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
-        if (mainWindow.isMinimized()) {
-          mainWindow.restore();
-        }
-        mainWindow.show();
-        mainWindow.focus();
-        // Bring to front
-        mainWindow.setAlwaysOnTop(true);
-        setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setAlwaysOnTop(false);
-          }
-        }, 200);
-      }
-    }
+    mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
   });
 }
 
-function ensureWhisperService() {
-  // CRITICAL: Don't restart service if recording is active - this causes interruptions
-  if (isRecording) {
-    console.log('⚠ Recording active - skipping service restart to prevent interruption');
-    return;
+
+function ensureLLMService() {
+  // Helper to safely get models dir
+  const getModelsDir = () => {
+      // Try global setting first
+      if (typeof settings !== 'undefined' && settings.model_download_path) {
+          return settings.model_download_path;
+      }
+      // Try calling existing function if accessible
+      try {
+          if (typeof getDefaultModelsDir === 'function') return getDefaultModelsDir();
+      } catch (e) { }
+
+      // Fallback implementation
+      const platform = process.platform;
+      const home = require('os').homedir();
+      const p = require('path');
+      if (platform === 'win32') return p.join(home, 'AppData', 'Roaming', 'Sonu', 'models');
+      if (platform === 'darwin') return p.join(home, 'Library', 'Application Support', 'Sonu', 'models');
+      return p.join(home, '.local', 'share', 'Sonu', 'models');
+  };
+
+  if (llmProcess && !llmProcess.killed) return;
+  console.log('Starting LLM Service...');
+  const pythonCmd = findPythonExecutable() || 'python';
+  const scriptPath = path.join(__dirname, 'src', 'core', 'python', 'llm_service.py');
+
+  const env = { ...process.env };
+  env.SONU_MODELS_DIR = getModelsDir();
+
+  try {
+    llmProcess = spawn(pythonCmd, [scriptPath], {
+       stdio: ['pipe', 'pipe', 'pipe'],
+       shell: process.platform === 'win32',
+       env: env
+    });
+
+    llmProcess.stdout.on('data', (data) => {
+       llmStdoutBuffer += data.toString();
+       const lines = llmStdoutBuffer.split('\n');
+       llmStdoutBuffer = lines.pop() || '';
+       for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+             // Handle structured JSON messages
+             if (line.trim().startsWith('{')) {
+                 const msg = JSON.parse(line.trim());
+                 if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('llm:message', msg);
+                 }
+                 // Handle specific status updates
+                 if (msg.type === 'status') {
+                     llmServiceReady = msg.ready;
+                     console.log('LLM Status:', msg.status);
+                 }
+             } else {
+                 console.log('LLM:', line);
+             }
+          } catch (e) { console.log('LLM Raw:', line); }
+       }
+    });
+
+    llmProcess.stderr.on('data', d => console.error('LLM Err:', d.toString()));
+
+    llmProcess.on('exit', (code) => {
+        console.log('LLM Service exited:', code);
+        llmProcess = null;
+        llmServiceReady = false;
+    });
+
+    // Init Context Manager listener
+    try {
+        contextManager.addListener((ctx) => {
+           if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('context:changed', ctx);
+
+              // Auto-apply style based on context (Chameleon Mode)
+              if (contextManager.isAutoStyleEnabled() && ctx.recommendedStyle) {
+                  const currentStyle = settings.activeStyle || 'neutral';
+                  const newStyle = ctx.recommendedStyle;
+
+                  // Only update if style changed
+                  if (currentStyle !== newStyle) {
+                      settings.activeStyle = newStyle;
+                      settings.flowRefinement = ctx.flowRefinement !== false; // Default to true
+
+                      console.log(`[ContextManager] Auto-switched to '${newStyle}' style for ${ctx.category} context (${ctx.app})`);
+
+                      // Notify renderer of style change
+                      mainWindow.webContents.send('style-category-auto-updated', ctx.category);
+                  }
+              }
+           }
+        });
+        // Auto-start tracking if settings allow (optional, defaulted to manual start via IPC)
+        // if (settings.context_awareness) contextManager.start();
+    } catch(e) {
+        console.warn('Context Manager listener error:', e);
+    }
+
+  } catch (e) {
+    console.error('Failed to start LLM service:', e);
   }
-  
+}
+
+function writeToLLM(cmd) {
+   if (llmProcess && !llmProcess.killed) {
+      try {
+        llmProcess.stdin.write(cmd + '\n');
+      } catch (e) {
+        console.error('Error writing to LLM:', e);
+      }
+   } else {
+      ensureLLMService();
+      // Retry once after short delay
+      setTimeout(() => {
+          if (llmProcess && !llmProcess.killed) {
+              try { llmProcess.stdin.write(cmd + '\n'); } catch(e) {}
+          }
+      }, 1000);
+   }
+}
+
+
+function ensureWhisperService() {
   if (whisperProcess && !whisperProcess.killed) {
     // Service is ready - pre-configure hold keys if needed
     if (logger) logger.whisper('Whisper service already running');
     return;
   }
 
-  const pythonScript = path.join(__dirname, 'whisper_service.py');
-  
-  // Verify the script exists
-  if (!fs.existsSync(pythonScript)) {
-    const errorMsg = `Whisper service script not found at: ${pythonScript}`;
-    console.error(errorMsg);
-    if (logger) logger.whisperError(errorMsg);
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('whisper-error', errorMsg);
-    }
-    return;
-  }
-  
+  const pythonScript = path.join(__dirname, 'src', 'core', 'python', 'whisper_service.py');
   const pythonCmd = findPythonExecutable() || 'python';
-  
-  if (logger) logger.whisper('Starting whisper service', { 
-    pythonCmd, 
+
+  if (logger) logger.whisper('Starting whisper service', {
+    pythonCmd,
     pythonScript,
-    model: settings.activeModel 
+    model: settings.activeModel
   });
-  
-  // Notify UI that model is starting to load (if window exists)
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('whisper-loading', { model: settings.activeModel || 'tiny' });
-  }
-  
+
   // Set WHISPER_MODEL environment variable
   const env = { ...process.env };
   env.WHISPER_MODEL = settings.activeModel || 'tiny';
-  
-  try {
-    whisperProcess = spawn(pythonCmd, [pythonScript], { 
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
-      env: env,
-      cwd: __dirname  // Set working directory to ensure relative paths work
-    });
-  } catch (error) {
-    const errorMsg = `Failed to spawn whisper service: ${error.message}`;
-    console.error(errorMsg);
-    if (logger) logger.whisperError(errorMsg);
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('whisper-error', errorMsg);
-    }
-    whisperProcess = null;
-    return;
+
+  // Set SONU_MODELS_DIR from settings
+  if (settings.model_download_path) {
+    env.SONU_MODELS_DIR = settings.model_download_path;
+  } else {
+    // Default to app data if not set - MUST match getDefaultModelsDir()
+    env.SONU_MODELS_DIR = modelDownloader.getDefaultDownloadPath();
   }
-  
+
+  whisperProcess = spawn(pythonCmd, [pythonScript], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    shell: process.platform === 'win32',
+    env: env
+  });
+
   // Reset buffer when creating new process
   whisperStdoutBuffer = '';
-  
-  // Add error handler for spawn failures
-  whisperProcess.on('error', (error) => {
-    const errorMsg = `Whisper service spawn error: ${error.message}`;
-    console.error(errorMsg);
-    if (logger) logger.whisperError(errorMsg);
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('whisper-error', errorMsg);
-    }
-    whisperProcess = null;
-  });
-  
-  // Pre-configure hold keys and experimental settings immediately when service starts
+
+  // Pre-configure hold keys immediately when service starts
   setImmediate(() => {
     if (whisperProcess && !whisperProcess.killed) {
       const pyCombo = electronToPythonCombo(settings.holdHotkey);
       writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
-      // Send experimental settings
-      sendExperimentalSettings();
     }
   });
-  
+
   whisperProcess.stdout.on('data', (data) => {
     // Handle data that might come in chunks
     whisperStdoutBuffer += data.toString();
     const lines = whisperStdoutBuffer.split('\n');
     // Keep the last incomplete line in buffer
     whisperStdoutBuffer = lines.pop() || '';
-    
+
     for (const line of lines) {
       const raw = line.trim();
       if (!raw) continue;
-      
+
+      // Skip LANG: lines - they're metadata, not transcription text
+      if (raw.startsWith('LANG:')) {
+        continue;
+      }
+
       // Handle live partial updates - TYPE INCREMENTALLY FOR INSTANT OUTPUT
       if (raw.startsWith('PARTIAL:')) {
-        // CRITICAL: Capture isNotesRecording state IMMEDIATELY (before any async operations)
-        // This ensures we know if it was notes recording even if flag gets reset
-        const wasNotesRecordingPartial = isNotesRecording;
-        
         const partial = raw.slice(8).trim();
-        try { mainWindow.webContents.send('transcription-partial', partial); } catch (e) {}
-        
-        // Check if continuous dictation is enabled
-        const continuousDictationEnabled = isContinuousDictationEnabled();
-        
+        try { mainWindow.webContents.send('transcription-partial', partial); } catch (e) { }
+
         // INSTANT TYPING: Type partials incrementally as they arrive
         // This gives Wispr Flow-like instant feedback while still recording
         // Window is already hidden when recording starts, so we can type immediately
         // CRITICAL: This also handles the instant partial sent on RELEASE/STOP for instant output
         if (partial && partial.length > 0) {
-          // Apply style transformation to partial text (async)
-          // For partials, use rule-based for speed (LLM would be too slow for live typing)
-          const transformedPartial = applyStyle(partial, getTextStyle(), getTextStyleCategory());
-          
-          // Don't type if this is Notes tab recording - text should only go to Notes UI
-          // Use wasNotesRecordingPartial (captured at start) instead of isNotesRecording
-          if (wasNotesRecordingPartial) {
-            // Notes recording: Don't type, just send to UI
-            console.log('Notes recording: skipping auto-type, sending to Notes UI');
-          } else if (continuousDictationEnabled && isRecording) {
-            // Continuous dictation mode: Type partials live/incrementally while dictating
-            console.log('Continuous dictation: typing partials live');
-            typeIncrementalText(transformedPartial, true); // true = isPartial
-          } else if (!continuousDictationEnabled && isRecording) {
-            // Normal mode (continuous dictation OFF): Don't type partials, wait for final
-            console.log('Normal mode: storing partial, waiting for final transcription');
-            // Don't type - wait for final transcription
-          } else {
-            // Release partial (recording stopped): Type immediately for instant output
-            // This handles both HOLD release and TOGGLE off scenarios
-            // The partial comes right after STOP command for instant typing
-            const isReleasePartial = !isRecording; // If recording stopped, this is a release partial
-            
-            // CRITICAL: Don't type release partials for notes recording - text should only go to Notes UI
-            // Use wasNotesRecordingPartial (captured at start) instead of isNotesRecording
-            if (isReleasePartial && transformedPartial && transformedPartial.trim() && !wasNotesRecordingPartial) {
-              // RELEASE/STOP PARTIAL: Type immediately for instant output (like Wispr Flow)
-              // This gives instant feedback while final transcription processes in background
-              console.log('⚡ Instant typing release partial:', transformedPartial.substring(0, 50));
-              
-              // Type everything for instant output - don't worry about deltas
-              // The final transcription will handle any corrections
-              typeStringRobot(transformedPartial);
-              lastTypedText = transformedPartial;
-            } else if (isReleasePartial && wasNotesRecordingPartial) {
-              // Notes recording: Don't type partials, just log
-              console.log('Notes recording: skipping release partial typing, text will go to Notes UI');
+          // Check if this is a release partial (comes right after RELEASE event)
+          // For release partials, type immediately without complex delta calculations
+          const isReleasePartial = !isRecording; // If recording stopped, this is a release partial
+
+          if (isReleasePartial) {
+            // RELEASE PARTIAL: Type immediately for instant output (like Wispr Flow)
+            // Don't do complex delta - just type what's new or type everything if needed
+            if (!lastTypedText || !partial.startsWith(lastTypedText)) {
+              // Type everything for instant output on release
+              typeStringRobot(partial);
+              lastTypedText = partial;
+            } else {
+              // Type only the delta
+              const delta = partial.slice(lastTypedText.length);
+              if (delta && delta.trim().length > 0) {
+                typeStringRobot(delta);
+                lastTypedText = partial;
+              }
             }
+          } else {
+            // Regular partial during recording - use incremental typing
+            typeIncrementalText(partial, true); // true = isPartial
           }
         }
         continue;
       }
+
+      // Handle continuous dictation segments (finalized speech segments)
+      if (raw.startsWith('SEGMENT:')) {
+        const segment = raw.slice(8).trim();
+        if (segment && segment.length > 0) {
+          console.log('Continuous segment:', segment);
+
+          // Track WPM stats for continuous dictation
+          trackTranscriptionForWPM(segment);
+
+          // Type the segment with a space separator from previous segment
+          if (lastTypedText && lastTypedText.length > 0) {
+            typeStringRobot(' ' + segment);
+          } else {
+            typeStringRobot(segment);
+          }
+          lastTypedText = segment;
+
+          // Update history and UI
+          appendHistory(segment);
+          try {
+            mainWindow.webContents.send('transcription', segment);
+            mainWindow.webContents.send('continuous-segment', segment);
+          } catch (e) { }
+
+          // Apply flow refinement if enabled
+          if (settings.flowRefinement) {
+            applyFlowRefinement(segment, (refinedText) => {
+              if (refinedText && refinedText !== segment) {
+                try {
+                  mainWindow.webContents.send('transcription-refined', refinedText);
+                } catch (e) { }
+              }
+            });
+          }
+        }
+        continue;
+      }
+
       // Immediate release event: hide indicator INSTANTLY - ULTRA FAST
       if (raw.startsWith('EVENT:')) {
         const evt = raw.slice(6).trim().toUpperCase();
@@ -1671,30 +1452,17 @@ function ensureWhisperService() {
           // Model is loaded and ready
           whisperModelReady = true;
           if (logger) logger.whisper('Whisper model loaded and ready', { model: settings.activeModel });
-          console.log('✓ Whisper model ready and ready for dictation');
+          console.log('✓ Whisper model ready');
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('whisper-ready', { model: settings.activeModel });
           }
-          
-          // Send experimental settings when model is ready
-          sendExperimentalSettings();
-          
-          // Pre-configure hold keys now that model is ready
-          // Small delay to ensure service is fully initialized before configuring keys
-          setTimeout(() => {
-            if (whisperProcess && !whisperProcess.killed) {
-              const pyCombo = electronToPythonCombo(settings.holdHotkey);
-              writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
-              console.log('✓ Hold keys pre-configured:', pyCombo);
-            }
-          }, 100);
-          
+
           // Execute any pending recording action
           if (pendingRecordingAction) {
             console.log('⚡ Executing queued recording action');
             const action = pendingRecordingAction;
             pendingRecordingAction = null;
-            
+
             // Execute the queued action immediately
             setImmediate(() => {
               action();
@@ -1728,52 +1496,43 @@ function ensureWhisperService() {
           isRecording = false;
           continue;
         }
+        if (evt === 'CONTINUOUS_STARTED') {
+          // Continuous dictation mode started
+          console.log('✓ Continuous dictation mode active');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('continuous-started');
+          }
+          continue;
+        }
+        if (evt === 'CONTINUOUS_STOPPED') {
+          // Continuous dictation mode stopped
+          console.log('✓ Continuous dictation mode stopped');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('continuous-stopped');
+          }
+          continue;
+        }
         if (evt === 'RELEASE') {
-          // CRITICAL: Check if this is notes recording BEFORE hiding anything
-          const wasNotesRecording = isNotesRecording;
-          
-          // CRITICAL: Hide indicator FIRST, before any other operations
-          // BUT: Don't hide indicator for notes recording (it was never shown)
-          // This must be synchronous and immediate - no async operations
-          if (!wasNotesRecording) {
-            hideIndicator();
-          }
-          
-          // CRITICAL: Only reset isRecording if it wasn't notes recording
-          // For notes recording, keep the flag so transcription handler knows it was notes
-          if (!wasNotesRecording) {
-            isRecording = false;
-            isHoldKeyPressed = false;
-          } else {
-            // Notes recording: Keep isRecording true - stopNotesRecording() will reset it
-            console.log('📝 Notes recording RELEASE: Keeping isRecording=true for transcription handler');
-          }
-          
-          // CRITICAL: For notes recording, ensure window stays visible and focused
-          if (wasNotesRecording && mainWindow && !mainWindow.isDestroyed()) {
-            if (!mainWindow.isVisible()) {
-              console.log('🔍 Notes recording RELEASE: Window not visible, showing now');
-              mainWindow.show();
-            }
-            mainWindow.setFocusable(true);
-            mainWindow.focus();
-            mainWindow.setAlwaysOnTop(false);
-            mainWindow.moveTop();
-            console.log('✅ Notes recording RELEASE: Window kept visible and focused');
-          }
-          
+          // Show processing state (purple sparkle animation) while transcription finalizes
+          // The widget will be hidden after final text is typed and 'done' state is shown
+          setWidgetState('processing');
+
+          // Reset state immediately
+          isRecording = false;
+          isHoldKeyPressed = false;
+
           // Clear timeout immediately
           if (holdRecordingTimeout) {
             clearTimeout(holdRecordingTimeout);
             holdRecordingTimeout = null;
           }
-          
+
           // Send UI updates (non-blocking)
-          try { 
+          try {
             mainWindow.webContents.send('recording-stop');
             mainWindow.webContents.send('play-sound', 'stop');
-          } catch (e) {}
-          
+          } catch (e) { }
+
           // INSTANT TYPING: If we have partial text, type it immediately on release
           // This gives Wispr Flow-like instant output while final transcription processes
           // The partial will come right after RELEASE event, so we'll type it then
@@ -1785,191 +1544,195 @@ function ensureWhisperService() {
       const text = raw;
       if (text) {
         console.log('Received final transcription text:', text);
-        
-        // CRITICAL: Capture isNotesRecording state IMMEDIATELY (before any async operations)
-        // This must be done synchronously because stopNotesRecording() resets the flag
-        // before transcription completes, causing the flag to be false when we check it later
-        const wasNotesRecording = isNotesRecording;
-        console.log('📝 Transcription received - wasNotesRecording:', wasNotesRecording, 'isNotesRecording:', isNotesRecording);
-        
-        // Apply style transformation to final text (async - may use LLM if enabled)
-        transformText(text).then(transformedText => {
-          // Use the captured wasNotesRecording value (don't check isNotesRecording again)
-          
-          // Ensure text is available for manual paste as a fallback (use transformed text)
-          // BUT: Don't copy to clipboard for notes recording (text should stay in Notes UI)
-          if (!wasNotesRecording) {
-            try { clipboard.writeText(transformedText); } catch (e) {}
+
+        // Check for voice triggers (snippet shortcuts) FIRST
+        const triggerResult = checkVoiceTriggers(text);
+        if (triggerResult.matched) {
+          // Voice trigger matched - type snippet instead of transcription
+          console.log(`🎯 Voice shortcut activated: "${text}" → "${triggerResult.snippetTitle}"`);
+
+          // If partials were already typed, backspace them
+          if (lastTypedText && lastTypedText.trim()) {
+            try {
+              for (let i = 0; i < lastTypedText.length; i++) {
+                if (robotType === 'robot-js') {
+                  const key = robot.Key.Backspace;
+                  robot.Keyboard.click(key);
+                } else if (robotType === 'robotjs') {
+                  robot.keyTap('backspace');
+                }
+              }
+            } catch (e) {
+              console.error('Error backspacing for snippet:', e);
+            }
           }
-          appendHistory(transformedText);
-          mainWindow.webContents.send('transcription', transformedText);
-          
-          // Check if continuous dictation is enabled
-          const continuousDictationEnabled = isContinuousDictationEnabled();
-          
-          // Update UI state after a transcription completes (covers HOLD release)
-          // Note: wasNotesRecording is already declared above (line 1706)
-          try { 
-            mainWindow.webContents.send('recording-stop');
-            mainWindow.webContents.send('play-sound', 'stop');
-          } catch (e) {}
-          
-          // CRITICAL: Don't hide indicator or window for notes recording
-          if (!wasNotesRecording) {
-            hideIndicator();
-          }
-          
-          // CRITICAL: Only reset isRecording if it wasn't notes recording
-          // For notes recording, the flag will be reset in stopNotesRecording()
-          // This prevents race conditions where transcription arrives after flag is reset
-          if (!wasNotesRecording) {
-            isRecording = false;
-            isHoldKeyPressed = false;
-          } else {
-            // Notes recording: Keep isRecording true until stopNotesRecording() explicitly resets it
-            // This ensures transcription handler knows it was notes recording
-            console.log('📝 Notes recording: Keeping isRecording=true until stopNotesRecording() resets it');
-          }
+
+          // Type the snippet content
+          setTimeout(() => {
+            typeStringRobot(triggerResult.snippetText);
+            try { clipboard.writeText(triggerResult.snippetText); } catch (e) { }
+            appendHistory(`[Snippet: ${triggerResult.snippetTitle}] ${triggerResult.snippetText}`);
+            mainWindow.webContents.send('transcription', triggerResult.snippetText);
+          }, 50);
+
+          // Show done state and hide
+          setWidgetState('done');
+          setTimeout(() => { hideIndicator(); }, 1800);
+          isRecording = false;
+          isHoldKeyPressed = false;
+          lastTypedText = '';
           if (holdRecordingTimeout) {
             clearTimeout(holdRecordingTimeout);
             holdRecordingTimeout = null;
           }
-          
-          // Typing logic based on continuous dictation mode
-          // Don't type if this is Notes tab recording - text should only go to Notes UI
-          try {
-            if (transformedText && transformedText.trim()) {
-              if (wasNotesRecording) {
-                // Notes recording: Don't type, just send to UI (already sent above)
-                console.log('Notes recording: skipping auto-type, text sent to Notes UI');
-                // Reset for next transcription
-                lastTypedText = '';
-                // CRITICAL: Ensure app stays visible and focused after notes dictation completes
-                // This prevents window from being hidden or becoming unclickable
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                  // Ensure window is visible and focusable
-                  if (!mainWindow.isVisible()) {
-                    console.log('🔍 Notes recording: Window not visible, showing now');
-                    mainWindow.show();
-                  }
-                  // Ensure window is focusable and focused
-                  mainWindow.setFocusable(true);
-                  mainWindow.focus();
-                  mainWindow.setAlwaysOnTop(false);
-                  // Force window to front
-                  mainWindow.moveTop();
-                  console.log('✅ Notes recording: Window kept visible and focused');
+          continue; // Skip normal processing
+        }
+
+        // Check for voice commands (edit/transform clipboard content)
+        const commandResult = checkVoiceCommand(text);
+        if (commandResult.isCommand) {
+          console.log(`⚡ Command mode activated: "${text}"`);
+
+          // If partials were already typed, backspace them
+          if (lastTypedText && lastTypedText.trim()) {
+            try {
+              for (let i = 0; i < lastTypedText.length; i++) {
+                if (robotType === 'robot-js') {
+                  const key = robot.Key.Backspace;
+                  robot.Keyboard.click(key);
+                } else if (robotType === 'robotjs') {
+                  robot.keyTap('backspace');
                 }
-                
-                // CRITICAL: Now that transcription is processed, reset the flags immediately
-                // This allows the next notes recording to start properly
-                // Use setImmediate to reset as soon as current execution completes
-                setImmediate(() => {
-                  // Only reset if flag hasn't changed (i.e., not restarted)
-                  if (isNotesRecording === wasNotesRecording) {
-                    console.log('📝 Notes recording: Transcription processed, resetting flags');
-                    isNotesRecording = false;
-                    isRecording = false;
-                  } else {
-                    console.log('📝 Notes recording: Flag changed (recording restarted), not resetting');
-                  }
-                });
-              } else if (continuousDictationEnabled) {
-                // Continuous dictation mode: We already typed partials live, so just type any remaining delta
-                // This handles the case where final transcription might have slight differences
-                // CRITICAL: Don't type for notes recording - text should only go to Notes UI
-                if (!wasNotesRecording) {
-                  const typedDelta = typeIncrementalText(transformedText, false); // false = final text
-                  
-                  // If no delta (everything was already typed from partials), we're done
-                  if (!typedDelta || typedDelta.trim().length === 0) {
-                    if (lastTypedText === transformedText) {
-                      console.log('✓ Continuous dictation: All text already typed from live partials');
-                    }
-                  } else {
-                    console.log(`✓ Continuous dictation: Typed final delta: "${typedDelta}"`);
-                  }
-                } else {
-                  console.log('Notes recording: skipping continuous dictation typing, text will go to Notes UI');
-                }
-                
-                // Reset for next transcription
-                lastTypedText = '';
-              } else {
-                // Normal mode (continuous dictation OFF): Type the complete final transcription
-                // BUT: If we already typed a partial on STOP, only type the delta
-                // CRITICAL: Don't type for notes recording - text should only go to Notes UI
-                if (!wasNotesRecording) {
-                  if (lastTypedText && transformedText.startsWith(lastTypedText)) {
-                    // We already typed a partial, just type the delta
-                    const delta = transformedText.slice(lastTypedText.length);
-                    if (delta && delta.trim().length > 0) {
-                      console.log('Normal mode: typing final delta:', delta.substring(0, 50));
-                      typeStringRobot(delta);
-                      lastTypedText = transformedText;
-                    } else {
-                      console.log('Normal mode: All text already typed from partial');
-                    }
-                  } else {
-                    // No partial was typed, type everything
-                    console.log('Normal mode: typing complete final transcription');
-                    typeStringRobot(transformedText);
-                    lastTypedText = transformedText;
-                  }
-                } else {
-                  console.log('Notes recording: skipping normal mode typing, text will go to Notes UI');
-                }
-                
-                // Reset for next transcription
-                lastTypedText = '';
               }
+            } catch (e) {
+              console.error('Error backspacing for command:', e);
             }
-          } catch (e) {
-            console.error('Failed to type text:', e);
-            // Fallback: ensure text is in clipboard (unless Notes recording)
-            if (!isNotesRecording) {
+          }
+
+          // Execute the command
+          executeVoiceCommand(commandResult, (result, error) => {
+            if (result) {
+              // Type the result
+              typeStringRobot(result);
+              try { clipboard.writeText(result); } catch (e) { }
+              appendHistory(`[Command: ${commandResult.originalCommand}] ${result}`);
+              mainWindow.webContents.send('transcription', result);
+              console.log(`✓ Command executed: "${result.substring(0, 50)}..."`);
+            } else {
+              // Show error message
+              console.log(`Command error: ${error}`);
               try {
-                clipboard.writeText(transformedText);
-              } catch (clipErr) {
-                console.error('Failed to copy to clipboard:', clipErr);
-              }
+                mainWindow.webContents.send('show-message', {
+                  type: 'warning',
+                  message: error || 'Command failed',
+                  duration: 2000
+                });
+              } catch (e) { }
             }
-            // Reset on error
+
+            // Show done state and hide
+            setWidgetState('done');
+            setTimeout(() => { hideIndicator(); }, 1800);
+          });
+
+          isRecording = false;
+          isHoldKeyPressed = false;
+          lastTypedText = '';
+          if (holdRecordingTimeout) {
+            clearTimeout(holdRecordingTimeout);
+            holdRecordingTimeout = null;
+          }
+          continue; // Skip normal processing
+        }
+
+        // Normal transcription processing (no voice trigger or command)
+        // Track WPM stats for this transcription
+        trackTranscriptionForWPM(text);
+
+        // Ensure text is available for manual paste as a fallback
+        try { clipboard.writeText(text); } catch (e) { }
+        appendHistory(text);
+        mainWindow.webContents.send('transcription', text);
+        // Update UI state after a transcription completes (covers HOLD release)
+        try {
+          mainWindow.webContents.send('recording-stop');
+          mainWindow.webContents.send('play-sound', 'stop');
+        } catch (e) { }
+
+        // INSTANT TYPING: Type only the delta (new words not in last partial)
+        // This ensures we don't retype what we already typed from partials
+        // Since partial was already typed on release, this should be instant delta typing
+        const originalText = text;
+        let alreadyTypedText = lastTypedText; // Save what was typed before any updates
+
+        try {
+          if (text && text.trim()) {
+            // Type incrementally - only new words compared to what we've already typed
+            // This is typically empty or very small delta since partial was typed on release
+            const typedDelta = typeIncrementalText(text, false); // false = final text
+
+            // If no delta (everything was already typed from partials), we're done
+            if (!typedDelta || typedDelta.trim().length === 0) {
+              if (lastTypedText === text) {
+                console.log('✓ All text already typed from partials - instant output!');
+              }
+            } else {
+              console.log(`✓ Typed final delta: "${typedDelta}"`);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to type text:', e);
+          // Fallback: ensure text is in clipboard
+          try {
+            clipboard.writeText(text);
+          } catch (clipErr) {
+            console.error('Failed to copy to clipboard:', clipErr);
+          }
+        }
+
+        // Apply Flow Refinement (Wispr Flow-style cleanup)
+        // This happens AFTER instant typing, then corrects if needed
+        if (settings.flowRefinement && text && text.trim()) {
+          applyFlowRefinement(text, (refinedText) => {
+            if (refinedText && refinedText !== text) {
+              // Text was refined - update clipboard and history with refined version
+              try { clipboard.writeText(refinedText); } catch (e) { }
+
+              // Correct the typed text if refinement made changes
+              if (lastTypedText && lastTypedText.trim()) {
+                correctTypedText(lastTypedText, refinedText);
+              }
+
+              // Update history with refined version
+              try {
+                mainWindow.webContents.send('transcription-refined', refinedText);
+              } catch (e) { }
+
+              console.log(`✨ Flow refinement applied: "${text}" → "${refinedText}"`);
+            }
+
+            // Reset for next transcription (after refinement completes)
             lastTypedText = '';
-          }
-        }).catch(error => {
-          console.error('Error transforming text:', error);
-          // Check if this was notes recording BEFORE processing fallback
-          const wasNotesRecording = isNotesRecording;
-          
-          // Fallback to rule-based transformation
-          const fallbackText = applyStyle(text, getTextStyle(), getTextStyleCategory());
-          
-          // Don't copy to clipboard for notes recording
-          if (!wasNotesRecording) {
-            try { clipboard.writeText(fallbackText); } catch (e) {}
-          }
-          appendHistory(fallbackText);
-          mainWindow.webContents.send('transcription', fallbackText);
-          
-          // Don't type if this is Notes tab recording - keep window visible
-          if (wasNotesRecording) {
-            console.log('Notes recording: skipping auto-type in error handler, keeping window visible');
-            // Ensure app stays in foreground after notes dictation completes
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              if (!mainWindow.isVisible()) {
-                mainWindow.show();
-              }
-              mainWindow.setFocusable(true);
-              mainWindow.focus();
-              mainWindow.setAlwaysOnTop(false);
-              mainWindow.moveTop();
-            }
-          } else {
-            // Type the fallback text (only for non-notes recording)
-            typeStringRobot(fallbackText);
-          }
-        });
+          });
+        } else {
+          // No flow refinement - reset immediately
+          lastTypedText = '';
+        }
+
+        // Show 'done' state (green checkmark) then hide after brief delay
+        // The widget's setWidgetState('done') has a built-in auto-hide timeout
+        setWidgetState('done');
+        // Fallback hide in case widget doesn't auto-hide (ensure cleanup)
+        setTimeout(() => {
+          hideIndicator();
+        }, 1800); // Slightly longer than widget's 1500ms auto-hide
+
+        isRecording = false;
+        isHoldKeyPressed = false;
+        if (holdRecordingTimeout) {
+          clearTimeout(holdRecordingTimeout);
+          holdRecordingTimeout = null;
+        }
       }
     }
   });
@@ -1985,103 +1748,39 @@ function ensureWhisperService() {
 
   whisperProcess.on('exit', (code) => {
     console.log('Whisper service exited with code', code);
-    const wasRecording = isRecording; // Capture state before resetting
-    const wasNotesRecording = isNotesRecording; // Capture notes recording state
     whisperProcess = null;
     whisperStdoutBuffer = '';
-    whisperModelReady = false; // Reset model ready state
-    
     // If recording was active, stop it and hide indicator
-    if (wasRecording) {
-      // CRITICAL: Only reset isRecording if it wasn't notes recording
-      // Notes recording has its own cleanup in stopNotesRecording()
-      if (!wasNotesRecording) {
-        isRecording = false;
-        isHoldKeyPressed = false;
-      } else {
-        // Notes recording: Let stopNotesRecording() handle cleanup
-        console.log('📝 Notes recording: Service exit - keeping state for cleanup');
-      }
+    if (isRecording) {
+      isRecording = false;
+      isHoldKeyPressed = false;
       if (holdRecordingTimeout) {
         clearTimeout(holdRecordingTimeout);
         holdRecordingTimeout = null;
       }
-      try { mainWindow.webContents.send('recording-stop'); } catch (e) {}
+      try { mainWindow.webContents.send('recording-stop'); } catch (e) { }
       hideIndicator();
-      
-      // Show error notification if service crashed during recording
-      if (code !== 0 && code !== null) {
-        console.error('⚠ Whisper service crashed during recording (exit code:', code, ')');
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('show-message', {
-            type: 'error',
-            message: 'Dictation service disconnected. Restarting...',
-            duration: 3000
-          });
-        }
-      }
-    }
-    
-    // Auto-restart service if it exited unexpectedly (not a clean shutdown)
-    // CRITICAL: Don't restart if recording was active - this causes interruptions
-    // Only restart if app is still running, not in test mode, and NOT during recording
-    if (code !== 0 && code !== null && !isTestMode && !wasRecording) {
-      console.log('🔄 Auto-restarting whisper service...');
-      // Small delay before restart to avoid rapid restart loops
-      setTimeout(() => {
-        if (!whisperProcess && !isRecording) { // Only restart if still not running and not recording
-          ensureWhisperService();
-        }
-      }, 1000);
-    } else if (wasRecording && code !== 0 && code !== null) {
-      // Service crashed during recording - restart immediately but don't interrupt
-      console.log('🔄 Service crashed during recording, will restart after cleanup...');
-      setTimeout(() => {
-        if (!whisperProcess && !isRecording) {
-          ensureWhisperService();
-        }
-      }, 500);
     }
   });
 }
 
 function writeToWhisper(command) {
   if (!whisperProcess || whisperProcess.killed) {
-    // CRITICAL: Don't restart service if recording is active - this causes interruptions
-    if (isRecording) {
-      console.error('⚠ Cannot write to whisper - service not available but recording is active');
-      return;
-    }
-    
     console.error('Whisper process not available, ensuring service...');
     ensureWhisperService();
-    // Wait a bit for process to start, with retry logic
-    let retries = 0;
-    const maxRetries = 5;
-    const retryInterval = 200; // 200ms between retries
-    
-    const tryWrite = () => {
+    // Wait a bit for process to start
+    setTimeout(() => {
       if (whisperProcess && !whisperProcess.killed) {
         try {
           whisperProcess.stdin.write(command);
           console.log('Sent command to whisper:', command.trim());
         } catch (e) {
           console.error('Failed to write to whisper stdin:', e);
-          // Retry if not at max retries
-          if (retries < maxRetries) {
-            retries++;
-            setTimeout(tryWrite, retryInterval);
-          }
         }
-      } else if (retries < maxRetries) {
-        retries++;
-        setTimeout(tryWrite, retryInterval);
       } else {
-        console.error('Whisper process still not available after retries');
+        console.error('Whisper process still not available after wait');
       }
-    };
-    
-    setTimeout(tryWrite, 100); // Initial delay
+    }, 200);
     return;
   }
   try {
@@ -2089,442 +1788,122 @@ function writeToWhisper(command) {
     console.log('Sent command to whisper:', command.trim());
   } catch (e) {
     console.error('Failed to write to whisper stdin:', e);
-    // If write failed, try to restart service and retry (only if not recording)
-    if ((e.code === 'EPIPE' || e.message.includes('write after end')) && !isRecording) {
-      console.log('🔄 Service disconnected, restarting...');
-      whisperProcess = null;
-      ensureWhisperService();
-      // Retry after service restarts
-      setTimeout(() => {
-        if (whisperProcess && !whisperProcess.killed && !isRecording) {
-          try {
-            whisperProcess.stdin.write(command);
-            console.log('Retry: Sent command to whisper:', command.trim());
-          } catch (retryErr) {
-            console.error('Retry failed:', retryErr);
-          }
-        }
-      }, 1000);
-    }
+    // Restart the service if write fails
+    whisperProcess = null;
+    ensureWhisperService();
   }
-}
-
-// Function to get continuous dictation setting
-function isContinuousDictationEnabled() {
-  const appSettingsPath = path.join(app.getPath('userData'), 'app-settings.json');
-  try {
-    if (fs.existsSync(appSettingsPath)) {
-      const raw = fs.readFileSync(appSettingsPath, 'utf8');
-      const appSettings = JSON.parse(raw);
-      return appSettings.continuous_dictation || false;
-    }
-  } catch (e) {
-    console.error('Error loading app settings for continuous dictation:', e);
-  }
-  return false;
-}
-
-// Function to get text style setting
-function getTextStyle() {
-  const appSettingsPath = path.join(app.getPath('userData'), 'app-settings.json');
-  try {
-    if (fs.existsSync(appSettingsPath)) {
-      const raw = fs.readFileSync(appSettingsPath, 'utf8');
-      const appSettings = JSON.parse(raw);
-      return appSettings.text_style || 'none';
-    }
-  } catch (e) {
-    console.error('Error loading app settings for text style:', e);
-  }
-  return 'none';
-}
-
-// Function to detect context and update category automatically
-async function detectAndUpdateContext() {
-  try {
-    const detectedCategory = await detectContextCategory();
-    if (detectedCategory) {
-      const appSettingsPath = path.join(app.getPath('userData'), 'app-settings.json');
-      let appSettings = {};
-      if (fs.existsSync(appSettingsPath)) {
-        const raw = fs.readFileSync(appSettingsPath, 'utf8');
-        appSettings = JSON.parse(raw);
-      }
-      // Only update if different from current
-      if (appSettings.text_style_category !== detectedCategory) {
-        appSettings.text_style_category = detectedCategory;
-        fs.writeFileSync(appSettingsPath, JSON.stringify(appSettings, null, 2));
-        console.log(`✓ Auto-detected context: ${detectedCategory}`);
-        // Notify renderer to update UI if style page is open
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('style-category-auto-updated', detectedCategory);
-        }
-      }
-      return detectedCategory;
-    }
-  } catch (e) {
-    console.warn('Context detection failed:', e.message);
-  }
-  return null;
-}
-
-// Helper function to detect context category (same logic as IPC handler)
-function detectContextCategory() {
-  return new Promise((resolve) => {
-    try {
-      // Get active window information
-      // On Windows, use PowerShell to get the active window title
-      if (process.platform === 'win32') {
-        const psCommand = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Win32 { [DllImport(\\\"user32.dll\\\")] public static extern IntPtr GetForegroundWindow(); [DllImport(\\\"user32.dll\\\")] public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count); } $hwnd = [Win32]::GetForegroundWindow(); $sb = New-Object System.Text.StringBuilder 256; [Win32]::GetWindowText($hwnd, $sb, $sb.Capacity) | Out-Null; $sb.ToString()"`;
-        try {
-          const activeWindowTitle = execSync(psCommand, { encoding: 'utf8', timeout: 1000 }).trim().toLowerCase();
-          
-          // Map window titles to categories
-          const emailApps = ['outlook', 'gmail', 'thunderbird', 'mail', 'apple mail', 'spark'];
-          const workMessengers = ['slack', 'teams', 'microsoft teams', 'discord', 'zoom'];
-          const personalMessengers = ['whatsapp', 'telegram', 'signal', 'messenger', 'imessage', 'messages'];
-          
-          if (emailApps.some(app => activeWindowTitle.includes(app))) {
-            resolve('email');
-            return;
-          } else if (workMessengers.some(app => activeWindowTitle.includes(app))) {
-            resolve('work');
-            return;
-          } else if (personalMessengers.some(app => activeWindowTitle.includes(app))) {
-            resolve('personal');
-            return;
-          }
-        } catch (e) {
-          console.warn('Context detection command failed:', e.message);
-        }
-      } else if (process.platform === 'darwin') {
-        // macOS - use AppleScript
-        try {
-          const script = `osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true'`;
-          const activeApp = execSync(script, { encoding: 'utf8', timeout: 1000 }).trim().toLowerCase();
-          
-          const emailApps = ['mail', 'outlook', 'spark', 'airmail'];
-          const workMessengers = ['slack', 'microsoft teams', 'zoom'];
-          const personalMessengers = ['messages', 'whatsapp', 'telegram', 'signal'];
-          
-          if (emailApps.some(app => activeApp.includes(app))) {
-            resolve('email');
-            return;
-          } else if (workMessengers.some(app => activeApp.includes(app))) {
-            resolve('work');
-            return;
-          } else if (personalMessengers.some(app => activeApp.includes(app))) {
-            resolve('personal');
-            return;
-          }
-        } catch (e) {
-          console.warn('Context detection failed on macOS:', e.message);
-        }
-      }
-      
-      // Default to null if no match (don't change category)
-      resolve(null);
-    } catch (e) {
-      console.warn('Context detection failed:', e.message);
-      resolve(null);
-    }
-  });
-}
-
-// Function to get text style category
-function getTextStyleCategory() {
-  const appSettingsPath = path.join(app.getPath('userData'), 'app-settings.json');
-  try {
-    if (fs.existsSync(appSettingsPath)) {
-      const raw = fs.readFileSync(appSettingsPath, 'utf8');
-      const appSettings = JSON.parse(raw);
-      return appSettings.text_style_category || 'personal';
-    }
-  } catch (e) {
-    console.error('Error loading app settings for text style category:', e);
-  }
-  return 'personal';
-}
-
-// Function to check if LLM processing is enabled
-function isLLMProcessingEnabled() {
-  const appSettingsPath = path.join(app.getPath('userData'), 'app-settings.json');
-  try {
-    if (fs.existsSync(appSettingsPath)) {
-      const raw = fs.readFileSync(appSettingsPath, 'utf8');
-      const appSettings = JSON.parse(raw);
-      return appSettings.llm_processing || false;
-    }
-  } catch (e) {
-    console.error('Error loading app settings for LLM processing:', e);
-  }
-  return false;
-}
-
-// Function to ensure LLM service is running
-function ensureLLMService() {
-  if (llmProcess && !llmProcess.killed) {
-    return true;
-  }
-
-  const pythonCmd = findPythonExecutable();
-  if (!pythonCmd) {
-    console.warn('Python not found, LLM service unavailable');
-    return false;
-  }
-
-  const llmScript = path.join(__dirname, 'llm_service.py');
-  if (!fs.existsSync(llmScript)) {
-    console.warn('LLM service script not found');
-    return false;
-  }
-
-  try {
-    llmProcess = spawn(pythonCmd, [llmScript], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      cwd: __dirname
-    });
-
-    llmProcess.stdout.setEncoding('utf8');
-    llmProcess.stderr.setEncoding('utf8');
-    llmProcessReady = false;
-
-    // Check if model exists and load it
-    llmProcess.stdin.write('CHECK\n');
-    
-    llmProcess.stdout.once('data', (data) => {
-      try {
-        const result = JSON.parse(data.toString().trim());
-        if (result.exists && result.ready) {
-          llmProcessReady = true;
-          console.log('✓ LLM service ready');
-        } else if (result.exists) {
-          // Model exists but not loaded, try to load
-          llmProcess.stdin.write('LOAD\n');
-        }
-      } catch (e) {
-        // Not JSON, ignore
-      }
-    });
-
-    llmProcess.stderr.on('data', (data) => {
-      const msg = data.toString();
-      if (msg.includes('loaded successfully')) {
-        llmProcessReady = true;
-        console.log('✓ LLM model loaded');
-      }
-    });
-
-    llmProcess.on('exit', (code) => {
-      console.log('LLM service exited with code', code);
-      llmProcess = null;
-      llmProcessReady = false;
-    });
-
-    return true;
-  } catch (error) {
-    console.error('Failed to start LLM service:', error);
-    llmProcess = null;
-    return false;
-  }
-}
-
-// Function to transform text using LLM service
-async function transformTextWithLLM(text, style, category = 'personal') {
-  if (!llmProcess || llmProcess.killed) {
-    if (!ensureLLMService()) {
-      return null;
-    }
-  }
-
-  return new Promise((resolve) => {
-    const timeout = setTimeout(() => {
-      resolve(null); // Timeout after 5 seconds
-    }, 5000);
-
-    const onData = (data) => {
-      clearTimeout(timeout);
-      llmProcess.stdout.removeListener('data', onData);
-      const transformed = data.toString().trim();
-      resolve(transformed || null);
-    };
-
-    llmProcess.stdout.once('data', onData);
-    // Send category along with style
-    llmProcess.stdin.write(`TRANSFORM:${style}:${category}:${text}\n`);
-
-    // Fallback timeout
-    setTimeout(() => {
-      clearTimeout(timeout);
-      llmProcess.stdout.removeListener('data', onData);
-      resolve(null);
-    }, 5000);
-  });
-}
-
-// Function to transform text based on style settings
-async function transformText(text) {
-  if (!text || !text.trim()) {
-    return text;
-  }
-
-  const style = getTextStyle();
-  const category = getTextStyleCategory();
-  const useLLM = isLLMProcessingEnabled();
-
-  // Try LLM transformation if enabled (only for final transcriptions, not partials)
-  if (useLLM) {
-    try {
-      const transformed = await transformTextWithLLM(text, style, category);
-      if (transformed && transformed !== text && transformed.length > 0) {
-        console.log('✓ Text transformed using local LLM');
-        return transformed;
-      }
-    } catch (error) {
-      console.warn('LLM transformation failed, falling back to rule-based:', error.message);
-    }
-  }
-
-  // Fall back to rule-based style transformation
-  return applyStyle(text, style, category);
-}
-
-// Function to send experimental settings to whisper service
-function sendExperimentalSettings() {
-  if (!whisperProcess || whisperProcess.killed) {
-    return;
-  }
-  
-  // Load app settings to get experimental feature values
-  const appSettingsPath = path.join(app.getPath('userData'), 'app-settings.json');
-  let appSettings = {};
-  try {
-    if (fs.existsSync(appSettingsPath)) {
-      const raw = fs.readFileSync(appSettingsPath, 'utf8');
-      appSettings = JSON.parse(raw);
-    }
-  } catch (e) {
-    console.error('Error loading app settings for experimental features:', e);
-  }
-  
-  // Send experimental settings
-  const continuousDictation = appSettings.continuous_dictation || false;
-  const lowLatency = appSettings.low_latency || false;
-  const noiseReduction = appSettings.noise_reduction || false;
-  
-  writeToWhisper(`SET_CONTINUOUS_DICTATION ${continuousDictation}\n`);
-  writeToWhisper(`SET_LOW_LATENCY ${lowLatency}\n`);
-  writeToWhisper(`SET_NOISE_REDUCTION ${noiseReduction}\n`);
 }
 
 function registerHotkeys() {
   globalShortcut.unregisterAll();
   const holdAcc = settings.holdHotkey || 'CommandOrControl+Super+Space';
   const toggleAcc = settings.toggleHotkey || 'CommandOrControl+Shift+Space';
-  const notesAcc = settings.notesHotkey || 'CommandOrControl+Super+N';
+
+  console.log(`[HOTKEYS] Registering hold hotkey: ${holdAcc}`);
+  console.log(`[HOTKEYS] Registering toggle hotkey: ${toggleAcc}`);
+
+  // Timer-based key release detection for hold-to-record
+  // When key is held, globalShortcut fires repeatedly
+  // When key is released, it stops firing - timer expires and we detect the release
+  let holdKeyReleaseTimer = null;
+  const HOLD_KEY_RELEASE_DELAY = 250; // ms - time to wait before considering key released (increased for reliability)
 
   const regHold = globalShortcut.register(holdAcc, () => {
-    // INSTANT RESPONSE - No checks that could cause delay
-    if (isRecording || isHoldKeyPressed) return;
-    
-    // Ensure service is ready (should already be pre-initialized)
-    if (!whisperProcess || whisperProcess.killed) {
-      console.warn('⚠ Whisper service not ready, initializing...');
-      ensureWhisperService();
-      // Start recording immediately - service will catch up
-      startHoldRecording();
-      return;
+    // Clear any existing release timer - key is still being pressed
+    if (holdKeyReleaseTimer) {
+      clearTimeout(holdKeyReleaseTimer);
+      holdKeyReleaseTimer = null;
     }
-    
-    // Start recording INSTANTLY
-    startHoldRecording();
+
+    // If not recording yet, start recording
+    if (!isRecording && !isHoldKeyPressed) {
+      console.log(`[HOTKEYS] Hold hotkey pressed - starting recording`);
+      startHoldRecording();
+    }
+
+    // Set a timer to detect when key is released (stops firing)
+    holdKeyReleaseTimer = setTimeout(() => {
+      if (isRecording && isHoldKeyPressed) {
+        console.log(`[HOTKEYS] Hold hotkey released - stopping recording`);
+        // Stop recording and trigger transcription
+        stopHoldRecording();
+      }
+      holdKeyReleaseTimer = null;
+    }, HOLD_KEY_RELEASE_DELAY);
   });
   if (!regHold) {
-    if (mainWindow) mainWindow.webContents.send('hotkey-error', holdAcc);
+    console.error(`[HOTKEYS] ✗ Failed to register hold hotkey: ${holdAcc}`);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('hotkey-error', holdAcc);
   } else {
-    if (mainWindow) mainWindow.webContents.send('hotkey-registered', holdAcc);
+    console.log(`[HOTKEYS] ✓ Hold hotkey registered successfully: ${holdAcc}`);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('hotkey-registered', holdAcc);
   }
 
   const regToggle = globalShortcut.register(toggleAcc, () => {
-    // INSTANT RESPONSE - No delays
-    // Ensure service is ready (should already be pre-initialized)
-    if (!whisperProcess || whisperProcess.killed) {
-      console.warn('⚠ Whisper service not ready, initializing...');
-      ensureWhisperService();
-      // Start immediately - service will catch up
-      toggleRecording();
-      return;
-    }
+    console.log(`[HOTKEYS] Toggle hotkey triggered!`);
     toggleRecording();
   });
   if (!regToggle) {
-    if (mainWindow) mainWindow.webContents.send('hotkey-error', toggleAcc);
+    console.error(`[HOTKEYS] ✗ Failed to register toggle hotkey: ${toggleAcc}`);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('hotkey-error', toggleAcc);
   } else {
-    if (mainWindow) mainWindow.webContents.send('hotkey-registered', toggleAcc);
-  }
-
-  // Register notes hotkey - only works when in notes tab or navigates to it
-  const regNotes = globalShortcut.register(notesAcc, () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      // Send message to renderer to handle notes hotkey
-      mainWindow.webContents.send('notes-hotkey-pressed');
-    }
-  });
-  if (!regNotes) {
-    if (mainWindow) mainWindow.webContents.send('hotkey-error', notesAcc);
-  } else {
-    if (mainWindow) mainWindow.webContents.send('hotkey-registered', notesAcc);
+    console.log(`[HOTKEYS] ✓ Toggle hotkey registered successfully: ${toggleAcc}`);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('hotkey-registered', toggleAcc);
   }
 }
 
-// function setupAutoUpdater() {
-//   // Only check for updates in production (not in test mode)
-//   if (isTestMode || !app.isPackaged) {
-//     return;
-//   }
-//
-//   // autoUpdater.checkForUpdatesAndNotify();
-//
-//   // autoUpdater.on('update-downloaded', () => {
-//   //   dialog.showMessageBox({
-//   //     type: 'info',
-//   //     title: 'Update Ready',
-//   //     message: 'A new version has been downloaded. Restart to apply the update?',
-//   //     buttons: ['Restart', 'Later']
-//   //   }).then(result => {
-//   //     if (result.response === 0) {
-//   //       autoUpdater.quitAndInstall();
-//   //     }
-//   //   });
-//   // });
-//
-//   // autoUpdater.on('error', (error) => {
-//   //   console.error('Auto-updater error:', error);
-//   // });
-// }
-
 function loadSettings() {
+  const settingsPath = path.join(__dirname, 'data', 'settings.json');
   try {
-    const raw = fs.readFileSync(configPath, 'utf8');
-    const parsed = JSON.parse(raw);
-    // Migrate old config keys if present
-    if (parsed.hotkey) {
-      const accelerator = normalizeHotkey(parsed.hotkey);
-      if ((parsed.mode || 'toggle') === 'hold') {
-        settings.holdHotkey = accelerator;
-      } else {
-        settings.toggleHotkey = accelerator;
+    if (fs.existsSync(settingsPath)) {
+      const raw = fs.readFileSync(settingsPath, 'utf8');
+      const parsed = JSON.parse(raw);
+
+      // Migrate old config keys if present
+      if (parsed.hotkey) {
+        const accelerator = normalizeHotkey(parsed.hotkey);
+        if ((parsed.mode || 'toggle') === 'hold') {
+          settings.holdHotkey = accelerator;
+        } else {
+          settings.toggleHotkey = accelerator;
+        }
       }
+
+      // Handle dual model keys: selected_model (from app-settings) and activeModel (from core)
+      // CRITICAL: Always sync both keys to ensure consistency
+      // If both exist but differ, prefer selected_model (the one shown in UI)
+      // If only one exists, copy to the other
+      if (parsed.selected_model && parsed.activeModel) {
+        // Both exist - prefer selected_model (UI choice) and sync to activeModel
+        if (parsed.selected_model !== parsed.activeModel) {
+          console.log(`Model sync: selected_model (${parsed.selected_model}) differs from activeModel (${parsed.activeModel}), using selected_model`);
+          parsed.activeModel = parsed.selected_model;
+        }
+      } else if (parsed.selected_model && !parsed.activeModel) {
+        parsed.activeModel = parsed.selected_model;
+      } else if (parsed.activeModel && !parsed.selected_model) {
+        parsed.selected_model = parsed.activeModel;
+      }
+
+      settings = { ...settings, ...parsed };
+      console.log('Settings loaded from:', settingsPath);
+    } else {
+      console.log('No settings file found at:', settingsPath, 'using defaults');
     }
-    settings = { ...settings, ...parsed };
   } catch (e) {
-    // Defaults already set
+    console.warn('Failed to load settings:', e);
   }
 }
 
 function saveSettings() {
+  const settingsPath = path.join(__dirname, 'data', 'settings.json');
   try {
-    fs.writeFileSync(configPath, JSON.stringify(settings, null, 2));
+    const dir = path.dirname(settingsPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    console.log('Settings saved to:', settingsPath);
   } catch (e) {
     console.warn('Failed to save settings:', e);
   }
@@ -2566,32 +1945,41 @@ let holdRecordingTimeout = null;
 let isHoldKeyPressed = false;
 
 function startHoldRecording() {
+  console.log('[RECORDING] startHoldRecording called');
+
   // Prevent multiple calls when key is held down
   if (isHoldKeyPressed || isRecording) {
+    console.log('[RECORDING] Already recording or key pressed, skipping');
     return;
   }
-  
+
   // If model not ready, queue this action and show subtle indicator
   if (!whisperModelReady) {
-    console.log('⚡ Model loading... queuing recording action');
-    
+    console.log('[RECORDING] ⚡ Model loading... queuing recording action');
+
     // Show indicator immediately for responsive feel
     showIndicator();
-    
+
     // Queue the recording to start when model is ready
     pendingRecordingAction = () => {
+      // Check if mainWindow is still valid
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        console.warn('mainWindow destroyed, cannot start recording');
+        return;
+      }
+
       // Reset and execute actual recording
       isHoldKeyPressed = true;
       isRecording = true;
-  lastTypedText = ''; // Reset typing state for new recording
+      lastTypedText = ''; // Reset typing state for new recording
       typedSoFar = '';
-      
+
       mainWindow.hide();
       mainWindow.webContents.send('recording-start');
       mainWindow.webContents.send('play-sound', 'start');
-      
+
       ensureWhisperService();
-      
+
       if (holdRecordingTimeout) {
         clearTimeout(holdRecordingTimeout);
       }
@@ -2602,125 +1990,53 @@ function startHoldRecording() {
           isHoldKeyPressed = false;
           writeToWhisper('STOP\n');
           hideIndicator();
-          try { 
+          try {
             mainWindow.webContents.send('recording-stop');
             mainWindow.webContents.send('play-sound', 'stop');
-          } catch (e) {}
+          } catch (e) { }
         }
         holdRecordingTimeout = null;
       }, 30000);
-      
-      if (whisperProcess && !whisperProcess.killed && whisperModelReady) {
-        // Ensure service is fully ready before sending commands
+
+      if (whisperProcess && !whisperProcess.killed) {
         writeToWhisper(`SET_MODE HOLD\n`);
         const pyCombo = electronToPythonCombo(settings.holdHotkey);
-        // Small delay to ensure SET_HOLD_KEYS is processed before START
-        setTimeout(() => {
-          if (whisperProcess && !whisperProcess.killed && isRecording) {
-            writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
-            setTimeout(() => {
-              if (whisperProcess && !whisperProcess.killed && isRecording) {
-                writeToWhisper('START\n');
-              }
-            }, 50);
-          }
-        }, 50);
+        writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
+        writeToWhisper('START\n');
       }
     };
-    
+
     return; // Recording will start when model is ready
   }
-  
-  // INSTANT START - Show widget and waveform FIRST, then start recording
+
   isHoldKeyPressed = true;
   isRecording = true;
   lastTypedText = ''; // Reset typing state for new recording
   typedSoFar = '';
-  
-  // CRITICAL: Show widget/waveform INSTANTLY (synchronous, before anything else)
+
+  // Check if mainWindow is still valid
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    console.warn('mainWindow destroyed, cannot start recording');
+    isHoldKeyPressed = false;
+    isRecording = false;
+    return;
+  }
+
+  // Hide window FIRST for ultra-fast response
+  mainWindow.hide();
+
+  // Show indicator INSTANTLY - no delay
   showIndicator();
-  
-  // Send recording-start IMMEDIATELY to trigger waveform animation (synchronous)
-  try {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('recording-start');
-      mainWindow.webContents.send('play-sound', 'start');
-    }
-  } catch (e) {
-    // Ignore IPC errors
-  }
-  
-  // Hide window AFTER showing widget (synchronous)
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.hide();
-  }
-  
-  // Send commands IMMEDIATELY - Service should already be ready from pre-initialization
-  // CRITICAL: Ensure service is fully ready (model loaded) before sending commands
-  if (whisperProcess && !whisperProcess.killed && whisperModelReady) {
-    // Service is ready - send commands in correct order with small delay for SET_HOLD_KEYS
-    writeToWhisper(`SET_MODE HOLD\n`);
-    const pyCombo = electronToPythonCombo(settings.holdHotkey);
-    // Small delay to ensure SET_HOLD_KEYS is processed before START
-    // This prevents interruptions on first use
-    setTimeout(() => {
-      if (whisperProcess && !whisperProcess.killed && isRecording) {
-        writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
-        // Another small delay before START to ensure hold keys are registered
-        setTimeout(() => {
-          if (whisperProcess && !whisperProcess.killed && isRecording) {
-            writeToWhisper('START\n');
-          }
-        }, 50);
-      }
-    }, 50);
-  } else {
-    // If process not ready or model not loaded, ensure it and wait
-    if (!whisperModelReady) {
-      console.log('⚠ Model not ready yet, waiting for initialization...');
-      // The model ready check at the top should have queued this, but double-check
-      if (!pendingRecordingAction) {
-        // Queue the recording to start when model is ready
-        pendingRecordingAction = () => {
-          startHoldRecording();
-        };
-      }
-      return;
-    }
-    // Process exists but might not be ready - ensure it
-    ensureWhisperService();
-    // Wait for service to be ready with retry logic
-    let retries = 0;
-    const maxRetries = 10;
-    const checkReady = () => {
-      if (whisperProcess && !whisperProcess.killed && whisperModelReady) {
-        writeToWhisper(`SET_MODE HOLD\n`);
-        const pyCombo = electronToPythonCombo(settings.holdHotkey);
-        setTimeout(() => {
-          if (whisperProcess && !whisperProcess.killed && isRecording) {
-            writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
-            setTimeout(() => {
-              if (whisperProcess && !whisperProcess.killed && isRecording) {
-                writeToWhisper('START\n');
-              }
-            }, 50);
-          }
-        }, 50);
-      } else if (retries < maxRetries) {
-        retries++;
-        setTimeout(checkReady, 100);
-      } else {
-        console.error('⚠ Service not ready after retries');
-      }
-    };
-    setTimeout(checkReady, 100);
-  }
-  
-  // Detect context in background (non-blocking, doesn't delay recording)
-  detectAndUpdateContext().catch(e => {
-    // Silent fail - context detection is optional
-  });
-  
+
+  // Send UI updates
+  mainWindow.webContents.send('recording-start');
+
+  // Play sound feedback if enabled
+  mainWindow.webContents.send('play-sound', 'start');
+
+  // Ensure service is ready (should already be pre-initialized)
+  ensureWhisperService();
+
   // Fallback: if no release event is received within 30 seconds, stop recording
   if (holdRecordingTimeout) {
     clearTimeout(holdRecordingTimeout);
@@ -2732,276 +2048,160 @@ function startHoldRecording() {
       isHoldKeyPressed = false;
       writeToWhisper('STOP\n');
       hideIndicator();
-      try { 
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('recording-stop');
-          mainWindow.webContents.send('play-sound', 'stop');
-        }
-      } catch (e) {}
+      try {
+        mainWindow.webContents.send('recording-stop');
+        mainWindow.webContents.send('play-sound', 'stop');
+      } catch (e) { }
     }
     holdRecordingTimeout = null;
   }, 30000);
+
+  // Send commands IMMEDIATELY - ULTRA FAST (no delays)
+  // Service should already be ready from pre-initialization
+  if (whisperProcess && !whisperProcess.killed) {
+    writeToWhisper(`SET_MODE HOLD\n`);
+    const pyCombo = electronToPythonCombo(settings.holdHotkey);
+    writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
+    writeToWhisper('START\n');
+  } else {
+    // If process not ready, ensure it and send immediately
+    ensureWhisperService();
+    // Use setImmediate for fastest possible execution
+    setImmediate(() => {
+      if (whisperProcess && !whisperProcess.killed) {
+        writeToWhisper(`SET_MODE HOLD\n`);
+        const pyCombo = electronToPythonCombo(settings.holdHotkey);
+        writeToWhisper(`SET_HOLD_KEYS ${pyCombo}\n`);
+        writeToWhisper('START\n');
+      }
+    });
+  }
+}
+
+function stopHoldRecording() {
+  console.log('[RECORDING] stopHoldRecording called');
+
+  if (!isRecording && !isHoldKeyPressed) {
+    console.log('[RECORDING] Not recording, skipping stop');
+    return;
+  }
+
+  // Reset state immediately
+  isRecording = false;
+  isHoldKeyPressed = false;
+
+  // Clear timeout
+  if (holdRecordingTimeout) {
+    clearTimeout(holdRecordingTimeout);
+    holdRecordingTimeout = null;
+  }
+
+  // Show processing state while transcription finalizes
+  setWidgetState('processing');
+
+  // Send stop command to whisper service
+  writeToWhisper('STOP\n');
+
+  // Send UI updates
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('recording-stop');
+      mainWindow.webContents.send('play-sound', 'stop');
+    }
+  } catch (e) {
+    console.error('Error sending recording-stop event:', e);
+  }
 }
 
 function startToggleRecording() {
-  // CRITICAL: Don't allow toggle recording if notes recording is active
-  if (isNotesRecording) {
-    console.log('⚠ Notes recording active - cannot start toggle recording');
-    return;
-  }
-  
   // If model not ready, queue this action and show indicator
   if (!whisperModelReady) {
     console.log('⚡ Model loading... queuing toggle recording');
-    
+
     // Show indicator immediately for responsive feel
     showIndicator();
-    
+
     // Queue the recording to start when model is ready
     pendingRecordingAction = () => {
-      // Double-check notes recording isn't active
-      if (isNotesRecording) {
-        console.log('⚠ Notes recording became active - canceling toggle recording');
+      // Check if mainWindow is still valid
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        console.warn('mainWindow destroyed, cannot start toggle recording');
         return;
       }
+
       isRecording = true;
-  lastTypedText = ''; // Reset typing state for new recording
+      lastTypedText = ''; // Reset typing state for new recording
       typedSoFar = '';
-      
+
       mainWindow.hide();
       ensureWhisperService();
-      
+
       mainWindow.webContents.send('recording-start');
       mainWindow.webContents.send('play-sound', 'start');
-      
+
       if (whisperProcess && !whisperProcess.killed) {
         writeToWhisper(`SET_MODE TOGGLE\n`);
         writeToWhisper('START\n');
       }
     };
-    
+
     return; // Recording will start when model is ready
   }
-  
-  // INSTANT START - Show widget and waveform FIRST, then start recording
+
   isRecording = true;
   lastTypedText = ''; // Reset typing state for new recording
   typedSoFar = '';
-  
-  // CRITICAL: Show widget/waveform INSTANTLY (synchronous, before anything else)
+
+  // Check if mainWindow is still valid
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    console.warn('mainWindow destroyed, cannot start toggle recording');
+    isRecording = false;
+    return;
+  }
+
+  // Hide window FIRST for ultra-fast response
+  mainWindow.hide();
+
+  // Ensure service is ready
+  ensureWhisperService();
+
+  // Send UI updates
+  mainWindow.webContents.send('recording-start');
+  mainWindow.webContents.send('play-sound', 'start');
   showIndicator();
-  
-  // Send recording-start IMMEDIATELY to trigger waveform animation (synchronous)
-  try {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('recording-start');
-      mainWindow.webContents.send('play-sound', 'start');
-    }
-  } catch (e) {
-    // Ignore IPC errors
-  }
-  
-  // Hide window AFTER showing widget (synchronous)
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.hide();
-  }
-  
-  // Send commands IMMEDIATELY - Service should already be ready from pre-initialization
+
+  // Send commands IMMEDIATELY - ULTRA FAST (no delays)
   if (whisperProcess && !whisperProcess.killed) {
     writeToWhisper(`SET_MODE TOGGLE\n`);
     writeToWhisper('START\n');
   } else {
     // If process not ready, ensure it and send immediately
     ensureWhisperService();
-    // Use process.nextTick for fastest possible execution
-    process.nextTick(() => {
+    // Use setImmediate for fastest possible execution
+    setImmediate(() => {
       if (whisperProcess && !whisperProcess.killed) {
         writeToWhisper(`SET_MODE TOGGLE\n`);
         writeToWhisper('START\n');
       }
     });
   }
-  
-  // Detect context in background (non-blocking, doesn't delay recording)
-  detectAndUpdateContext().catch(e => {
-    // Silent fail - context detection is optional
-  });
 }
 
 function toggleRecording() {
-  // CRITICAL: Don't allow toggle recording if notes recording is active
-  // Notes recording has its own separate stop function
-  if (isNotesRecording) {
-    console.log('⚠ Notes recording active - use stopNotesRecording() instead');
-    return;
-  }
-  
   isRecording = !isRecording;
   ensureWhisperService();
   if (isRecording) {
-    // Detect context and update category automatically (non-blocking)
-    detectAndUpdateContext().catch(e => {
-      console.warn('Context detection failed during recording start:', e.message);
-    });
     startToggleRecording();
   } else {
-    // TOGGLE OFF: Stop recording and get instant text output
-    isRecording = false;
-    isHoldKeyPressed = false;
-    
-    // Hide indicator and window FIRST for instant response
-    hideIndicator();
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.hide();
-    }
-    
-    // Send STOP command IMMEDIATELY - before any UI updates
-    if (whisperProcess && !whisperProcess.killed) {
-      writeToWhisper('STOP\n');
-    }
-    
-    // Send UI updates AFTER stopping (non-blocking)
-    setImmediate(() => {
-      try {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('recording-stop');
-          mainWindow.webContents.send('play-sound', 'stop');
-        }
-      } catch (e) {}
-    });
-    
-    // Text will be typed instantly when transcription comes back from Python service
-    // The service will send a partial immediately on STOP for instant output
-  }
-  // Update tray menu to reflect recording state
-  updateTrayMenu();
-}
-
-// Notes tab recording - doesn't hide window, stays in app
-let isNotesRecording = false;
-
-function startNotesRecording() {
-  // If model not ready, queue this action
-  if (!whisperModelReady) {
-    console.log('⚡ Model loading... queuing notes recording');
-    
-    // Queue the recording to start when model is ready
-    pendingRecordingAction = () => {
-      isNotesRecording = true;
-      isRecording = true; // Set global flag for transcription handling
-      lastTypedText = '';
-      typedSoFar = '';
-      
-      // DON'T hide window - stay in app
-      // DON'T show indicator - keep it within Notes tab only
-      ensureWhisperService();
-      
-      // Send UI updates but don't show indicator widget
-      mainWindow.webContents.send('recording-start');
-      mainWindow.webContents.send('play-sound', 'start');
-      // Send special flag to indicate this is notes recording
-      mainWindow.webContents.send('notes-recording-start');
-      
-      if (whisperProcess && !whisperProcess.killed) {
-        writeToWhisper(`SET_MODE TOGGLE\n`);
-        writeToWhisper('START\n');
-      }
-    };
-    
-    return;
-  }
-  
-  isNotesRecording = true;
-  isRecording = true; // Set global flag for transcription handling
-  lastTypedText = '';
-  typedSoFar = '';
-  
-  // DON'T hide window - stay visible in app
-  // DON'T show indicator - keep it within Notes tab only
-  ensureWhisperService();
-  
-  // Send UI updates but don't show indicator widget
-  mainWindow.webContents.send('recording-start');
-  mainWindow.webContents.send('play-sound', 'start');
-  // Send special flag to indicate this is notes recording (no indicator)
-  mainWindow.webContents.send('notes-recording-start');
-  
-  // Send commands to start recording
-  if (whisperProcess && !whisperProcess.killed) {
-    writeToWhisper(`SET_MODE TOGGLE\n`);
-    writeToWhisper('START\n');
-  } else {
-    ensureWhisperService();
-    setImmediate(() => {
-      if (whisperProcess && !whisperProcess.killed) {
-        writeToWhisper(`SET_MODE TOGGLE\n`);
-        writeToWhisper('START\n');
-      }
-    });
-  }
-}
-
-function stopNotesRecording() {
-  if (!isNotesRecording) {
-    console.log('⚠ stopNotesRecording called but isNotesRecording is false');
-    return;
-  }
-  
-  console.log('🛑 Stopping notes recording - keeping window visible');
-  
-  // CRITICAL: DON'T reset flags yet - keep them until transcription completes
-  // This ensures transcription handler knows it was notes recording
-  // We'll reset them after transcription is processed
-  const wasNotesRecording = isNotesRecording;
-  
-  // Mark that we're stopping, but keep the flag for transcription handler
-  // The flag will be reset after transcription is processed (in transcription handler)
-  console.log('📝 Notes recording: Flag will be reset after transcription completes');
-  
-  // Send STOP command IMMEDIATELY
-  if (whisperProcess && !whisperProcess.killed) {
-    writeToWhisper('STOP\n');
-  }
-  
-  // Send stop events
-  if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('recording-stop');
     mainWindow.webContents.send('play-sound', 'stop');
-    // Send special flag for notes recording stop
-    mainWindow.webContents.send('notes-recording-stop');
+    writeToWhisper('STOP\n');
+    hideIndicator();
+    // Hide immediately so auto-typing targets the previous app
+    mainWindow.hide();
+    // Text will be typed when transcription comes back from Python service
   }
-  
-  // CRITICAL: Ensure window stays visible and focused - NEVER hide for notes recording
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    // Ensure window is visible
-    if (!mainWindow.isVisible()) {
-      console.log('🔍 Notes recording stop: Window not visible, showing now');
-      mainWindow.show();
-    }
-    // Ensure window is focusable and focused
-    mainWindow.setFocusable(true);
-    mainWindow.focus();
-    mainWindow.setAlwaysOnTop(false);
-    // Force window to front
-    mainWindow.moveTop();
-    console.log('✅ Notes recording stopped: Window kept visible and focused');
-  }
-  
-  // DON'T hide window - stay in app
-  // DON'T show/hide indicator - it was never shown for notes
-  
-  // CRITICAL: Don't reset flags here - let transcription handler reset them
-  // This ensures transcription arrives with isNotesRecording still true
-  // The transcription handler will reset the flags after processing
-  // If transcription doesn't arrive within 3 seconds, reset as fallback
-  setTimeout(() => {
-    if (isNotesRecording === wasNotesRecording) { // Only reset if still the same (wasn't restarted)
-      console.log('📝 Notes recording: Fallback reset after timeout (transcription may have been missed)');
-      isNotesRecording = false;
-      isRecording = false;
-    }
-  }, 3000); // 3 second fallback timeout
-  
+  // Update tray menu to reflect recording state
   updateTrayMenu();
 }
 
@@ -3024,458 +2224,219 @@ function appendHistory(text) {
   }
 }
 
-// File watcher for hot reload in development mode
-// This ensures changes made by agents in Cursor are reflected immediately
-let fileWatchers = [];
-let reloadTimeout = null;
+// ============================================
+// SINGLE INSTANCE LOCK - Prevent multiple instances
+// ============================================
 
-function setupFileWatcher() {
-  if (!isDevelopment) return;
-  
-  console.log('🔧 Development mode: Setting up file watcher for hot reload');
-  
-  const filesToWatch = [
-    path.join(__dirname, 'main.js'),
-    path.join(__dirname, 'renderer.js'),
-    path.join(__dirname, 'preload.js'),
-    path.join(__dirname, 'index.html'),
-    path.join(__dirname, 'styles.css')
-  ];
-  
-  filesToWatch.forEach(filePath => {
-    if (fs.existsSync(filePath)) {
-      try {
-        const watcher = fs.watch(filePath, { persistent: true }, (eventType, filename) => {
-          if (eventType === 'change') {
-            console.log(`📝 File changed: ${filename} - Reloading...`);
-            
-            // Debounce reload to avoid multiple rapid reloads
-            if (reloadTimeout) {
-              clearTimeout(reloadTimeout);
-            }
-            
-            reloadTimeout = setTimeout(() => {
-              reloadApp(filePath);
-            }, 500); // 500ms debounce
-          }
-        });
-        
-        fileWatchers.push(watcher);
-        console.log(`👀 Watching: ${path.basename(filePath)}`);
-      } catch (e) {
-        console.warn(`Failed to watch ${filePath}:`, e.message);
-      }
-    }
-  });
-  
-  // Watch source directory for style transformer and other modules
-  const srcDir = path.join(__dirname, 'src');
-  if (fs.existsSync(srcDir)) {
-    try {
-      const srcWatcher = fs.watch(srcDir, { recursive: true, persistent: true }, (eventType, filename) => {
-        if (eventType === 'change' && filename && (filename.endsWith('.js') || filename.endsWith('.json'))) {
-          console.log(`📝 Source file changed: ${filename} - Reloading...`);
-          
-          if (reloadTimeout) {
-            clearTimeout(reloadTimeout);
-          }
-          
-          reloadTimeout = setTimeout(() => {
-            reloadApp(path.join(srcDir, filename));
-          }, 500);
-        }
-      });
-      
-      fileWatchers.push(srcWatcher);
-      console.log(`👀 Watching source directory: src/`);
-    } catch (e) {
-      console.warn(`Failed to watch src directory:`, e.message);
-    }
-  }
+// Guard against running when app is undefined (e.g., ELECTRON_RUN_AS_NODE is set)
+if (!app || typeof app.requestSingleInstanceLock !== 'function') {
+  console.error('FATAL: Electron app object not available. This script must be run with Electron, not Node.js.');
+  console.error('Make sure ELECTRON_RUN_AS_NODE is not set in your environment.');
+  process.exit(1);
 }
 
-function reloadApp(changedFile) {
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    console.log('Window not available, cannot reload');
-    return;
-  }
-  
-  const fileName = path.basename(changedFile);
-  console.log(`🔄 Reloading app due to change in: ${fileName}`);
-  
-  // If main.js changed, we need to restart the entire app
-  if (changedFile === path.join(__dirname, 'main.js')) {
-    console.log('⚠️  main.js changed - Full restart required. Please restart the app manually.');
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  console.log('Another instance is already running. Quitting...');
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, focus our window instead
     if (mainWindow) {
-      mainWindow.webContents.send('show-message', {
-        type: 'info',
-        message: 'main.js changed - Please restart the app to apply changes',
-        duration: 5000
-      });
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
-    return;
-  }
-  
-  // For other files, reload the renderer
-  try {
-    mainWindow.webContents.reload();
-    console.log('✅ App reloaded successfully');
-  } catch (e) {
-    console.error('Failed to reload app:', e);
-  }
+  });
 }
 
-  // Handle taskbar icon clicks (Windows/macOS) - MUST be before app.whenReady()
-  // This is the proper way to handle when user clicks the taskbar icon
-  app.on('activate', () => {
-    console.log('🖱️ App activate event (taskbar icon clicked)');
+app.whenReady().then(() => {
+  // Initialize logger first
+  logger = getLogger();
+  logger.info('Application starting', { version: app.getVersion() });
+
+  loadSettings();
+  createWindow();
+  createIndicatorWindow();
+  registerHotkeys();
+  // Pre-initialize whisper service for ultra-fast response (skip in test mode)
+  if (!isTestMode) {
+    ensureWhisperService();
+
+    // Auto-start context tracking for smart style switching (Chameleon Mode)
+    if (settings.context_awareness !== false) {
+      contextManager.start();
+      console.log('✓ Context tracking started (Chameleon Mode enabled)');
+    }
+  }
+
+  ipcMain.on('toggle-recording', () => toggleRecording());
+
+  // Continuous dictation handlers
+  let isContinuousDictation = false;
+
+  ipcMain.on('continuous:start', () => {
+    if (isContinuousDictation) return;
+
+    isContinuousDictation = true;
+    ensureWhisperService();
+
+    // Show indicator
+    showIndicator();
+    setWidgetState('recording');
+
+    // Start continuous mode
+    writeToWhisper('START_CONTINUOUS\n');
+
     if (mainWindow && !mainWindow.isDestroyed()) {
-      // Restore if minimized
-      if (mainWindow.isMinimized()) {
-        console.log('Window is minimized - restoring');
-        mainWindow.restore();
-      }
-      // Show if hidden
-      if (!mainWindow.isVisible()) {
-        console.log('Window is hidden - showing');
-        mainWindow.show();
-      }
-      // Windows-specific: Use more aggressive focus method
-      if (process.platform === 'win32') {
-        // Set visible on all workspaces to ensure it can be brought to front
-        try {
-          mainWindow.setVisibleOnAllWorkspaces(true);
-        } catch (e) {
-          console.warn('setVisibleOnAllWorkspaces failed:', e.message);
-        }
-        // Ensure window is focusable
-        mainWindow.setFocusable(true);
-        // Show and focus
-        mainWindow.show();
-        mainWindow.focus();
-        // Use multiple methods to bring to front
-        mainWindow.moveTop();
-        // Temporarily bring to front to ensure it appears above other windows
-        mainWindow.setAlwaysOnTop(true);
-        setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setAlwaysOnTop(false);
-            try {
-              mainWindow.setVisibleOnAllWorkspaces(false);
-            } catch (e) {
-              // Ignore errors when resetting
-            }
-            mainWindow.focus();
-            mainWindow.moveTop();
-            // Force focus again after a short delay
-            setTimeout(() => {
-              if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.focus();
-              }
-            }, 50);
-          }
-        }, 150);
+      mainWindow.webContents.send('continuous-started');
+    }
+    console.log('✓ Continuous dictation started');
+  });
+
+  ipcMain.on('continuous:stop', () => {
+    if (!isContinuousDictation) return;
+
+    isContinuousDictation = false;
+
+    // Stop continuous mode
+    writeToWhisper('STOP_CONTINUOUS\n');
+
+    // Hide indicator
+    setWidgetState('done');
+    setTimeout(() => hideIndicator(), 1500);
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('continuous-stopped');
+    }
+    console.log('✓ Continuous dictation stopped');
+  });
+
+  ipcMain.handle('continuous:status', async () => {
+    return { active: isContinuousDictation };
+  });
+
+  // Window control handlers
+  ipcMain.on('window-minimize', () => {
+    if (mainWindow) mainWindow.minimize();
+  });
+
+  ipcMain.on('window-maximize', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
       } else {
-        // Non-Windows platforms
-        mainWindow.setFocusable(true);
-        mainWindow.focus();
-        mainWindow.moveTop();
-        mainWindow.setAlwaysOnTop(true);
-        setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setAlwaysOnTop(false);
-            mainWindow.focus();
-            mainWindow.moveTop();
-          }
-        }, 100);
+        mainWindow.maximize();
       }
-      console.log('✅ Window restored and focused from taskbar click');
-    } else {
-      // Window not created yet, create it
-      console.log('Window not created yet - creating window');
-      createWindow();
     }
   });
 
-  app.whenReady().then(() => {
-    // Set development mode detection after app is ready
-    isDevelopment = !app.isPackaged || process.env.NODE_ENV === 'development';
+  ipcMain.on('window-close', () => {
+    if (mainWindow) mainWindow.hide();
+  });
 
-    // Prevent multiple instances - must be called after app is ready
-    gotTheLock = app.requestSingleInstanceLock();
-
-    if (!gotTheLock) {
-      // Another instance is already running, quit this one
-      console.log('Another instance is already running. Exiting...');
-      app.quit();
-      process.exit(0);
-    } else {
-      // Handle second instance attempts - focus the existing window instead
-      app.on('second-instance', (event, commandLine, workingDirectory) => {
-        // Someone tried to run a second instance, focus our window instead
-        console.log('Second instance detected - focusing existing window');
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          if (mainWindow.isMinimized()) {
-            mainWindow.restore();
-          }
-          if (!mainWindow.isVisible()) {
-            mainWindow.show();
-          }
-          // Windows-specific: Use more aggressive focus method
-          if (process.platform === 'win32') {
-            mainWindow.setFocusable(true);
-            mainWindow.focus();
-            mainWindow.moveTop();
-            mainWindow.setAlwaysOnTop(true);
-            setTimeout(() => {
-              if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.setAlwaysOnTop(false);
-                mainWindow.focus();
-                mainWindow.moveTop();
-                // Force focus again after a short delay
-                setTimeout(() => {
-                  if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.focus();
-                  }
-                }, 50);
-              }
-            }, 150);
-          } else {
-            mainWindow.focus();
-            mainWindow.setAlwaysOnTop(true);
-            setTimeout(() => {
-              if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.setAlwaysOnTop(false);
-              }
-            }, 100);
-          }
-        } else {
-          // Window not created yet, wait a bit and try again
-          setTimeout(() => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              if (mainWindow.isMinimized()) {
-                mainWindow.restore();
-              }
-              mainWindow.show();
-              mainWindow.focus();
-              if (process.platform === 'win32') {
-                mainWindow.moveTop();
-              }
-            }
-          }, 500);
-        }
-      });
+  // Widget button handlers
+  ipcMain.on('widget-stop-recording', () => {
+    console.log('[WIDGET] Stop button clicked');
+    if (isRecording || isHoldKeyPressed) {
+      if (holdRecordingTimeout) {
+        clearTimeout(holdRecordingTimeout);
+        holdRecordingTimeout = null;
+      }
+      isRecording = false;
+      isHoldKeyPressed = false;
+      setWidgetState('processing');
+      writeToWhisper('STOP\n');
+      try {
+        mainWindow.webContents.send('recording-stop');
+        mainWindow.webContents.send('play-sound', 'stop');
+      } catch (e) { }
     }
+  });
 
-    // Load settings first to check for custom logs directory
-    loadSettings();
-    
-    // Initialize logger with custom directory if set
-    let customLogsDir = null;
-    if (settings.logs_directory) {
-      customLogsDir = settings.logs_directory;
+  ipcMain.on('widget-cancel-recording', () => {
+    console.log('[WIDGET] Cancel button clicked');
+    if (isRecording || isHoldKeyPressed) {
+      if (holdRecordingTimeout) {
+        clearTimeout(holdRecordingTimeout);
+        holdRecordingTimeout = null;
+      }
+      isRecording = false;
+      isHoldKeyPressed = false;
+      // For cancel, just hide without processing
+      hideIndicator();
+      try {
+        mainWindow.webContents.send('recording-stop');
+        mainWindow.webContents.send('play-sound', 'stop');
+      } catch (e) { }
     }
-    logger = getLogger(customLogsDir);
-    logger.info('Application starting', { version: app.getVersion() });
-    
-    // Verify style transformer module is loaded
-    console.log('[Main] Style transformer module loaded:', {
-      hasApplyStyle: typeof applyStyle === 'function',
-      hasGetStyleDescription: typeof getStyleDescription === 'function',
-      hasGetStyleExample: typeof getStyleExample === 'function',
-      hasGetAvailableStyles: typeof getAvailableStyles === 'function',
-      hasGetCategoryBannerText: typeof getCategoryBannerText === 'function'
-    });
-    
-    // CRITICAL: Start whisper service IMMEDIATELY (before window creation) for fastest model loading
-    // This ensures the model starts loading as early as possible in the app lifecycle
-    console.log('🚀 Starting whisper service immediately for instant model loading...');
-    ensureWhisperService();
-    
-    createWindow();
-    createIndicatorWindow();
+  });
+
+  // Widget self-hide handler (called by widget after 'done' state animation)
+  ipcMain.on('widget-hide', () => {
+    hideIndicator();
+  });
+
+  // Pause global shortcuts while capturing user input for a new hotkey
+  ipcMain.on('hotkey-capture-start', () => {
+    try { globalShortcut.unregisterAll(); } catch (e) { }
+  });
+  ipcMain.on('hotkey-capture-end', () => {
     registerHotkeys();
-//     setupAutoUpdater();
-    
-    // Notify UI that model is loading (if window is ready)
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.once('did-finish-load', () => {
-        if (!whisperModelReady) {
-          mainWindow.webContents.send('whisper-loading', { model: settings.activeModel || 'tiny' });
-        }
-      });
-    }
-    
-    // Enable hot reload in development mode (for changes made by agents in Cursor)
-    if (isDevelopment && !isTestMode) {
-      setupFileWatcher();
-    }
-    
-    // Aggressively ensure window is visible and focusable when launched
-    // This is critical for the window to be accessible from taskbar
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      // Ensure window is shown and focusable
-      mainWindow.once('ready-to-show', () => {
-        if (mainWindow && !mainWindow.isDestroyed() && !isShowcaseMode && !isTestMode) {
-          console.log('✅ Window ready - showing and focusing');
-          mainWindow.show();
-          mainWindow.focus();
-          // Ensure window is not always on top (so it can be focused normally)
-          mainWindow.setAlwaysOnTop(false);
-          // Force focus after a short delay
-          setTimeout(() => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.focus();
-              mainWindow.setAlwaysOnTop(false);
-            }
-          }, 100);
-        }
-      });
-      
-      // Also try to show immediately if window is already ready
-      if (mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
-        setTimeout(() => {
-          if (mainWindow && !mainWindow.isDestroyed() && !isShowcaseMode && !isTestMode) {
-            if (!mainWindow.isVisible()) {
-              console.log('🔍 Window not visible - showing now');
-              mainWindow.show();
-            }
-            if (!mainWindow.isFocused()) {
-              console.log('🔍 Window not focused - focusing now');
-              mainWindow.focus();
-            }
-            mainWindow.setAlwaysOnTop(false);
-          }
-        }, 500);
-      }
-    }
-    
-    // Aggressively ensure window is visible when launched (critical for launching from other agents)
-    // Multiple checks to guarantee window appears
-    if (mainWindow && !mainWindow.isDestroyed() && !isShowcaseMode && !isTestMode) {
-      const ensureVisible = () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          if (!mainWindow.isVisible()) {
-            console.log('🔍 App ready: Window not visible, showing now');
-            if (mainWindow.isMinimized()) {
-              mainWindow.restore();
-            }
-            mainWindow.show();
-            mainWindow.focus();
-            // Bring to front
-            mainWindow.setAlwaysOnTop(true);
-            setTimeout(() => {
-              if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.setAlwaysOnTop(false);
-              }
-            }, 200);
-          } else {
-            // Window is visible, just ensure focus
-            mainWindow.focus();
-            mainWindow.moveTop();
-          }
-        }
-      };
-      
-      // Immediate check
-      setTimeout(ensureVisible, 100);
-      // Short delay check
-      setTimeout(ensureVisible, 500);
-      // Medium delay check
-      setTimeout(ensureVisible, 1000);
-      // Long delay check (last resort)
-      setTimeout(ensureVisible, 2000);
-    }
-    
-    // Pre-initialize whisper service for ultra-fast response (skip in test mode)
-    if (!isTestMode) {
-      ensureWhisperService();
-    }
-
-    ipcMain.on('toggle-recording', () => toggleRecording());
-    ipcMain.on('notes:start-recording', () => startNotesRecording());
-    ipcMain.on('notes:stop-recording', () => stopNotesRecording());
-    
-    // Window control handlers
-    ipcMain.on('window-minimize', () => {
-      if (mainWindow) mainWindow.minimize();
-    });
-    
-    ipcMain.on('window-maximize', () => {
-      if (mainWindow) {
-        if (mainWindow.isMaximized()) {
-          mainWindow.unmaximize();
-        } else {
-          mainWindow.maximize();
-        }
-      }
-    });
-    
-    ipcMain.on('window-close', () => {
-      if (mainWindow) mainWindow.hide();
-    });
-    
-    // Widget button handlers
-    ipcMain.on('widget-stop-recording', () => {
-      if (isRecording) {
-        if (holdRecordingTimeout) {
-          clearTimeout(holdRecordingTimeout);
-          holdRecordingTimeout = null;
-        }
-        isRecording = false;
-        writeToWhisper('STOP\n');
-        hideIndicator();
-        try { 
-          mainWindow.webContents.send('recording-stop');
-          mainWindow.webContents.send('play-sound', 'stop');
-        } catch (e) {}
-        setTimeout(() => mainWindow.hide(), 150);
-      }
-    });
-    
-    ipcMain.on('widget-cancel-recording', () => {
-      if (isRecording) {
-        if (holdRecordingTimeout) {
-          clearTimeout(holdRecordingTimeout);
-          holdRecordingTimeout = null;
-        }
-        isRecording = false;
-        writeToWhisper('STOP\n');
-        hideIndicator();
-        try { 
-          mainWindow.webContents.send('recording-stop');
-          mainWindow.webContents.send('play-sound', 'stop');
-        } catch (e) {}
-        setTimeout(() => mainWindow.hide(), 150);
-      }
-    });
-    
-    // Listen for setting changes to hide/show widget
-    ipcMain.on('notify-widget-waveform-change', (event, isEnabled) => {
-      if (indicatorWindow && !indicatorWindow.isDestroyed()) {
-        indicatorWindow.webContents.send('widget-waveform-setting-changed', isEnabled);
-        
-        // If setting is turned off while widget is visible, hide it
-        if (!isEnabled && indicatorState === 'visible') {
-          hideIndicator();
-        }
-      }
-    });
-
-    // Pause global shortcuts while capturing user input for a new hotkey
-    ipcMain.on('hotkey-capture-start', () => {
-      try { globalShortcut.unregisterAll(); } catch (e) {}
-    });
-    ipcMain.on('hotkey-capture-end', () => {
-      registerHotkeys();
-    });
+  });
 
   ipcMain.handle('settings:get', async () => settings);
+
+  // LLM IPC Handlers
+  ipcMain.handle('llm:transform', async (_, { text, style, context }) => {
+     // Send transform command to Python: TRANSFORM:style:context:text
+     const safeText = (text || '').replace(/\n/g, '\\n');
+     const cmd = `TRANSFORM:${style}:${context || 'general'}:${safeText}`;
+     writeToLLM(cmd);
+     return { status: 'processing' };
+  });
+
+  ipcMain.handle('tools:refresh', async () => {
+     writeToLLM('REFRESH_TOOLS');
+     return { status: 'requested' };
+  });
+
+  ipcMain.handle('llm:status', async () => {
+     return {
+         running: !!(llmProcess && !llmProcess.killed),
+         ready: llmServiceReady
+     };
+  });
+
+  ipcMain.on('context:start-tracking', () => contextManager.start());
+  ipcMain.on('context:stop-tracking', () => contextManager.stop());
+
+  // Context auto-style control
+  ipcMain.handle('context:set-auto-style', async (_evt, enabled) => {
+    contextManager.setAutoStyleEnabled(enabled);
+    return { success: true, enabled };
+  });
+
+  ipcMain.handle('context:get-auto-style', async () => {
+    return { enabled: contextManager.isAutoStyleEnabled() };
+  });
+
+  ipcMain.handle('context:get-current', async () => {
+    try {
+      const context = contextManager.getCurrentContext();
+      return { success: true, context };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  // Start the service
+  setTimeout(() => ensureLLMService(), 2000); // Slight delay to let app initialize
+
   ipcMain.handle('settings:set', async (_evt, newSettings) => {
     const incoming = { ...newSettings };
     if (incoming.holdHotkey) incoming.holdHotkey = normalizeHotkey(incoming.holdHotkey);
     if (incoming.toggleHotkey) incoming.toggleHotkey = normalizeHotkey(incoming.toggleHotkey);
-    if (incoming.notesHotkey) incoming.notesHotkey = normalizeHotkey(incoming.notesHotkey);
     settings = { ...settings, ...incoming };
     saveSettings();
     registerHotkeys();
@@ -3494,20 +2455,20 @@ function reloadApp(changedFile) {
     updateTrayMenu();
     return settings;
   });
-  
+
   // IPC handlers for tray menu actions
   ipcMain.on('focus-hold-hotkey', () => {
     if (mainWindow) {
       mainWindow.webContents.send('focus-hold-hotkey');
     }
   });
-  
+
   ipcMain.on('focus-toggle-hotkey', () => {
     if (mainWindow) {
       mainWindow.webContents.send('focus-toggle-hotkey');
     }
   });
-  
+
   // Register global shortcuts for tray menu items
   try {
     globalShortcut.register('Alt+Shift+Z', () => {
@@ -3516,7 +2477,7 @@ function reloadApp(changedFile) {
   } catch (e) {
     console.warn('Failed to register Alt+Shift+Z:', e);
   }
-  
+
   try {
     globalShortcut.register('Super+/', () => {
       talkToSupport();
@@ -3524,7 +2485,7 @@ function reloadApp(changedFile) {
   } catch (e) {
     console.warn('Failed to register Super+/:', e);
   }
-  
+
   try {
     globalShortcut.register('Super+Q', () => {
       app.quit();
@@ -3543,10 +2504,10 @@ function reloadApp(changedFile) {
     }
   });
   ipcMain.handle('history:clear', async () => {
-    try { fs.writeFileSync(historyPath, JSON.stringify([], null, 2)); } catch (e) {}
+    try { fs.writeFileSync(historyPath, JSON.stringify([], null, 2)); } catch (e) { }
     return [];
   });
-  
+
   ipcMain.handle('history:save', async (_evt, items) => {
     try {
       fs.writeFileSync(historyPath, JSON.stringify(items, null, 2));
@@ -3556,7 +2517,7 @@ function reloadApp(changedFile) {
       return false;
     }
   });
-  
+
   ipcMain.handle('history:delete', async (_evt, timestamp) => {
     try {
       let arr = [];
@@ -3581,21 +2542,21 @@ function reloadApp(changedFile) {
         const cpus = os.cpus();
         const cpuModel = cpus && cpus.length > 0 ? cpus[0].model : 'Unknown';
         const cpuCount = cpus ? cpus.length : 0;
-        
+
         // Get logical cores (threads) - on Windows, this might be different
         const logicalCores = cpuCount;
         const physicalCores = cpuCount; // Simplified - on Windows this is harder to detect
-        
+
         const info = {
           Device: os.hostname() || 'Unknown',
           OS: `${os.type()} ${os.release()}` || 'Unknown',
           CPU: cpuModel || 'Unknown',
           Cores: physicalCores || 'N/A',
           Threads: logicalCores || 'N/A',
-          RAM: `${(os.totalmem() / (1024**3)).toFixed(1)} GB`,
+          RAM: `${(os.totalmem() / (1024 ** 3)).toFixed(1)} GB`,
           GPU: 'N/A',
           Arch: os.arch() || 'Unknown',
-          'App Version': `SONU v${app.getVersion()}`
+          'App Version': 'SONU v3.0.0-dev'
         };
         console.log('System info (Node.js):', info);
         return info;
@@ -3610,33 +2571,33 @@ function reloadApp(changedFile) {
           RAM: 'N/A',
           GPU: 'N/A',
           Arch: 'Unknown',
-          'App Version': `SONU v${app.getVersion()}`
+          'App Version': 'SONU v3.0.0-dev'
         };
       }
     }
-    
+
     // Try Python script first
     try {
-      const systemUtilsPath = path.join(__dirname, 'system_utils.py');
+      const systemUtilsPath = path.join(__dirname, 'src', 'core', 'python', 'system_utils.py');
       const pythonCommands = ['python3', 'python'];
-      
+
       for (const pythonCmd of pythonCommands) {
         try {
-          const pythonProcess = spawn(pythonCmd, [systemUtilsPath, 'info'], { 
+          const pythonProcess = spawn(pythonCmd, [systemUtilsPath, 'info'], {
             stdio: ['pipe', 'pipe', 'pipe'],
             shell: process.platform === 'win32' // Use shell on Windows
           });
           let output = '';
           let error = '';
-          
+
           pythonProcess.stdout.on('data', (data) => {
             output += data.toString();
           });
-          
+
           pythonProcess.stderr.on('data', (data) => {
             error += data.toString();
           });
-          
+
           const result = await new Promise((resolve) => {
             pythonProcess.on('close', (code) => {
               if (code === 0 && output && output.trim()) {
@@ -3655,7 +2616,7 @@ function reloadApp(changedFile) {
               }
             });
           });
-          
+
           if (result.success) {
             return result.info;
           }
@@ -3664,7 +2625,7 @@ function reloadApp(changedFile) {
           continue; // Try next Python command
         }
       }
-      
+
       // If all Python attempts failed, use Node.js fallback
       console.log('All Python attempts failed, using Node.js fallback');
       return getNodeSystemInfo();
@@ -3678,33 +2639,33 @@ function reloadApp(changedFile) {
   // Optimized for best UX - recommends one level lower for faster, smoother performance
   function getModelRecommendation(ramGB, cpuCount, gpu = false) {
     let rec;
-    
+
     if (ramGB < 4 || cpuCount <= 2) {
-      rec = { 
-        family: "Whisper (faster-whisper)", 
-        model: "tiny", 
-        reason: "Optimized for low-spec systems - fast and responsive" 
+      rec = {
+        family: "Whisper (faster-whisper)",
+        model: "tiny",
+        reason: "Optimized for low-spec systems - fast and responsive"
       };
     } else if (ramGB < 16 || cpuCount <= 6) {
-      rec = { 
-        family: "Whisper (faster-whisper)", 
-        model: "tiny", 
-        reason: "Optimized for speed - instant response with good accuracy" 
+      rec = {
+        family: "Whisper (faster-whisper)",
+        model: "tiny",
+        reason: "Optimized for speed - instant response with good accuracy"
       };
     } else if (ramGB < 32) {
-      rec = { 
-        family: "Whisper (faster-whisper)", 
-        model: "small", 
-        reason: "Balanced performance - fast response with excellent accuracy" 
+      rec = {
+        family: "Whisper (faster-whisper)",
+        model: "small",
+        reason: "Balanced performance - fast response with excellent accuracy"
       };
     } else {
-      rec = { 
-        family: "Whisper (faster-whisper)", 
-        model: "medium", 
-        reason: "High-performance - great accuracy with fast processing" 
+      rec = {
+        family: "Whisper (faster-whisper)",
+        model: "medium",
+        reason: "High-performance - great accuracy with fast processing"
       };
     }
-    
+
     rec.note = gpu ? "GPU detected - performance boosted" : "CPU-only mode";
     return rec;
   }
@@ -3712,16 +2673,16 @@ function reloadApp(changedFile) {
   // System profile handler - returns detailed system info with recommendations
   ipcMain.handle('system:get-profile', async () => {
     try {
-      const systemUtilsPath = path.join(__dirname, 'system_utils.py');
+      const systemUtilsPath = path.join(__dirname, 'src', 'core', 'python', 'system_utils.py');
       const pythonExecutable = findPythonExecutable();
-      
+
       if (!pythonExecutable) {
         // Fallback to Node.js
         const os = require('os');
         const cpuCount = os.cpus().length;
         const ramGB = Math.round(os.totalmem() / (1024 ** 3));
         const gpu = false; // Can't detect GPU easily in Node.js
-        
+
         return {
           os: process.platform,
           cpu_cores: cpuCount,
@@ -3730,23 +2691,23 @@ function reloadApp(changedFile) {
           recommended: getModelRecommendation(ramGB, cpuCount, gpu)
         };
       }
-      
+
       const pythonProcess = spawn(pythonExecutable, [systemUtilsPath, 'profile'], {
         stdio: ['pipe', 'pipe', 'pipe'],
         shell: process.platform === 'win32'
       });
-      
+
       let output = '';
       let error = '';
-      
+
       pythonProcess.stdout.on('data', (data) => {
         output += data.toString();
       });
-      
+
       pythonProcess.stderr.on('data', (data) => {
         error += data.toString();
       });
-      
+
       return new Promise((resolve) => {
         pythonProcess.on('close', (code) => {
           if (code === 0 && output) {
@@ -3799,20 +2760,6 @@ function reloadApp(changedFile) {
     }
   });
 
-  // LLM model management handlers (stub implementations)
-  ipcMain.handle('llm:check-model', async () => {
-    // LLM feature not fully implemented yet
-    return { available: false, message: 'LLM feature not available' };
-  });
-  
-  ipcMain.handle('llm:download-model', async () => {
-    return { success: false, message: 'LLM model download not implemented' };
-  });
-  
-  ipcMain.handle('llm:get-status', async () => {
-    return { ready: false, status: 'not_implemented' };
-  });
-
   // Model suggestion handler - using Node.js model downloader
   ipcMain.handle('model:suggest', async () => {
     try {
@@ -3827,8 +2774,8 @@ function reloadApp(changedFile) {
   ipcMain.handle('model:get-space', async () => {
     // First try Python script
     try {
-      const modelManagerPath = path.join(__dirname, 'model_manager.py');
-      
+      const modelManagerPath = path.join(__dirname, 'src', 'core', 'python', 'model_manager.py');
+
       // Find Python executable
       const pythonExecutable = findPythonExecutable();
       if (pythonExecutable) {
@@ -3837,19 +2784,19 @@ function reloadApp(changedFile) {
             stdio: ['pipe', 'pipe', 'pipe'],
             shell: process.platform === 'win32'
           });
-          
+
           let output = '';
           let error = '';
-          
+
           pythonProcess.stdout.on('data', (data) => {
             output += data.toString();
           });
-          
+
           pythonProcess.stderr.on('data', (data) => {
             error += data.toString();
             console.log('Python stderr (space):', data.toString());
           });
-          
+
           const result = await new Promise((resolve) => {
             pythonProcess.on('close', (code) => {
               console.log(`Disk space check: code=${code}, output="${output.trim()}"`);
@@ -3890,7 +2837,7 @@ function reloadApp(changedFile) {
               }
             });
           });
-          
+
           if (result && result.success) {
             return result;
           }
@@ -3904,30 +2851,30 @@ function reloadApp(changedFile) {
     } catch (e) {
       console.error('Error in Python disk space check:', e);
     }
-    
+
     // Fallback to Node.js method
     try {
       const os = require('os');
       const fs = require('fs');
       const { execSync } = require('child_process');
-      
+
       // Get cache directory path
       const homeDir = os.homedir();
       let cacheDir = path.join(homeDir, '.cache', 'huggingface', 'hub');
-      
+
       if (process.platform === 'win32') {
         const localAppData = process.env.LOCALAPPDATA || '';
         if (localAppData) {
           cacheDir = path.join(localAppData, '.cache', 'huggingface', 'hub');
         }
       }
-      
+
       // Ensure parent directory exists
       const parentDir = path.dirname(cacheDir);
       if (!fs.existsSync(parentDir)) {
         fs.mkdirSync(parentDir, { recursive: true });
       }
-      
+
       // Get disk space using Node.js
       // Try statfsSync first (Node.js 18.15.0+)
       if (fs.statfsSync) {
@@ -3940,17 +2887,17 @@ function reloadApp(changedFile) {
           console.warn('statfsSync failed:', e);
         }
       }
-      
+
       // Fallback: use system commands
       if (process.platform === 'win32') {
         try {
           // Get drive letter from cache directory
           const driveLetter = cacheDir.split(':')[0];
-          
+
           // Try PowerShell
           try {
             const psCommand = `(Get-PSDrive -Name ${driveLetter}).Free / 1GB`;
-            const result = execSync(`powershell -Command "${psCommand}"`, { 
+            const result = execSync(`powershell -Command "${psCommand}"`, {
               encoding: 'utf8',
               timeout: 5000,
               stdio: ['pipe', 'pipe', 'pipe']
@@ -3967,11 +2914,11 @@ function reloadApp(changedFile) {
           } catch (e) {
             console.warn('PowerShell disk space check failed:', e);
           }
-          
+
           // Try wmic as fallback
           try {
             const wmicCommand = `wmic logicaldisk where "DeviceID='${driveLetter}:'" get FreeSpace /format:value`;
-            const result = execSync(wmicCommand, { 
+            const result = execSync(wmicCommand, {
               encoding: 'utf8',
               timeout: 5000,
               stdio: ['pipe', 'pipe', 'pipe']
@@ -3997,7 +2944,7 @@ function reloadApp(changedFile) {
         // Linux/Mac: use df command
         try {
           const dfCommand = `df -BG "${cacheDir}" | tail -1 | awk '{print $4}' | sed 's/G//'`;
-          const result = execSync(dfCommand, { 
+          const result = execSync(dfCommand, {
             encoding: 'utf8',
             timeout: 5000,
             stdio: ['pipe', 'pipe', 'pipe']
@@ -4015,7 +2962,7 @@ function reloadApp(changedFile) {
           console.warn('df disk space check failed:', e);
         }
       }
-      
+
       // Final fallback: estimate based on available memory (not ideal, but better than 0)
       const totalMem = os.totalmem();
       const freeMem = os.freemem();
@@ -4044,7 +2991,7 @@ function reloadApp(changedFile) {
         properties: ['openDirectory'],
         title: 'Select Model Download Location'
       });
-      
+
       if (!result.canceled && result.filePaths.length > 0) {
         const selectedPath = result.filePaths[0];
         // Save to settings
@@ -4068,7 +3015,7 @@ function reloadApp(changedFile) {
       return { success: false, path: null, error: e.message };
     }
   });
-  
+
   ipcMain.handle('model:get-path', async () => {
     try {
       const settingsPath = path.join(__dirname, 'data', 'settings.json');
@@ -4094,7 +3041,7 @@ function reloadApp(changedFile) {
       return { success: false, path: null, error: e.message };
     }
   });
-  
+
   ipcMain.handle('model:set-path', async (_evt, downloadPath) => {
     try {
       const settingsPath = path.join(__dirname, 'data', 'settings.json');
@@ -4121,40 +3068,134 @@ function reloadApp(changedFile) {
   // faster-whisper automatically downloads from Hugging Face Systran repositories (not ggerganov/whisper.cpp)
   // The filename field is kept for backward compatibility with import functionality
   const MODEL_DEFINITIONS = {
-    tiny: { 
+    tiny: {
       filename: 'tiny',  // faster-whisper model name (not a filename)
       size_mb: 75,
       sha: null,
       description: 'Fastest, lowest accuracy - best for real-time dictation',
       recommended_for: '≤4 cores / <8 GB RAM'
     },
-    base: { 
+    'tiny.en': {
+      filename: 'tiny.en',
+      size_mb: 75,
+      sha: null,
+      description: 'English-only tiny model - faster for English',
+      recommended_for: '≤4 cores / <8 GB RAM'
+    },
+    base: {
       filename: 'base',  // faster-whisper model name (not a filename)
       size_mb: 142,
       sha: null,
       description: 'Balanced speed & accuracy - recommended for most users',
       recommended_for: '4–8 cores / 8–16 GB RAM'
     },
-    small: { 
+    'base.en': {
+      filename: 'base.en',
+      size_mb: 142,
+      sha: null,
+      description: 'English-only base model',
+      recommended_for: '4–8 cores / 8–16 GB RAM'
+    },
+    small: {
       filename: 'small',  // faster-whisper model name (not a filename)
       size_mb: 466,
       sha: null,
       description: 'Good accuracy, slower processing',
       recommended_for: '8–12 cores / ≥16 GB RAM'
     },
-    medium: { 
+    'small.en': {
+      filename: 'small.en',
+      size_mb: 466,
+      sha: null,
+      description: 'English-only small model',
+      recommended_for: '8–12 cores / ≥16 GB RAM'
+    },
+    'distil-small.en': {
+      filename: 'distil-small.en',
+      size_mb: 332,
+      sha: null,
+      description: 'Distilled English model - fast & accurate for English',
+      recommended_for: '4–8 cores / 8–16 GB RAM'
+    },
+    'distil-medium.en': {
+      filename: 'distil-medium.en',
+      size_mb: 756,
+      sha: null,
+      description: 'Distilled medium English model - high accuracy',
+      recommended_for: '8–12 cores / ≥16 GB RAM'
+    },
+    'distil-large-v2': {
+      filename: 'distil-large-v2',
+      size_mb: 756,
+      sha: null,
+      description: 'Distilled large v2 - multilingual',
+      recommended_for: '8–12 cores / ≥16 GB RAM'
+    },
+    'distil-large-v3': {
+      filename: 'distil-large-v3',
+      size_mb: 756,
+      sha: null,
+      description: 'Distilled large v3 - latest multilingual',
+      recommended_for: '8–12 cores / ≥16 GB RAM'
+    },
+    medium: {
       filename: 'medium',  // faster-whisper model name (not a filename)
       size_mb: 1530,
       sha: null,
       description: 'High accuracy, requires significant resources',
       recommended_for: '>12 cores / ≥32 GB RAM'
     },
-    large: { 
+    'medium.en': {
+      filename: 'medium.en',
+      size_mb: 1530,
+      sha: null,
+      description: 'English-only medium model',
+      recommended_for: '>12 cores / ≥32 GB RAM'
+    },
+    large: {
       filename: 'large-v3',  // faster-whisper model name (not a filename)
       size_mb: 3100,
       sha: null,
       description: 'Best accuracy, very resource-intensive',
       recommended_for: '≥16 cores / 64+ GB RAM'
+    },
+    'large-v2': {
+      filename: 'large-v2',
+      size_mb: 3100,
+      sha: null,
+      description: 'Large v2 model',
+      recommended_for: '≥16 cores / 64+ GB RAM'
+    },
+    'large-v3': {
+      filename: 'large-v3',
+      size_mb: 3100,
+      sha: null,
+      description: 'Latest large model - best accuracy',
+      recommended_for: '≥16 cores / 64+ GB RAM'
+    },
+    'large-v3-turbo': {
+      filename: 'large-v3-turbo',
+      size_mb: 1600,
+      sha: null,
+      description: 'Large v3 quality with 8x faster speed',
+      recommended_for: '8–12 cores / ≥16 GB RAM'
+    },
+    // Moonshine models - ultra-light multilingual
+    'moonshine-tiny': {
+      filename: 'moonshine-tiny',
+      size_mb: 150,
+      sha: null,
+      type: 'moonshine',
+      description: 'Ultra-light multilingual model - 50+ languages, fastest',
+      recommended_for: 'All systems'
+    },
+    'moonshine-base': {
+      filename: 'moonshine-base',
+      size_mb: 250,
+      sha: null,
+      type: 'moonshine',
+      description: 'Ultra-light multilingual model - 50+ languages, balanced',
+      recommended_for: 'All systems'
     }
   };
 
@@ -4162,7 +3203,7 @@ function reloadApp(changedFile) {
   function getRecommendedModel() {
     const cpuCount = os.cpus().length;
     const totalMemoryGB = os.totalmem() / (1024 * 1024 * 1024);
-    
+
     if (cpuCount <= 4 && totalMemoryGB < 8) {
       return 'tiny';
     } else if (cpuCount <= 8 && totalMemoryGB < 16) {
@@ -4199,31 +3240,19 @@ function reloadApp(changedFile) {
     return 'v1.8.2'; // Not used for faster-whisper
   }
 
-  // Get download sources for a model (used as fallback when Python is not available)
-  // faster-whisper models are hosted on Hugging Face Systran repositories
+  // NOTE: This function is NOT used for faster-whisper downloads
+  // faster-whisper handles downloads automatically from Hugging Face Systran repositories
+  // This function is kept for backward compatibility only
   async function getModelSources(modelName) {
-    const modelDef = MODEL_DEFINITIONS[modelName];
-    if (!modelDef) {
+    const filename = MODEL_DEFINITIONS[modelName]?.filename;
+    if (!filename) {
       throw new Error(`Unknown model: ${modelName}`);
     }
 
-    // Hugging Face Systran faster-whisper model URLs
-    // These are the actual model files used by faster-whisper
-    const modelName_fw = modelDef.filename; // e.g., 'tiny', 'base', 'small', 'medium', 'large-v3'
-    
-    // Return multiple mirror sources for robustness
-    return [
-      {
-        name: 'Hugging Face (Systran)',
-        url: `https://huggingface.co/Systran/faster-whisper-${modelName_fw}/resolve/main/model.bin`,
-        priority: 1
-      },
-      {
-        name: 'Hugging Face Mirror',
-        url: `https://hf-mirror.com/Systran/faster-whisper-${modelName_fw}/resolve/main/model.bin`,
-        priority: 2
-      }
-    ];
+    // faster-whisper downloads from Hugging Face Systran repositories automatically
+    // These URLs are NOT used for faster-whisper downloads
+    // They are kept for backward compatibility only
+    return [];
   }
 
   // Get manual download URLs for display in UI
@@ -4281,8 +3310,8 @@ function reloadApp(changedFile) {
         if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
           const redirectUrl = response.headers.location;
           // Handle relative redirects
-          const fullRedirectUrl = redirectUrl.startsWith('http') 
-            ? redirectUrl 
+          const fullRedirectUrl = redirectUrl.startsWith('http')
+            ? redirectUrl
             : new URL(redirectUrl, url).href;
           return downloadModelFromSource(fullRedirectUrl, targetPath, onProgress, sourceName)
             .then(resolve)
@@ -4296,8 +3325,8 @@ function reloadApp(changedFile) {
         }
 
         const contentLength = parseInt(response.headers['content-length'] || '0', 10);
-        const totalSize = startByte > 0 && response.statusCode === 206 
-          ? startByte + contentLength 
+        const totalSize = startByte > 0 && response.statusCode === 206
+          ? startByte + contentLength
           : contentLength;
 
         let downloadedBytes = startByte;
@@ -4314,29 +3343,29 @@ function reloadApp(changedFile) {
         response.on('data', (chunk) => {
           downloadedBytes += chunk.length;
           const now = Date.now();
-          
+
           // Buffer chunks for efficient writing
           chunkBuffer = Buffer.concat([chunkBuffer, chunk]);
-          
+
           // Write in 8MB chunks for better reliability
           if (chunkBuffer.length >= CHUNK_SIZE) {
             const toWrite = chunkBuffer.slice(0, CHUNK_SIZE);
             chunkBuffer = chunkBuffer.slice(CHUNK_SIZE);
             writeStream.write(toWrite);
           }
-          
+
           // Calculate speed
           const timeDiff = (now - lastProgressTime) / 1000;
           if (timeDiff >= 0.5) { // Update every 500ms
             const bytesDiff = downloadedBytes - lastProgressBytes;
             const speedKB = bytesDiff / timeDiff / 1024;
-            
+
             const percent = totalSize > 0 ? Math.round((downloadedBytes / totalSize) * 100) : 0;
             const elapsed = (now - startTime) / 1000;
-            const remaining = speedKB > 0 && totalSize > 0 
-              ? ((totalSize - downloadedBytes) / 1024) / speedKB 
+            const remaining = speedKB > 0 && totalSize > 0
+              ? ((totalSize - downloadedBytes) / 1024) / speedKB
               : 0;
-            
+
             if (onProgress) {
               onProgress({
                 percent,
@@ -4348,7 +3377,7 @@ function reloadApp(changedFile) {
                 remaining: Math.round(remaining)
               });
             }
-            
+
             lastProgressTime = now;
             lastProgressBytes = downloadedBytes;
           }
@@ -4361,7 +3390,7 @@ function reloadApp(changedFile) {
               writeStream.write(chunkBuffer);
               chunkBuffer = Buffer.alloc(0);
             }
-            
+
             // Ensure all data is written and synced
             await new Promise((resolve, reject) => {
               writeStream.end(() => {
@@ -4399,11 +3428,11 @@ function reloadApp(changedFile) {
 
             // Verify file size (basic integrity check)
             const finalStats = await fs.promises.stat(partPath);
-            const modelName = Object.keys(MODEL_DEFINITIONS).find(k => 
+            const modelName = Object.keys(MODEL_DEFINITIONS).find(k =>
               MODEL_DEFINITIONS[k].filename === path.basename(targetPath)
             );
             const expectedSize = modelName ? MODEL_DEFINITIONS[modelName].size_mb * 1024 * 1024 : null;
-            
+
             // Accept if size is within 2% of expected (allows for minor variations)
             if (expectedSize && finalStats.size < expectedSize * 0.98) {
               reject(new Error(`Downloaded file size (${(finalStats.size / 1024 / 1024).toFixed(2)} MB) is less than expected (${(expectedSize / 1024 / 1024).toFixed(2)} MB)`));
@@ -4419,7 +3448,7 @@ function reloadApp(changedFile) {
         });
 
         response.on('error', reject);
-        
+
         try {
           await pipeline(response, writeStream);
         } catch (error) {
@@ -4443,7 +3472,7 @@ function reloadApp(changedFile) {
     } catch (e) {
       try {
         console.error('Error getting manual URLs:', e);
-      } catch (e2) {}
+      } catch (e2) { }
       return { success: false, error: e.message };
     }
   });
@@ -4464,7 +3493,7 @@ function reloadApp(changedFile) {
       return { success: false, error: e.message };
     }
   });
-  
+
   // Logging handlers
   ipcMain.handle('logs:get-directory', async () => {
     try {
@@ -4476,7 +3505,7 @@ function reloadApp(changedFile) {
       return { success: false, error: e.message };
     }
   });
-  
+
   ipcMain.handle('logs:get-recent', async (_evt, category, lines) => {
     try {
       if (logger) {
@@ -4488,7 +3517,7 @@ function reloadApp(changedFile) {
       return { success: false, error: e.message };
     }
   });
-  
+
   ipcMain.handle('logs:open-directory', async () => {
     try {
       if (logger) {
@@ -4501,130 +3530,6 @@ function reloadApp(changedFile) {
       return { success: false, error: e.message };
     }
   });
-  
-  // Logs directory path handlers
-  ipcMain.handle('logs:browse-path', async () => {
-    try {
-      const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openDirectory'],
-        title: 'Select Logs Directory'
-      });
-      
-      if (!result.canceled && result.filePaths.length > 0) {
-        const selectedPath = result.filePaths[0];
-        // Save to settings
-        const settingsPath = path.join(__dirname, 'data', 'settings.json');
-        let settingsData = {};
-        if (fs.existsSync(settingsPath)) {
-          try {
-            settingsData = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-          } catch (e) {
-            console.error('Error reading settings:', e);
-          }
-        }
-        settingsData.logs_directory = selectedPath;
-        settings.logs_directory = selectedPath;
-        fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
-        fs.writeFileSync(settingsPath, JSON.stringify(settingsData, null, 2));
-        
-        // Update logger directory
-        if (logger) {
-          logger.setLogsDirectory(selectedPath);
-        }
-        
-        return { success: true, path: selectedPath };
-      }
-      return { success: false, path: null };
-    } catch (e) {
-      console.error('Error browsing logs path:', e);
-      return { success: false, path: null, error: e.message };
-    }
-  });
-  
-  ipcMain.handle('logs:get-path', async () => {
-    try {
-      if (logger) {
-        return { success: true, path: logger.getLogsDirectory() };
-      }
-      // Return default path if logger not initialized
-      const userDataPath = app.getPath('userData');
-      const defaultPath = path.join(userDataPath, 'logs');
-      return { success: true, path: defaultPath };
-    } catch (e) {
-      console.error('Error getting logs path:', e);
-      return { success: false, path: null, error: e.message };
-    }
-  });
-  
-  ipcMain.handle('logs:set-path', async (_evt, logsPath) => {
-    try {
-      const settingsPath = path.join(__dirname, 'data', 'settings.json');
-      let settingsData = {};
-      if (fs.existsSync(settingsPath)) {
-        try {
-          settingsData = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        } catch (e) {
-          console.error('Error reading settings:', e);
-        }
-      }
-      settingsData.logs_directory = logsPath;
-      settings.logs_directory = logsPath;
-      fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
-      fs.writeFileSync(settingsPath, JSON.stringify(settingsData, null, 2));
-      
-      // Update logger directory
-      if (logger) {
-        const success = logger.setLogsDirectory(logsPath);
-        if (!success) {
-          return { success: false, error: 'Failed to update logger directory' };
-        }
-      }
-      
-      return { success: true };
-    } catch (e) {
-      console.error('Error setting logs path:', e);
-      return { success: false, error: e.message };
-    }
-  });
-  
-  // App version handler - always reads from package.json for latest version
-  ipcMain.handle('app:get-version', async () => {
-    try {
-      // Read directly from package.json to get the most up-to-date version
-      const packageJsonPath = path.join(__dirname, 'package.json');
-      let version = app.getVersion();
-      try {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-        version = packageJson.version;
-      } catch (e) {
-        console.warn('Could not read package.json for version:', e.message);
-      }
-      return { success: true, version };
-    } catch (e) {
-      return { success: false, error: e.message };
-    }
-  });
-  
-//   // Check for updates handler
-//   ipcMain.handle('app:check-updates', async () => {
-//     try {
-//       if (isTestMode || !app.isPackaged) {
-//         return { success: false, error: 'Update checking is only available in packaged apps' };
-//       }
-//
-//       // Check for updates
-//       // const result = await autoUpdater.checkForUpdates();
-//       return {
-//         success: false,
-//         updateAvailable: false,
-//         currentVersion: app.getVersion(),
-//         updateVersion: null
-//       };
-//     } catch (e) {
-//       console.error('Error checking for updates:', e);
-//       return { success: false, error: e.message };
-//     }
-//   });
 
   // Get recommended model handler
   ipcMain.handle('model:get-recommended', async () => {
@@ -4641,7 +3546,7 @@ function reloadApp(changedFile) {
     } catch (e) {
       try {
         console.error('Error getting recommended model:', e);
-      } catch (e2) {}
+      } catch (e2) { }
       return { success: false, error: e.message };
     }
   });
@@ -4661,14 +3566,14 @@ function reloadApp(changedFile) {
       }
       return errorResult;
     }
-    
+
     if (logger) logger.download('Model download requested', { modelName });
     try {
       console.log('Model download requested:', modelName);
     } catch (e) {
       // Ignore EPIPE errors when writing to console
     }
-    
+
     try {
       // Get model definition
       const modelDef = MODEL_DEFINITIONS[modelName];
@@ -4684,7 +3589,7 @@ function reloadApp(changedFile) {
         }
         return errorResult;
       }
-      
+
       // Get download path
       let downloadPath = null;
       try {
@@ -4698,11 +3603,11 @@ function reloadApp(changedFile) {
       } catch (e) {
         console.warn('Error reading download path from settings:', e);
       }
-      
+
       // Use default path if not set
       if (!downloadPath) {
         downloadPath = getDefaultModelsDir();
-        }
+      }
 
       // Check if path is problematic
       if (isProblematicPath(downloadPath)) {
@@ -4722,8 +3627,8 @@ function reloadApp(changedFile) {
       }
 
       // Check if model already exists in faster-whisper cache
-      // faster-whisper stores models in: ~/.cache/huggingface/hub/models--Systran--faster-whisper-{model_name}/
-      // On Windows: %LOCALAPPDATA%\.cache\huggingface\hub\models--Systran--faster-whisper-{model_name}\
+      // faster-whisper stores models in: ~/.cache/huggingface/hub/models--openai--whisper-{model_name}/
+      // On Windows: %LOCALAPPDATA%\.cache\huggingface\hub\models--openai--whisper-{model_name}\
       let hfCacheDir;
       if (process.platform === 'win32') {
         const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
@@ -4731,61 +3636,28 @@ function reloadApp(changedFile) {
       } else {
         hfCacheDir = path.join(os.homedir(), '.cache', 'huggingface', 'hub');
       }
-      
-      // faster-whisper model name for cache directory
-      const fasterWhisperModelName = modelDef.filename; // e.g., 'tiny', 'base', 'small', 'medium', 'large-v3'
-      const modelCacheDir = path.join(hfCacheDir, `models--Systran--faster-whisper-${fasterWhisperModelName}`);
-      
-      // Check if model is FULLY downloaded (not just directory exists)
-      const isModelComplete = () => {
-        if (!fs.existsSync(modelCacheDir)) return false;
-        
-        // Check for snapshots directory
-        const snapshotsDir = path.join(modelCacheDir, 'snapshots');
-        if (!fs.existsSync(snapshotsDir)) return false;
-        
-        // Find snapshot directories
-        const snapshots = fs.readdirSync(snapshotsDir).filter(f => {
-          const fullPath = path.join(snapshotsDir, f);
-          return fs.statSync(fullPath).isDirectory();
-        });
-        
-        if (snapshots.length === 0) return false;
-        
-        // Check for model.bin in the first snapshot
-        const snapshotPath = path.join(snapshotsDir, snapshots[0]);
-        const modelBinPath = path.join(snapshotPath, 'model.bin');
-        
-        if (!fs.existsSync(modelBinPath)) return false;
-        
-        // Check model.bin has reasonable size (at least 10MB)
-        const stats = fs.statSync(modelBinPath);
-        const minSizeMB = 10;
-        if (stats.size < minSizeMB * 1024 * 1024) return false;
-        
-        return true;
-      };
-      
-      if (isModelComplete()) {
-        // Model already exists and is complete in faster-whisper cache
+
+      const modelCacheDir = path.join(hfCacheDir, `models--openai--whisper-${modelName}`);
+      if (fs.existsSync(modelCacheDir)) {
+        // Model already exists in faster-whisper cache
         console.log(`✓ Model ${modelName} already exists in faster-whisper cache at ${modelCacheDir}`);
-        
+
         // Set as active model
         settings.activeModel = modelName;
         saveSettings();
         if (logger) logger.download('Model already exists, setting as active', { model: modelName, path: modelCacheDir });
-        
+
         // Restart whisper service with this model
         whisperModelReady = false;
         if (whisperProcess && !whisperProcess.killed) {
           whisperProcess.kill();
         }
-        
+
         // Trigger model ready event after restart
         setTimeout(() => {
           ensureWhisperService();
         }, 500);
-        
+
         const cachedResult = {
           success: true,
           model: modelName,
@@ -4796,21 +3668,21 @@ function reloadApp(changedFile) {
           cached: true,
           message: `Model ${modelName.toUpperCase()} is already downloaded and has been activated.`
         };
-        
+
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('model:complete', cachedResult);
         }
-        
+
         return cachedResult;
       }
 
       // Define target path for the model file
       const targetPath = path.join(downloadPath, modelDef.filename);
 
-      // Use Python model_manager.py for robust downloads via faster-whisper
+      // Use Python offline model downloader for robust, resumable downloads
       const pythonCmd = findPythonExecutable();
-      const downloaderScript = path.join(__dirname, 'model_manager.py');
-      
+      const downloaderScript = path.join(__dirname, 'src', 'core', 'python', 'offline_model_downloader.py');
+
       if (pythonCmd && fs.existsSync(downloaderScript)) {
         try {
           return await new Promise((resolve, reject) => {
@@ -4820,17 +3692,17 @@ function reloadApp(changedFile) {
               shell: process.platform === 'win32',
               windowsHide: true
             });
-            
+
             activeDownloadProcess = pythonProcess;
-            
+
             let stdout = '';
             let stderr = '';
-            
+
             pythonProcess.stdout.on('data', (data) => {
               stdout += data.toString();
               const lines = stdout.split('\n');
               stdout = lines.pop() || ''; // Keep incomplete line
-              
+
               for (const line of lines) {
                 if (line.trim()) {
                   try {
@@ -4845,8 +3717,7 @@ function reloadApp(changedFile) {
                           speedKB: jsonData.speedKB || 0,
                           message: jsonData.message || `Downloading ${modelName}... ${jsonData.percent || 0}%`,
                           elapsed: jsonData.elapsed || 0,
-                          remaining: jsonData.remaining || 0,
-                          canResume: jsonData.canResume || false
+                          remaining: jsonData.remaining || 0
                         });
                       }
                     } else if (jsonData.type === 'result') {
@@ -4856,19 +3727,18 @@ function reloadApp(changedFile) {
                         // Set as active model
                         settings.activeModel = modelName;
                         saveSettings();
-                        
-                        // Restart whisper service with new model
+
+                        // Restart whisper service
                         whisperModelReady = false;
                         if (whisperProcess && !whisperProcess.killed) {
                           whisperProcess.kill();
                         }
-                        
-                        // CRITICAL: Start new whisper service with the new model after a short delay
+
+                        // Service will auto-restart on next use, but we restart it proactively now
                         setTimeout(() => {
-                          console.log(`🔄 Restarting whisper service with model: ${modelName}`);
                           ensureWhisperService();
                         }, 500);
-                        
+
                         if (mainWindow && !mainWindow.isDestroyed()) {
                           mainWindow.webContents.send('model:complete', {
                             success: true,
@@ -4900,12 +3770,12 @@ function reloadApp(changedFile) {
                 }
               }
             });
-            
+
             pythonProcess.stderr.on('data', (data) => {
               stderr += data.toString();
-              console.log('model_manager.py stderr:', data.toString().trim());
+              console.log('offline_model_downloader stderr:', data.toString().trim());
             });
-            
+
             pythonProcess.on('close', (code) => {
               activeDownloadProcess = null;
               if (code !== 0) {
@@ -4913,7 +3783,7 @@ function reloadApp(changedFile) {
                 reject(new Error(`Python downloader exited with code ${code}`));
               }
             });
-            
+
             pythonProcess.on('error', (error) => {
               activeDownloadProcess = null;
               // Python not available or script error, fall back to Node.js
@@ -4951,86 +3821,48 @@ function reloadApp(changedFile) {
       return errorResult;
     }
   });
-  
+
   // Cancel download handler
   ipcMain.handle('model:cancel-download', async () => {
     try {
       if (activeDownloadProcess && !activeDownloadProcess.killed) {
         console.log('🛑 Cancelling active download...');
-        
-        const processToKill = activeDownloadProcess;
-        const processPid = processToKill.pid;
-        
-        // Clear reference immediately to prevent race conditions
-        activeDownloadProcess = null;
-        
-        // Force kill the process and all its children
+
+        // Force kill the process immediately
         if (process.platform === 'win32') {
-          // Windows: Use taskkill with /T to kill process tree (all child processes)
+          // Windows: Use taskkill for forceful termination
           try {
-            const { execSync } = require('child_process');
-            try {
-              // Kill the entire process tree
-              execSync(`taskkill /F /T /PID ${processPid}`, { stdio: 'ignore', timeout: 5000 });
-              console.log('✓ Process tree killed with taskkill');
-            } catch (taskkillError) {
-              // If taskkill fails, try killing just the process
-              try {
-                execSync(`taskkill /F /PID ${processPid}`, { stdio: 'ignore', timeout: 5000 });
-                console.log('✓ Process killed with taskkill (no tree)');
-              } catch (e) {
-                console.warn('taskkill failed, using Node.js kill:', e.message);
+            const { exec } = require('child_process');
+            exec(`taskkill /F /PID ${activeDownloadProcess.pid}`, (error) => {
+              if (error) {
+                console.error('taskkill error:', error);
                 // Fallback to Node.js kill
-                try {
-                  processToKill.kill('SIGKILL');
-                } catch (killError) {
-                  console.error('Failed to kill process:', killError);
-                }
+                activeDownloadProcess.kill('SIGKILL');
+              } else {
+                console.log('✓ Process killed with taskkill');
               }
-            }
+            });
           } catch (e) {
-            console.warn('taskkill execution failed, using Node.js kill:', e.message);
             // Fallback to SIGKILL
-            try {
-              processToKill.kill('SIGKILL');
-            } catch (killError) {
-              console.error('Failed to kill process:', killError);
-            }
+            activeDownloadProcess.kill('SIGKILL');
           }
         } else {
-          // Unix: Try to kill process group, then fallback to direct kill
-          try {
-            // First try to kill the process directly (this should also kill children if they're in the same group)
-            processToKill.kill('SIGKILL');
-            console.log('✓ Process killed with SIGKILL');
-            
-            // Also try to kill any child processes using pkill (if available)
-            // This is a best-effort attempt to clean up any orphaned processes
-            try {
-              const { exec } = require('child_process');
-              exec(`pkill -P ${processPid} 2>/dev/null || true`, (error) => {
-                if (!error) {
-                  console.log('✓ Child processes cleaned up');
-                }
-              });
-            } catch (pkillError) {
-              // pkill not available or failed, that's okay
-            }
-          } catch (e) {
-            console.error('Failed to kill process:', e);
-          }
+          // Unix: Send SIGKILL for immediate termination
+          activeDownloadProcess.kill('SIGKILL');
         }
-        
+
+        // Clear immediately
+        activeDownloadProcess = null;
         console.log('🛑 Download process terminated');
-        
+
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('model:cancelled', {
-            success: true,
-            message: 'Download was cancelled',
-            canResume: true
+          mainWindow.webContents.send('model:error', {
+            success: false,
+            error: 'Download cancelled by user',
+            message: 'Download was cancelled'
           });
         }
-        return { success: true, message: 'Download cancelled', canResume: true };
+        return { success: true, message: 'Download cancelled' };
       }
       return { success: false, message: 'No active download to cancel' };
     } catch (e) {
@@ -5041,123 +3873,14 @@ function reloadApp(changedFile) {
     }
   });
 
-  // Resume download handler
-  ipcMain.handle('model:resume-download', async (event, modelName) => {
-    try {
-      console.log(`🔄 Resuming download for model: ${modelName}`);
-      
-      const modelDef = models.find(m => m.name.toLowerCase() === modelName.toLowerCase());
-      if (!modelDef) {
-        return { success: false, error: `Unknown model: ${modelName}` };
-      }
-      
-      const pythonCmd = findPythonExecutable();
-      const downloaderScript = path.join(__dirname, 'model_manager.py');
-      
-      if (!pythonCmd || !fs.existsSync(downloaderScript)) {
-        return { success: false, error: 'Python not available for download' };
-      }
-      
-      return await new Promise((resolve, reject) => {
-        const pythonProcess = spawn(pythonCmd, [downloaderScript, 'download', modelName, 'resume'], {
-          cwd: __dirname,
-          stdio: ['pipe', 'pipe', 'pipe'],
-          shell: process.platform === 'win32',
-          windowsHide: true
-        });
-        
-        activeDownloadProcess = pythonProcess;
-        
-        let stdout = '';
-        
-        pythonProcess.stdout.on('data', (data) => {
-          stdout += data.toString();
-          const lines = stdout.split('\n');
-          stdout = lines.pop() || '';
-          
-          for (const line of lines) {
-            if (line.trim()) {
-              try {
-                const jsonData = JSON.parse(line);
-                if (jsonData.type === 'progress') {
-                  if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('model:progress', {
-                      percent: jsonData.percent || 0,
-                      bytesDownloaded: jsonData.bytesDownloaded || 0,
-                      bytesTotal: jsonData.bytesTotal || 0,
-                      speedKB: jsonData.speedKB || 0,
-                      message: jsonData.message || `Resuming ${modelName}... ${jsonData.percent || 0}%`,
-                      canResume: jsonData.canResume || false
-                    });
-                  }
-                } else if (jsonData.type === 'result') {
-                  activeDownloadProcess = null;
-                  if (jsonData.success) {
-                    settings.activeModel = modelName;
-                    saveSettings();
-                    
-                    whisperModelReady = false;
-                    if (whisperProcess && !whisperProcess.killed) {
-                      whisperProcess.kill();
-                    }
-                    
-                    setTimeout(() => {
-                      console.log(`🔄 Restarting whisper service with model: ${modelName}`);
-                      ensureWhisperService();
-                    }, 500);
-                    
-                    if (mainWindow && !mainWindow.isDestroyed()) {
-                      mainWindow.webContents.send('model:complete', {
-                        success: true,
-                        model: modelName,
-                        path: jsonData.path,
-                        size_mb: jsonData.size_mb,
-                        status: 'downloaded',
-                        cached: jsonData.cached || false
-                      });
-                    }
-                    resolve({ success: true, model: modelName });
-                  } else {
-                    reject(new Error(jsonData.error || 'Resume failed'));
-                  }
-                }
-              } catch (e) {
-                // Not JSON, ignore
-              }
-            }
-          }
-        });
-        
-        pythonProcess.stderr.on('data', (data) => {
-          console.log('model_manager.py stderr:', data.toString().trim());
-        });
-        
-        pythonProcess.on('close', (code) => {
-          activeDownloadProcess = null;
-          if (code !== 0) {
-            reject(new Error(`Resume failed with code ${code}`));
-          }
-        });
-        
-        pythonProcess.on('error', (error) => {
-          activeDownloadProcess = null;
-          reject(error);
-        });
-      });
-    } catch (e) {
-      console.error('Error resuming download:', e);
-      return { success: false, error: e.message };
-    }
-  });
-  
   // Helper function for Node.js downloader - PRIMARY METHOD NOW
   async function downloadModelWithNodeJS(modelName, modelDef, downloadPath, targetPath) {
     console.log(`📥 Starting download for ${modelName} using Node.js`);
-    
+
     // Get download sources
     const sources = await getModelSources(modelName);
     console.log(`📡 Download sources for ${modelName}:`, sources);
-    
+
     // Send initial progress
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('model:progress', {
@@ -5170,7 +3893,7 @@ function reloadApp(changedFile) {
         message: `Initializing download for ${modelName.toUpperCase()}...`
       });
     }
-    
+
     // Progress callback
     const onProgress = (progress) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -5191,18 +3914,17 @@ function reloadApp(changedFile) {
     // Try each source with retries
     let lastError = null;
     let sourceIndex = 0;
-    for (const source of sources) {
+    for (const sourceUrl of sources) {
       sourceIndex++;
-      const sourceUrl = source.url || source;
-      const sourceName = source.name || new URL(sourceUrl).hostname;
+      const sourceName = new URL(sourceUrl).hostname;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           try {
             console.log(`Attempting to download from ${sourceName} (source ${sourceIndex}/${sources.length}, attempt ${attempt}/3)`);
-        } catch (e) {
+          } catch (e) {
             // Ignore EPIPE errors
           }
-          
+
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('model:progress', {
               percent: 0,
@@ -5223,47 +3945,45 @@ function reloadApp(changedFile) {
               settings.activeModel = modelName;
               saveSettings();
               if (logger) logger.download('Model downloaded and set as active', { model: modelName });
-              
+
               // Restart whisper service with new model
               whisperModelReady = false;
               if (whisperProcess && !whisperProcess.killed) {
                 whisperProcess.kill();
               }
-              
-              // CRITICAL: Start new whisper service with the new model after a short delay
+              // Service will auto-restart on next use, but we restart it proactively now
               setTimeout(() => {
-                console.log(`🔄 Restarting whisper service with model: ${modelName}`);
                 ensureWhisperService();
               }, 500);
-              
+
               const successResult = {
                 success: true,
-            model: modelName,
+                model: modelName,
                 path: targetPath,
                 cache_path: downloadPath,
                 size_mb: modelDef.size_mb,
                 status: 'downloaded',
                 cached: false
               };
-              
-          if (mainWindow && !mainWindow.isDestroyed()) {
+
+              if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('model:complete', successResult);
-          }
-              
+              }
+
               return successResult;
-        }
+            }
           }
-          
+
           // If we get here, download didn't complete properly
           throw new Error('Download completed but file verification failed');
         } catch (error) {
           lastError = error;
           try {
             console.error(`Download from ${sourceName} (attempt ${attempt}/3) failed:`, error.message);
-    } catch (e) {
+          } catch (e) {
             // Ignore EPIPE errors when writing to console
           }
-          
+
           // Update progress with error message
           if (mainWindow && !mainWindow.isDestroyed() && attempt === 3) {
             mainWindow.webContents.send('model:progress', {
@@ -5274,7 +3994,7 @@ function reloadApp(changedFile) {
               message: `Failed to download from ${sourceName}. Trying next source...`
             });
           }
-          
+
           // Wait before retry (exponential backoff: 1s, 3s, 7s)
           if (attempt < 3) {
             const backoffDelay = Math.pow(2, attempt) - 1; // 1s, 3s, 7s
@@ -5285,20 +4005,20 @@ function reloadApp(changedFile) {
     }
 
     // All sources failed
-      const errorResult = {
-        success: false,
-        model: modelName,
+    const errorResult = {
+      success: false,
+      model: modelName,
       error: lastError ? lastError.message : 'Download failed',
       message: `Failed to download model from all sources. Last error: ${lastError ? lastError.message : 'Unknown error'}. Please try manual download.`
-      };
-    
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('model:error', errorResult);
-      }
-    
-      return errorResult;
+    };
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('model:error', errorResult);
     }
-  
+
+    return errorResult;
+  }
+
   // Model check handler - using Node.js model downloader
   ipcMain.handle('model:check', async (_evt, modelName) => {
     try {
@@ -5315,14 +4035,14 @@ function reloadApp(changedFile) {
       } catch (e) {
         console.warn('Error reading download path from settings:', e);
       }
-      
+
       const downloadPath = await modelDownloader.getDownloadPath(customPath);
       const exists = await modelDownloader.checkModelExists(modelName, downloadPath);
 
       if (exists) {
         const modelPath = path.join(downloadPath, `${modelName}.bin`);
         const modelConfig = modelDownloader.constructor.MODELS[modelName];
-          
+
         return {
           exists: true,
           path: modelPath,
@@ -5331,102 +4051,19 @@ function reloadApp(changedFile) {
         };
       }
 
-          return {
-                    exists: false,
-                    path: null,
+      return {
+        exists: false,
+        path: null,
         cache_path: downloadPath,
-                    size_mb: null
-          };
+        size_mb: null
+      };
     } catch (error) {
       console.error('Model check failed:', error);
       return {
-                  exists: false,
-                  path: null,
-                  cache_path: null,
-                  size_mb: null
-      };
-              }
-            });
-
-  // Model delete handler - allows user to delete a cached model
-  ipcMain.handle('model:delete', async (_evt, modelName) => {
-    try {
-      console.log(`🗑️ Deleting model: ${modelName}`);
-      
-      const modelDef = models.find(m => m.name.toLowerCase() === modelName.toLowerCase());
-      if (!modelDef) {
-        return { success: false, error: `Unknown model: ${modelName}` };
-      }
-      
-      // Get the Hugging Face cache directory
-      let hfCacheDir;
-      if (process.platform === 'win32') {
-        const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
-        hfCacheDir = path.join(localAppData, '.cache', 'huggingface', 'hub');
-      } else {
-        hfCacheDir = path.join(os.homedir(), '.cache', 'huggingface', 'hub');
-      }
-      
-      const fasterWhisperModelName = modelDef.filename;
-      const modelCacheDir = path.join(hfCacheDir, `models--Systran--faster-whisper-${fasterWhisperModelName}`);
-      
-      // Also check for download state file
-      const downloadStateFile = path.join(hfCacheDir, `.download_state_${modelName}.json`);
-      
-      let deleted = false;
-      let deletedPaths = [];
-      
-      // Delete the model cache directory
-      if (fs.existsSync(modelCacheDir)) {
-        try {
-          fs.rmSync(modelCacheDir, { recursive: true, force: true });
-          deletedPaths.push(modelCacheDir);
-          deleted = true;
-          console.log(`✓ Deleted model cache: ${modelCacheDir}`);
-        } catch (e) {
-          console.error(`Error deleting model cache: ${e.message}`);
-        }
-      }
-      
-      // Delete the download state file
-      if (fs.existsSync(downloadStateFile)) {
-        try {
-          fs.unlinkSync(downloadStateFile);
-          deletedPaths.push(downloadStateFile);
-          console.log(`✓ Deleted download state: ${downloadStateFile}`);
-        } catch (e) {
-          console.error(`Error deleting download state: ${e.message}`);
-        }
-      }
-      
-      // If this was the active model, we need to handle that
-      if (settings.activeModel === modelName) {
-        // Don't change active model, just note it
-        console.log(`⚠️ Deleted model was the active model. User will need to download again or switch.`);
-      }
-      
-      if (deleted) {
-        if (logger) logger.download('Model deleted', { model: modelName, paths: deletedPaths });
-        return {
-          success: true,
-          model: modelName,
-          message: `Model ${modelName.toUpperCase()} has been deleted.`,
-          deletedPaths
-        };
-      } else {
-        return {
-          success: false,
-          model: modelName,
-          error: 'Model not found in cache',
-          message: `Model ${modelName.toUpperCase()} was not found in the cache.`
-        };
-      }
-    } catch (error) {
-      console.error('Model delete failed:', error);
-      return {
-        success: false,
-        error: error.message,
-        message: `Error deleting model: ${error.message}`
+        exists: false,
+        path: null,
+        cache_path: null,
+        size_mb: null
       };
     }
   });
@@ -5445,7 +4082,7 @@ function reloadApp(changedFile) {
       });
 
       if (result.canceled || result.filePaths.length === 0) {
-          return {
+        return {
           success: false,
           error: 'No file selected',
           message: 'No model file was selected.'
@@ -5466,7 +4103,7 @@ function reloadApp(changedFile) {
             downloadPath = settings.model_download_path;
           }
         }
-    } catch (e) {
+      } catch (e) {
         console.warn('Error reading download path from settings:', e);
       }
 
@@ -5482,7 +4119,7 @@ function reloadApp(changedFile) {
       // Determine model name from filename or ask user
       const sourceFilename = path.basename(sourcePath);
       let modelName = null;
-      
+
       // Try to match filename to known models
       for (const [key, def] of Object.entries(MODEL_DEFINITIONS)) {
         if (sourceFilename.includes(key) || sourceFilename === def.filename) {
@@ -5495,24 +4132,24 @@ function reloadApp(changedFile) {
       if (!modelName) {
         let bestMatch = null;
         let smallestDiff = Infinity;
-        
+
         for (const [key, def] of Object.entries(MODEL_DEFINITIONS)) {
           const sizeDiff = Math.abs(sourceSizeMB - def.size_mb);
           const percentDiff = sizeDiff / def.size_mb;
-          
+
           // Track the closest match
           if (sizeDiff < smallestDiff) {
             smallestDiff = sizeDiff;
             bestMatch = key;
           }
-          
+
           // Accept if within 15% of expected size
           if (percentDiff < 0.15) {
             modelName = key;
             break;
           }
         }
-        
+
         // If no close match found, use the best match if it's reasonable
         if (!modelName && bestMatch && smallestDiff < 200) { // Within 200 MB
           modelName = bestMatch;
@@ -5536,23 +4173,23 @@ function reloadApp(changedFile) {
         const existingStats = fs.statSync(targetPath);
         if (Math.abs(existingStats.size - sourceStats.size) < 1024) { // Same file
           console.log(`Model ${modelName} already exists at target location`);
-          
+
           // Set as active model
           settings.activeModel = modelName;
           saveSettings();
           if (logger) logger.download('Imported model (already exists) set as active', { model: modelName, path: targetPath });
-          
+
           // Restart whisper service
           whisperModelReady = false;
           if (whisperProcess && !whisperProcess.killed) {
             whisperProcess.kill();
           }
-          
+
           // Trigger model ready event after restart
           setTimeout(() => {
             ensureWhisperService();
           }, 500);
-          
+
           const existingResult = {
             success: true,
             model: modelName,
@@ -5564,11 +4201,11 @@ function reloadApp(changedFile) {
             cached: true,
             message: `Model ${modelName.toUpperCase()} (${modelDef.size_mb} MB) was already in the models folder and has been activated!`
           };
-          
+
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('model:complete', existingResult);
           }
-          
+
           return existingResult;
         }
       }
@@ -5576,7 +4213,7 @@ function reloadApp(changedFile) {
       // Copy file to target location
       console.log(`Importing model ${modelName} from ${sourcePath} to ${targetPath}`);
       if (logger) logger.download('Importing model file', { model: modelName, source: sourcePath, target: targetPath });
-      
+
       fs.copyFileSync(sourcePath, targetPath);
 
       // Verify copied file
@@ -5594,13 +4231,13 @@ function reloadApp(changedFile) {
       settings.activeModel = modelName;
       saveSettings();
       if (logger) logger.download('Imported model set as active', { model: modelName, path: targetPath });
-      
+
       // Restart whisper service with new model
       whisperModelReady = false;
       if (whisperProcess && !whisperProcess.killed) {
         whisperProcess.kill();
       }
-      
+
       // Trigger model ready event after restart
       setTimeout(() => {
         ensureWhisperService();
@@ -5641,8 +4278,8 @@ function reloadApp(changedFile) {
   // Translation service handler - uses Python service for on-the-fly translation
   ipcMain.handle('translation:translate', async (_evt, text, targetLang, sourceLang = 'en') => {
     try {
-      const translationServicePath = path.join(__dirname, 'translation_service.py');
-      
+      const translationServicePath = path.join(__dirname, 'src', 'core', 'python', 'translation_service.py');
+
       if (!fs.existsSync(translationServicePath)) {
         return { error: 'Translation service not found', translated: text };
       }
@@ -5664,15 +4301,15 @@ function reloadApp(changedFile) {
   // Translation service handler for dictionaries (translation files)
   ipcMain.handle('translation:translate-dict', async (_evt, translationsJson, targetLang, sourceLang = 'en') => {
     try {
-      const translationServicePath = path.join(__dirname, 'translation_service.py');
-      
+      const translationServicePath = path.join(__dirname, 'src', 'core', 'python', 'translation_service.py');
+
       if (!fs.existsSync(translationServicePath)) {
         return { error: 'Translation service not found', translated: translationsJson };
       }
 
       // Escape JSON for command line
       const escapedJson = JSON.stringify(translationsJson).replace(/"/g, '\\"');
-      
+
       // Call Python translation service
       const result = execSync(
         `python "${translationServicePath}" translate_dict "${escapedJson}" ${sourceLang} ${targetLang}`,
@@ -5690,8 +4327,8 @@ function reloadApp(changedFile) {
   // Check if translation service is available
   ipcMain.handle('translation:check', async () => {
     try {
-      const translationServicePath = path.join(__dirname, 'translation_service.py');
-      
+      const translationServicePath = path.join(__dirname, 'src', 'core', 'python', 'translation_service.py');
+
       if (!fs.existsSync(translationServicePath)) {
         return { available: false, error: 'Translation service not found' };
       }
@@ -5722,7 +4359,7 @@ function reloadApp(changedFile) {
 
   // App settings handlers
   const appSettingsPath = path.join(__dirname, 'data', 'settings.json');
-  
+
   // Ensure data directory exists
   const dataDir = path.join(__dirname, 'data');
   if (!fs.existsSync(dataDir)) {
@@ -5751,10 +4388,7 @@ function reloadApp(changedFile) {
         low_latency: false,
         noise_reduction: false,
         local_only: true,
-        auto_delete_cache: false,
-        text_style: 'none',
-        text_style_category: 'personal',
-        llm_processing: false
+        auto_delete_cache: false
       };
     } catch (e) {
       console.error('Error loading app settings:', e);
@@ -5771,123 +4405,10 @@ function reloadApp(changedFile) {
       }
       const updated = { ...currentSettings, ...newSettings };
       fs.writeFileSync(appSettingsPath, JSON.stringify(updated, null, 2));
-      
-      // If experimental settings changed, send them to whisper service
-      if ('continuous_dictation' in newSettings || 
-          'low_latency' in newSettings || 
-          'noise_reduction' in newSettings) {
-        sendExperimentalSettings();
-      }
-      
       return updated;
     } catch (e) {
       console.error('Error saving app settings:', e);
       return {};
-    }
-  });
-
-  // Style transformer IPC handlers
-  ipcMain.handle('style:get-description', async (_evt, style, category) => {
-    console.log('[Style IPC] get-description called:', style, category);
-    try {
-      const result = getStyleDescription(style, category);
-      console.log('[Style IPC] get-description result:', result);
-      return result;
-    } catch (e) {
-      console.error('[Style IPC] get-description error:', e);
-      return 'Style description';
-    }
-  });
-
-  ipcMain.handle('style:get-example', async (_evt, style, category) => {
-    console.log('[Style IPC] get-example called:', style, category);
-    try {
-      const result = getStyleExample(style, category);
-      console.log('[Style IPC] get-example result:', result?.substring(0, 50) + '...');
-      return result;
-    } catch (e) {
-      console.error('[Style IPC] get-example error:', e);
-      return 'Example text';
-    }
-  });
-
-  ipcMain.handle('style:get-available', async (_evt, category) => {
-    console.log('[Style IPC] get-available called:', category);
-    try {
-      const result = getAvailableStyles(category);
-      console.log('[Style IPC] get-available result:', result);
-      return result;
-    } catch (e) {
-      console.error('[Style IPC] get-available error:', e);
-      // Return fallback styles
-      if (category === 'personal') {
-        return ['formal', 'casual', 'very_casual'];
-      } else {
-        return ['formal', 'casual', 'excited'];
-      }
-    }
-  });
-
-  ipcMain.handle('style:get-banner-text', async (_evt, category) => {
-    console.log('[Style IPC] get-banner-text called:', category);
-    try {
-      const result = getCategoryBannerText(category);
-      console.log('[Style IPC] get-banner-text result:', result);
-      return result;
-    } catch (e) {
-      console.error('[Style IPC] get-banner-text error:', e);
-      return 'This style applies in various apps. Available on desktop in English.';
-    }
-  });
-
-  // Context detection handler - detects active application and suggests category
-  ipcMain.handle('style:detect-context', async () => {
-    try {
-      // Get active window information
-      // On Windows, use PowerShell to get the active window title
-      if (process.platform === 'win32') {
-        const psCommand = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Win32 { [DllImport(\\\"user32.dll\\\")] public static extern IntPtr GetForegroundWindow(); [DllImport(\\\"user32.dll\\\")] public static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder text, int count); } $hwnd = [Win32]::GetForegroundWindow(); $sb = New-Object System.Text.StringBuilder 256; [Win32]::GetWindowText($hwnd, $sb, $sb.Capacity) | Out-Null; $sb.ToString()"`;
-        const activeWindowTitle = execSync(psCommand, { encoding: 'utf8', timeout: 1000 }).trim().toLowerCase();
-        
-        // Map window titles to categories
-        const emailApps = ['outlook', 'gmail', 'thunderbird', 'mail', 'apple mail', 'spark'];
-        const workMessengers = ['slack', 'teams', 'microsoft teams', 'discord', 'zoom'];
-        const personalMessengers = ['whatsapp', 'telegram', 'signal', 'messenger', 'imessage', 'messages'];
-        
-        if (emailApps.some(app => activeWindowTitle.includes(app))) {
-          return 'email';
-        } else if (workMessengers.some(app => activeWindowTitle.includes(app))) {
-          return 'work';
-        } else if (personalMessengers.some(app => activeWindowTitle.includes(app))) {
-          return 'personal';
-        }
-      } else if (process.platform === 'darwin') {
-        // macOS - use AppleScript
-        try {
-          const script = `osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true'`;
-          const activeApp = execSync(script, { encoding: 'utf8', timeout: 1000 }).trim().toLowerCase();
-          
-          const emailApps = ['mail', 'outlook', 'spark', 'airmail'];
-          const workMessengers = ['slack', 'microsoft teams', 'zoom'];
-          const personalMessengers = ['messages', 'whatsapp', 'telegram', 'signal'];
-          
-          if (emailApps.some(app => activeApp.includes(app))) {
-            return 'email';
-          } else if (workMessengers.some(app => activeApp.includes(app))) {
-            return 'work';
-          } else if (personalMessengers.some(app => activeApp.includes(app))) {
-            return 'personal';
-          }
-        } catch (e) {
-          console.warn('Context detection failed on macOS:', e.message);
-        }
-      }
-      
-      // Default to 'other' if no match
-      return 'other';
-    } catch (e) {
-      console.warn('Context detection failed:', e.message);
-      return 'other';
     }
   });
 
@@ -5909,19 +4430,19 @@ function reloadApp(changedFile) {
   // Microphone detection handler
   ipcMain.handle('microphone:list', async () => {
     try {
-      const systemUtilsPath = path.join(__dirname, 'system_utils.py');
+      const systemUtilsPath = path.join(__dirname, 'src', 'core', 'python', 'system_utils.py');
       const pythonProcess = spawn('python', [systemUtilsPath, 'list-microphones'], { stdio: ['pipe', 'pipe', 'pipe'] });
       let output = '';
       let error = '';
-      
+
       pythonProcess.stdout.on('data', (data) => {
         output += data.toString();
       });
-      
+
       pythonProcess.stderr.on('data', (data) => {
         error += data.toString();
       });
-      
+
       return new Promise((resolve) => {
         pythonProcess.on('close', (code) => {
           if (code === 0 && output) {
@@ -5978,7 +4499,7 @@ function reloadApp(changedFile) {
 
   // Dictionary handlers
   const dictionaryPath = path.join(__dirname, 'data', 'dictionary.json');
-  
+
   ipcMain.handle('dictionary:get', async () => {
     try {
       if (fs.existsSync(dictionaryPath)) {
@@ -5999,22 +4520,22 @@ function reloadApp(changedFile) {
         const raw = fs.readFileSync(dictionaryPath, 'utf8');
         words = JSON.parse(raw);
       }
-      
+
       // Normalize the input word
       const normalizedWord = word.toLowerCase().trim();
-      
+
       // Validate input
       if (!normalizedWord) {
         return { success: false, words, error: 'Please enter a valid word' };
       }
-      
+
       // Check for duplicates (case-insensitive)
       // Normalize all existing words for comparison
       const normalizedWords = words.map(w => {
         const str = String(w);
         return str.toLowerCase().trim();
       }).filter(w => w);
-      
+
       // Check if word already exists (case-insensitive)
       if (normalizedWords.includes(normalizedWord)) {
         // Find the original casing if it exists to show in error message
@@ -6023,13 +4544,13 @@ function reloadApp(changedFile) {
           return str.toLowerCase().trim() === normalizedWord;
         });
         const displayWord = existingWord || normalizedWord;
-        return { 
-          success: false, 
-          words, 
-          error: `"${displayWord}" already exists in the dictionary` 
+        return {
+          success: false,
+          words,
+          error: `"${displayWord}" already exists in the dictionary`
         };
       }
-      
+
       // Add the word (store in original casing but check duplicates case-insensitively)
       words.push(normalizedWord);
       words.sort();
@@ -6050,18 +4571,18 @@ function reloadApp(changedFile) {
       }
       const normalizedOldWord = oldWord.toLowerCase().trim();
       const normalizedNewWord = newWord.toLowerCase().trim();
-      
+
       // Normalize all existing words for comparison
       const normalizedWords = words.map(w => {
         const str = String(w);
         return str.toLowerCase().trim();
       }).filter(w => w);
-      
+
       // Check if new word already exists (and it's not the same as old word)
       if (normalizedNewWord && normalizedNewWord !== normalizedOldWord && normalizedWords.includes(normalizedNewWord)) {
         return { success: false, words, error: 'Word already exists' };
       }
-      
+
       // Update the word
       const index = normalizedWords.indexOf(normalizedOldWord);
       if (index !== -1) {
@@ -6095,7 +4616,7 @@ function reloadApp(changedFile) {
 
   // Snippets handlers
   const snippetsPath = path.join(__dirname, 'data', 'snippets.json');
-  
+
   ipcMain.handle('snippets:get', async () => {
     try {
       if (fs.existsSync(snippetsPath)) {
@@ -6166,9 +4687,103 @@ function reloadApp(changedFile) {
     }
   });
 
+  // Persona profiles handlers
+  const profilesPath = path.join(__dirname, 'data', 'profiles.json');
+
+  ipcMain.handle('personas:get', async () => {
+    try {
+      if (fs.existsSync(profilesPath)) {
+        const raw = fs.readFileSync(profilesPath, 'utf8');
+        const data = JSON.parse(raw);
+        return {
+          personas: data.personas || [],
+          activePersona: data.activePersona || null
+        };
+      }
+      return { personas: [], activePersona: null };
+    } catch (e) {
+      console.error('Error loading personas:', e);
+      return { personas: [], activePersona: null };
+    }
+  });
+
+  ipcMain.handle('personas:set-active', async (_evt, personaId) => {
+    try {
+      let data = { profiles: {}, personas: [], activePersona: null };
+      if (fs.existsSync(profilesPath)) {
+        data = JSON.parse(fs.readFileSync(profilesPath, 'utf8'));
+      }
+
+      // Find the persona
+      const persona = (data.personas || []).find(p => p.id === personaId);
+      if (!persona) {
+        return { success: false, error: 'Persona not found' };
+      }
+
+      // Apply persona settings to global settings
+      if (persona.settings) {
+        if (persona.settings.activeModel) {
+          settings.activeModel = persona.settings.activeModel;
+        }
+        if (persona.settings.flowRefinement !== undefined) {
+          settings.flowRefinement = persona.settings.flowRefinement;
+        }
+        // Notify whisper service of model change if needed
+        if (persona.settings.activeModel && whisperProcess) {
+          writeToWhisper(`SET_MODEL ${persona.settings.activeModel}\n`);
+        }
+      }
+
+      // Update active persona
+      data.activePersona = personaId;
+      fs.writeFileSync(profilesPath, JSON.stringify(data, null, 2));
+
+      console.log(`✓ Persona switched to: ${persona.name}`);
+
+      return {
+        success: true,
+        persona: persona,
+        appliedSettings: persona.settings
+      };
+    } catch (e) {
+      console.error('Error setting active persona:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('personas:get-active', async () => {
+    try {
+      if (fs.existsSync(profilesPath)) {
+        const data = JSON.parse(fs.readFileSync(profilesPath, 'utf8'));
+        if (data.activePersona) {
+          const persona = (data.personas || []).find(p => p.id === data.activePersona);
+          return persona || null;
+        }
+      }
+      return null;
+    } catch (e) {
+      console.error('Error getting active persona:', e);
+      return null;
+    }
+  });
+
+  ipcMain.handle('personas:clear', async () => {
+    try {
+      if (fs.existsSync(profilesPath)) {
+        const data = JSON.parse(fs.readFileSync(profilesPath, 'utf8'));
+        data.activePersona = null;
+        fs.writeFileSync(profilesPath, JSON.stringify(data, null, 2));
+      }
+      return { success: true };
+    } catch (e) {
+      console.error('Error clearing persona:', e);
+      return { success: false, error: e.message };
+    }
+  });
+
   // Notes handlers
   const notesPath = path.join(__dirname, 'data', 'notes.json');
-  
+
   ipcMain.handle('notes:get', async () => {
     try {
       if (fs.existsSync(notesPath)) {
@@ -6238,6 +4853,272 @@ function reloadApp(changedFile) {
     }
   });
 
+  // ============================================
+  // App Version & Updates IPC Handlers
+  // ============================================
+  ipcMain.handle('app:get-version', async () => {
+    return app.getVersion();
+  });
+
+  // ============================================
+  // Performance & WPM Stats IPC Handlers
+  // ============================================
+  // Note: sessionStats and trackTranscriptionForWPM are defined at module level
+
+  ipcMain.handle('stats:get-wpm', async () => {
+    const sessionDuration = (Date.now() - sessionStats.sessionStartTime) / 60000; // minutes
+
+    // Calculate average WPM from history
+    let avgWPM = 0;
+    if (sessionStats.wpmHistory.length > 0) {
+      const sum = sessionStats.wpmHistory.reduce((acc, item) => acc + item.wpm, 0);
+      avgWPM = Math.round(sum / sessionStats.wpmHistory.length);
+    }
+
+    // Calculate session WPM
+    const sessionWPM = sessionDuration > 0
+      ? Math.round(sessionStats.wordsTyped / sessionDuration)
+      : 0;
+
+    return {
+      instantWPM: avgWPM,
+      sessionWPM: sessionWPM,
+      wordsTyped: sessionStats.wordsTyped,
+      charsTyped: sessionStats.charsTyped,
+      transcriptionCount: sessionStats.transcriptionCount,
+      sessionDuration: Math.round(sessionDuration * 10) / 10 // 1 decimal place
+    };
+  });
+
+  ipcMain.handle('stats:reset', async () => {
+    sessionStats = {
+      wordsTyped: 0,
+      charsTyped: 0,
+      transcriptionCount: 0,
+      sessionStartTime: Date.now(),
+      wpmHistory: [],
+      lastTranscriptionTime: 0
+    };
+    return { success: true };
+  });
+
+  ipcMain.handle('stats:get-session', async () => {
+    const sessionDuration = (Date.now() - sessionStats.sessionStartTime) / 60000;
+    return {
+      ...sessionStats,
+      sessionDuration: Math.round(sessionDuration * 10) / 10
+    };
+  });
+
+  ipcMain.handle('app:check-updates', async () => {
+    // Open GitHub releases page for manual update check
+    shell.openExternal('https://github.com/muhib-karim/sonu/releases');
+    return { hasUpdate: false, checked: true };
+  });
+
+  // ============================================
+  // LLM Model Management IPC Handlers
+  // ============================================
+  ipcMain.handle('llm:check-model', async () => {
+    try {
+      const llmModelsDir = path.join(app.getPath('userData'), 'models', 'llm');
+      const modelPath = path.join(llmModelsDir, 'lfm2-1b.gguf');
+      const exists = fs.existsSync(modelPath);
+      return { exists, path: modelPath };
+    } catch (e) {
+      return { exists: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('llm:download-model', async () => {
+    // Trigger LLM model download - similar to whisper model download
+    return { started: true, message: 'LLM model download not yet implemented' };
+  });
+
+  ipcMain.handle('llm:import-model', async () => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Import LLM Model',
+        filters: [{ name: 'GGUF Models', extensions: ['gguf'] }],
+        properties: ['openFile']
+      });
+      if (result.canceled || !result.filePaths.length) {
+        return { success: false, canceled: true };
+      }
+      const sourcePath = result.filePaths[0];
+      const llmModelsDir = path.join(app.getPath('userData'), 'models', 'llm');
+      if (!fs.existsSync(llmModelsDir)) {
+        fs.mkdirSync(llmModelsDir, { recursive: true });
+      }
+      const destPath = path.join(llmModelsDir, path.basename(sourcePath));
+      fs.copyFileSync(sourcePath, destPath);
+      return { success: true, path: destPath };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('llm:get-status', async () => {
+    return {
+      ready: llmServiceReady,
+      processing: llmProcess !== null,
+      model: settings.post_process_model || 'lfm2-1b'
+    };
+  });
+
+  // ============================================
+  // Style Transformer IPC Handlers
+  // ============================================
+  const styleDescriptions = {
+    personal: {
+      casual: 'Relaxed, everyday language',
+      formal: 'Professional and polished',
+      friendly: 'Warm and approachable',
+      concise: 'Brief and to the point'
+    },
+    professional: {
+      business: 'Corporate communication style',
+      technical: 'Precise technical language',
+      academic: 'Scholarly and research-oriented',
+      legal: 'Formal legal terminology'
+    },
+    creative: {
+      storytelling: 'Narrative and engaging',
+      poetic: 'Artistic and expressive',
+      humorous: 'Light and entertaining',
+      dramatic: 'Bold and impactful'
+    }
+  };
+
+  ipcMain.handle('style:get-description', async (_evt, style, category) => {
+    const cat = styleDescriptions[category] || styleDescriptions.personal;
+    return cat[style] || 'Custom style';
+  });
+
+  ipcMain.handle('style:get-example', async (_evt, style, category) => {
+    const examples = {
+      casual: 'Hey, just wanted to check in about the project.',
+      formal: 'I am writing to inquire about the status of the project.',
+      friendly: 'Hope you\'re doing well! Quick question about the project.',
+      concise: 'Project status update needed.',
+      business: 'Please find attached the quarterly report.',
+      technical: 'The API endpoint returns a JSON response with status code 200.'
+    };
+    return examples[style] || 'Example text for this style.';
+  });
+
+  ipcMain.handle('style:get-available', async (_evt, category) => {
+    const cat = styleDescriptions[category] || styleDescriptions.personal;
+    return Object.keys(cat);
+  });
+
+  ipcMain.handle('style:get-banner-text', async (_evt, category) => {
+    const banners = {
+      personal: 'Express yourself naturally',
+      professional: 'Communicate with confidence',
+      creative: 'Unleash your creativity',
+      coding: 'Code with precision'
+    };
+    return banners[category] || 'Transform your text';
+  });
+
+  ipcMain.handle('style:detect-context', async () => {
+    try {
+      const context = contextManager.getCurrentContext();
+      return context || { category: 'personal', application: 'unknown' };
+    } catch (e) {
+      return { category: 'personal', application: 'unknown' };
+    }
+  });
+
+  // ============================================
+  // Groq API IPC Handlers
+  // ============================================
+  ipcMain.handle('groq:get-status', async () => {
+    const apiKey = settings.groq_api_key || '';
+    return {
+      enabled: settings.groq_enabled || false,
+      hasApiKey: apiKey.length > 0,
+      apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : ''
+    };
+  });
+
+  ipcMain.handle('groq:save-api-key', async (_evt, apiKey) => {
+    settings.groq_api_key = apiKey;
+    saveSettings(settings);
+    return { success: true };
+  });
+
+  ipcMain.handle('groq:set-enabled', async (_evt, enabled) => {
+    settings.groq_enabled = enabled;
+    saveSettings(settings);
+    return { success: true, enabled };
+  });
+
+  // ============================================
+  // Dictation Language IPC Handlers
+  // ============================================
+  const supportedLanguages = [
+    { code: 'en', name: 'English' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'it', name: 'Italian' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'ko', name: 'Korean' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'auto', name: 'Auto-detect' }
+  ];
+
+  ipcMain.handle('dictation:get-languages', async () => {
+    return supportedLanguages;
+  });
+
+  ipcMain.handle('dictation:set-language', async (_evt, language) => {
+    settings.dictation_language = language;
+    saveSettings(settings);
+    // Notify whisper service of language change
+    if (whisperProcess && whisperProcess.stdin) {
+      writeToWhisper(`SET_LANGUAGE ${language}`);
+    }
+    return { success: true, language };
+  });
+
+  // ============================================
+  // Logs Path IPC Handlers
+  // ============================================
+  ipcMain.handle('logs:browse-path', async () => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select Logs Directory',
+        properties: ['openDirectory', 'createDirectory']
+      });
+      if (result.canceled || !result.filePaths.length) {
+        return { success: false, canceled: true };
+      }
+      return { success: true, path: result.filePaths[0] };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle('logs:get-path', async () => {
+    return settings.logs_path || path.join(app.getPath('userData'), 'logs');
+  });
+
+  ipcMain.handle('logs:set-path', async (_evt, logsPath) => {
+    settings.logs_path = logsPath;
+    saveSettings(settings);
+    return { success: true, path: logsPath };
+  });
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
 });
 
 async function runShowcaseCapture() {
@@ -6412,25 +5293,12 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-  app.on('will-quit', () => {
-  // Cleanup file watchers
-  fileWatchers.forEach(watcher => {
-    try {
-      watcher.close();
-    } catch (e) {
-      // Ignore errors during cleanup
-    }
-  });
-  fileWatchers = [];
-  if (reloadTimeout) {
-    clearTimeout(reloadTimeout);
-  }
-
+app.on('will-quit', () => {
   globalShortcut.unregisterAll();
   if (whisperProcess && !whisperProcess.killed) {
     whisperProcess.kill();
   }
   if (indicatorWindow && !indicatorWindow.isDestroyed()) {
-    try { indicatorWindow.destroy(); } catch (e) {}
+    try { indicatorWindow.destroy(); } catch (e) { }
   }
 });

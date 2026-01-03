@@ -691,6 +691,31 @@ body[data-theme="dark"] .stat-value {
   min-height: 20px;
 }
 
+/* Waveform Animation Container */
+.waveform-container {
+  display: none; /* Hidden by default, shown by JS when recording */
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 120px;
+  margin: 24px 0;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  z-index: 10;
+}
+
+.waveform-container canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: transparent;
+}
+
 /* History Settings Cards */
 .history-settings-cards {
   display: flex;
@@ -2378,10 +2403,91 @@ body[data-theme="dark"] .dictionary-word-input {
   margin-top: 16px;
 }
 
-.download-action-buttons .cancel-download-button,
-.download-action-buttons .resume-download-button {
-  flex: 1;
-  min-width: 0;
+/* Unified Download Action Button - State Machine: idle -> downloading -> paused */
+.download-action-button {
+  width: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 28px;
+  background: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px rgba(255, 71, 87, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.download-action-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.download-action-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.download-action-button:hover {
+  background: #ff6b81;
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 6px 20px rgba(255, 71, 87, 0.45);
+}
+
+.download-action-button:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 10px rgba(255, 71, 87, 0.35);
+}
+
+/* State: Cancel (Red) */
+.download-action-button[data-state="downloading"] {
+  background: #ff4757;
+  box-shadow: 0 4px 16px rgba(255, 71, 87, 0.35);
+}
+
+/* State: Resume (Green) */
+.download-action-button[data-state="paused"] {
+  background: #2ed573;
+  box-shadow: 0 4px 16px rgba(46, 213, 115, 0.35);
+}
+
+.download-action-button[data-state="paused"]:hover {
+  background: #7bed9f;
+  box-shadow: 0 6px 20px rgba(46, 213, 115, 0.45);
+}
+
+.download-action-button svg,
+.download-action-button span {
+  position: relative;
+  z-index: 1;
+}
+
+.download-action-button .btn-icon-cancel,
+.download-action-button .btn-icon-resume {
+  display: none;
+}
+
+.download-action-button[data-state="downloading"] .btn-icon-cancel {
+  display: block;
+}
+
+.download-action-button[data-state="paused"] .btn-icon-resume {
+  display: block;
 }
 
 /* Resume Download Button */

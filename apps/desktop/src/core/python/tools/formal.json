@@ -1,0 +1,9 @@
+{
+  "id": "formal",
+  "name": "Formal Style",
+  "description": "Transform text to be formal with proper capitalization and punctuation.",
+  "system_prompt": "Transform this text to be formal with proper capitalization and punctuation. Keep the meaning exactly the same, just adjust the style. Return only the transformed text, no explanations:\n\n",
+  "parameters": {
+    "temperature": 0.3
+  }
+}

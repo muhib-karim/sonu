@@ -8,13 +8,23 @@
 
 [![Video Formats](https://img.shields.io/badge/video-MP4%20%7C%20H.265%20%7C%20VP9-orange)](#-showcase)
 [![Screenshots](https://img.shields.io/badge/screenshots-17-blue)](#-showcase)
-[![Version](https://img.shields.io/badge/version-3.5.4-blue.svg)](https://github.com/muhib-karim/sonu)
+[![Version](https://img.shields.io/badge/version-3.6.1-blue.svg)](https://github.com/muhib-karim/sonu)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 [![Node.js](https://img.shields.io/badge/node.js-16.0%2B-green.svg)](https://nodejs.org/)
 
-*Transform your voice into text instantly, completely offline, with enterprise-grade accuracy*
+*Transform your voice into text instantly, completely offline, with enterprise-grade accuracy and AI intelligence.*
+
+---
+
+### 🚀 **New in v3.6.1: Stability & Performance Update**
+
+**SONU now rivals online tools like Wispr Flow and Typeless with powerful offline AI features:**
+
+*   ✨ **Command Mode**: Select text and tell AI to "Fix grammar", "Summarize", or "Make it professional". Powered by local **Phi-3 Mini**.
+*   🦎 **Chameleon Mode**: Automatically adapts to your active app (e.g., coding style for VS Code, casual style for Slack).
+*   🧠 **100% Offline Intelligence**: Run advanced LLMs entirely on your CPU. No subscriptions, no data leaks.
 
 ---
 
@@ -198,8 +208,8 @@ SONU is currently available for **Windows** with active development. We're worki
 - **macOS** - DMG installer (in development)
 - **Linux** - AppImage and .deb packages (planned)
 
-### 📱 Future Platforms
-- **Android** - Native mobile app (planned)
+### 📱 Mobile Apps
+- **Android** - Available separately at [VoiceAI](https://github.com/muhib-karim/VoiceAI) (Wispr Flow alternative with Parakeet model)
 - **iOS** - Native mobile app (planned)
 
 **Want to help?** We welcome contributions for platform-specific builds! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
@@ -273,6 +283,8 @@ SONU was built using free trials and free API usage, demonstrating what's possib
 
 - **Press-and-Hold Mode**: Hold a hotkey to dictate, release to finalize and output text
 - **Toggle Mode**: Start/stop continuous dictation with a single keypress
+- **Command Mode (New)**: Use `Ctrl+Win+E` to modify selected text with AI commands
+- **Chameleon Mode (New)**: Auto-detects active app to switch typing profiles
 - **Instant Hotkey Response**: Zero-latency hotkey triggering - dictation starts immediately
 - **Live Preview**: See partial transcriptions in real-time during dictation
 - **Instant System-wide Output**: Text appears instantly at cursor location in any application (like Wispr Flow)
@@ -285,6 +297,8 @@ SONU was built using free trials and free API usage, demonstrating what's possib
 ### Model Management
 
 - **Multiple Model Sizes**: Choose from tiny, base, small, medium, or large-v3 models
+- **Distil-Whisper Models**: Faster alternatives (distil-small.en, distil-medium.en, distil-large-v3)
+- **Nvidia Parakeet v3**: State-of-the-art ASR for 25 European languages (requires GPU)
 - **Auto-Download**: Automatic model download with progress tracking
 - **Model Import**: Import locally downloaded models
 - **Smart Recommendations**: System-based model recommendations
@@ -560,6 +574,7 @@ SONU uses **faster-whisper** (not whisper.cpp) for transcription:
 
 ## 🔒 Privacy & Security
 
+- **GPU Acceleration**: Nvidia GPU support for faster transcription (Parakeet v3)
 - **100% Offline**: All processing happens locally on your machine
 - **No Data Transmission**: Audio never leaves your device
 - **No Telemetry**: Zero tracking or analytics

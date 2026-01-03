@@ -6,11 +6,6 @@
 const path = require('path');
 const fs = require('fs');
 
-// Mock the downloader module
-jest.mock('../../offline_model_downloader.py', () => ({
-  OfflineModelDownloader: jest.fn()
-}));
-
 describe('Model Download Unit Tests', () => {
   const testModelsDir = path.join(__dirname, '..', '..', 'test-models');
 
