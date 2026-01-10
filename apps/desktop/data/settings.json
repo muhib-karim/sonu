@@ -1,10 +1,13 @@
 {
   "holdHotkey": "CommandOrControl+J",
   "toggleHotkey": "CommandOrControl+O",
-  "activeModel": "distil-small.en",
+  "activeModel": "parakeet-v3",
   "flowRefinement": true,
+  "post_processing_enabled": true,
+  "post_processing_mode": "llm",
   "context_awareness": true,
   "activeStyle": "neutral",
+  "show_widget_always": true,
   "widgetPosition": {
     "x": 550,
     "y": 622
@@ -12,7 +15,7 @@
   "sound_feedback": true,
   "waveform_animation": true,
   "model_download_path": "",
-  "selected_model": "distil-small.en",
+  "selected_model": "parakeet-v3",
   "available_models": [
     {
       "id": "tiny",
@@ -87,7 +90,7 @@
   "history_retention": "forever",
   "text_style": "formal",
   "text_style_category": "personal",
-  "llm_processing": false,
+  "llm_processing": true,
   "post_process": true,
   "post_process_model": "lfm2-1b",
   "launch_on_startup": false,

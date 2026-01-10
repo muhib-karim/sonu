@@ -232,37 +232,37 @@ MODELS = {
     },
     
     # =========================================================================
-    # NVIDIA PARAKEET V3 (CPU-optimized, ONNX)
+    # NVIDIA PARAKEET V3 (CPU-optimized, ONNX) - BEST ACCURACY
     # =========================================================================
     "parakeet-v3": {
         "name": "parakeet-v3",
-        "display_name": "Parakeet V3 (NVIDIA)",
+        "display_name": "Parakeet V3 (Best Accuracy)",
         "type": "onnx",
-        "repo": "nvidia/parakeet-tdt-0.6b-v3",
-        "size_mb": 600,
-        "wer": 3.5,
-        "rtf": 20,
-        "languages": ["en", "multi"],
-        "description": "NVIDIA Parakeet - low RAM, CPU optimized",
-        "recommended_for": "All systems (default for <8GB RAM)",
-        "url": "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3"
+        "repo": "istupakov/parakeet-tdt-0.6b-v3-onnx",
+        "size_mb": 850,
+        "wer": 6.05,
+        "rtf": 3386,
+        "languages": ["en", "de", "es", "fr", "it", "pt", "nl", "ru", "uk", "pl", "cs", "ro", "hu", "sv", "da", "fi", "no", "bg", "hr", "sk", "sl", "lt", "lv", "et", "el"],
+        "description": "NVIDIA Parakeet V3 - Best WER, no post-processing needed",
+        "recommended_for": "All systems (Recommended)",
+        "url": "https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx"
     },
-    
+
     # =========================================================================
-    # NVIDIA CANARY QWEN (Best noise handling)
+    # NVIDIA CANARY 1B (Valid repo - good accuracy)
     # =========================================================================
-    "canary-qwen": {
-        "name": "canary-qwen",
-        "display_name": "Canary Qwen 2.5B (NVIDIA)",
+    "canary-1b": {
+        "name": "canary-1b",
+        "display_name": "Canary 1B (NVIDIA)",
         "type": "onnx",
-        "repo": "nvidia/canary-qwen-2.5b",
-        "size_mb": 2500,
-        "wer": 2.8,
-        "rtf": 8,
-        "languages": ["en", "multi"],
-        "description": "Best for noisy environments",
-        "recommended_for": "12+ cores / 16GB RAM",
-        "url": "https://huggingface.co/nvidia/canary-qwen-2.5b"
+        "repo": "nvidia/canary-1b",
+        "size_mb": 1000,
+        "wer": 3.5,
+        "rtf": 12,
+        "languages": ["en", "de", "es", "fr"],
+        "description": "NVIDIA Canary - multilingual, noise robust",
+        "recommended_for": "8+ cores / 8GB RAM",
+        "url": "https://huggingface.co/nvidia/canary-1b"
     },
     
     # =========================================================================
@@ -283,28 +283,11 @@ MODELS = {
     },
     
     # =========================================================================
-    # QWEN3-ASR (Versatile multilingual)
-    # =========================================================================
-    "qwen3-asr": {
-        "name": "qwen3-asr",
-        "display_name": "Qwen3-ASR",
-        "type": "onnx",
-        "repo": "Qwen/Qwen3-ASR",
-        "size_mb": 500,
-        "wer": 3.6,
-        "rtf": 15,
-        "languages": ["en", "multi"],
-        "description": "Versatile multilingual transcription",
-        "recommended_for": "8+ cores / 8GB RAM",
-        "url": "https://huggingface.co/Qwen/Qwen3-ASR"
-    },
-    
-    # =========================================================================
-    # QWEN3 ASR (SenseVoiceSmall - 500MB, SOTA)
+    # SENSEVOICE (Alibaba - fast and accurate)
     # =========================================================================
     "sensevoice": {
         "name": "sensevoice",
-        "display_name": "SenseVoice Small (Qwen3-ASR)",
+        "display_name": "SenseVoice Small",
         "type": "onnx",
         "repo": "FunAudioLLM/SenseVoiceSmall",
         "size_mb": 500,
@@ -316,38 +299,6 @@ MODELS = {
         "url": "https://huggingface.co/FunAudioLLM/SenseVoiceSmall"
     },
 
-    # CANARY QWEN (NVIDIA Canary 1B)
-    # =========================================================================
-    "canary-1b": {
-        "name": "canary-1b",
-        "display_name": "Canary Qwen 1B",
-        "type": "onnx",
-        "repo": "nvidia/canary-1b",
-        "size_mb": 2500,
-        "wer": 2.8,
-        "rtf": 8,
-        "languages": ["multi", "en"],
-        "description": "NVIDIA Canary 1B - Best for noisy environments",
-        "recommended_for": "16GB+ RAM",
-        "url": "https://huggingface.co/nvidia/canary-1b"
-    },
-
-    # VOXTRAL MINI (Mistral AI - 50+ languages)
-    # =========================================================================
-    "voxtral-mini": {
-        "name": "voxtral-mini",
-        "display_name": "Voxtral Mini",
-        "type": "onnx",
-        "repo": "mistralai/Voxtral-Mini-3B-2507",
-        "size_mb": 1200,
-        "wer": 3.2,
-        "rtf": 12,
-        "languages": ["multi"],
-        "description": "Mistral AI - 50+ languages support",
-        "recommended_for": "8+ cores / 16GB RAM",
-        "url": "https://huggingface.co/mistralai/Voxtral-Mini-3B-2507"
-    },
-    
     # =========================================================================
     # PHI-4 MULTIMODAL (Microsoft - Highest accuracy)
     # =========================================================================
@@ -665,87 +616,131 @@ def download_model(model_name: str, progress_callback: Callable = None) -> dict:
                 result["error"] = "Download failed"
 
         elif model_info["type"] == "faster-whisper" and "repo" in model_info:
-            # Use huggingface_hub directly for progress tracking
+            # Use huggingface_hub with tqdm progress callback for accurate tracking
             try:
-                from huggingface_hub import snapshot_download
+                from huggingface_hub import snapshot_download, hf_hub_download
+                try:
+                    from tqdm import tqdm as original_tqdm
+                except ImportError:
+                    # Fallback: define a simple tqdm replacement
+                    class original_tqdm:
+                        def __init__(self, *args, **kwargs):
+                            self.total = kwargs.get('total', 0)
+                            self.n = 0
+                            self.desc = kwargs.get('desc', '')
+                        def update(self, n=1):
+                            self.n += n
+                        def close(self):
+                            pass
+                        def __enter__(self):
+                            return self
+                        def __exit__(self, *args):
+                            pass
                 import threading
 
                 repo_id = model_info["repo"]
                 cache_dir = str(models_dir)
+                expected_size = model_info.get("size_mb", 250) * 1024 * 1024
 
                 # Report initial progress
                 sys.stdout.write(json.dumps({
                     "type": "progress",
-                    "percent": 5,
-                    "message": f"Preparing to download {model_info['display_name']}..."
+                    "percent": 2,
+                    "message": f"Connecting to HuggingFace for {model_info['display_name']}..."
                 }) + "\n")
                 sys.stdout.flush()
 
-                # Track download progress by monitoring the cache directory
-                expected_size = model_info.get("size_mb", 250) * 1024 * 1024  # Convert to bytes
-                download_started = threading.Event()
-                download_complete = threading.Event()
+                # Custom progress callback class
+                class DownloadProgressReporter:
+                    def __init__(self, model_name, expected_total):
+                        self.model_name = model_name
+                        self.expected_total = expected_total
+                        self.current_file = ""
+                        self.files_downloaded = 0
+                        self.total_files = 6  # Typical for faster-whisper models
+                        self.start_time = time.time()
+                        self.last_update = 0
+                        self.total_downloaded = 0
 
-                def progress_monitor():
-                    """Monitor download directory for progress updates."""
-                    import time
+                    def update(self, downloaded_bytes, total_bytes, filename=""):
+                        current_time = time.time()
+                        # Rate limit to prevent flooding
+                        if current_time - self.last_update < 0.3:
+                            return
+                        self.last_update = current_time
 
-                    # Wait for download to start
-                    download_started.wait(timeout=30)
+                        if filename:
+                            self.current_file = filename
 
-                    last_size = 0
-                    last_time = time.time()
-                    start_time = time.time()
+                        # Calculate overall progress
+                        if total_bytes > 0:
+                            file_percent = (downloaded_bytes / total_bytes) * 100
+                            # Combine file progress with files-done progress
+                            overall = min(98, int(
+                                (self.files_downloaded * 100 / self.total_files) +
+                                (file_percent / self.total_files)
+                            ))
+                        else:
+                            overall = min(98, int((self.files_downloaded / self.total_files) * 100))
 
-                    while not download_complete.is_set():
-                        try:
-                            # Count all files in the cache directory for this model
-                            total_downloaded = 0
-                            cache_path = Path(cache_dir)
-                            for file in cache_path.rglob("*"):
-                                if file.is_file() and not file.name.endswith(".lock"):
-                                    total_downloaded += file.stat().st_size
+                        elapsed = current_time - self.start_time
+                        speed_kb = int(downloaded_bytes / 1024 / max(elapsed, 1))
 
-                            # Calculate progress
-                            percent = min(95, int((total_downloaded / expected_size) * 100)) if expected_size > 0 else 50
+                        sys.stdout.write(json.dumps({
+                            "type": "progress",
+                            "percent": max(5, overall),
+                            "bytesDownloaded": downloaded_bytes,
+                            "bytesTotal": total_bytes,
+                            "speedKB": speed_kb,
+                            "elapsed": int(elapsed),
+                            "message": f"Downloading {self.current_file}... ({overall}%)"
+                        }) + "\n")
+                        sys.stdout.flush()
 
-                            # Calculate speed
-                            current_time = time.time()
-                            elapsed = current_time - start_time
-                            if current_time - last_time >= 1.0:  # Update every second
-                                speed = (total_downloaded - last_size) / 1024  # KB/s
-                                last_size = total_downloaded
-                                last_time = current_time
+                    def file_complete(self, filename):
+                        self.files_downloaded += 1
 
-                                sys.stdout.write(json.dumps({
-                                    "type": "progress",
-                                    "percent": percent,
-                                    "bytesDownloaded": total_downloaded,
-                                    "bytesTotal": expected_size,
-                                    "speedKB": int(speed),
-                                    "elapsed": int(elapsed),
-                                    "message": f"Downloading {model_info['display_name']}... ({percent}%)"
-                                }) + "\n")
-                                sys.stdout.flush()
-                        except Exception:
-                            pass
+                progress = DownloadProgressReporter(model_info['display_name'], expected_size)
 
-                        time.sleep(0.5)
+                # TqdmProgressWrapper uses original_tqdm imported above
+                class TqdmProgressWrapper:
+                    def __init__(self, *args, **kwargs):
+                        self._tqdm = original_tqdm(*args, **kwargs)
+                        self.total = kwargs.get('total', 0)
+                        self.desc = kwargs.get('desc', '')
 
-                # Start progress monitor in background
-                monitor_thread = threading.Thread(target=progress_monitor, daemon=True)
-                monitor_thread.start()
-                download_started.set()
+                    def update(self, n=1):
+                        self._tqdm.update(n)
+                        if hasattr(self._tqdm, 'n') and self.total > 0:
+                            progress.update(self._tqdm.n, self.total, self.desc)
 
-                # Download the model using huggingface_hub
-                local_dir = snapshot_download(
-                    repo_id=repo_id,
-                    local_dir=Path(cache_dir) / repo_id.replace("/", "--"),
-                    local_dir_use_symlinks=False
-                )
+                    def close(self):
+                        self._tqdm.close()
+                        progress.file_complete(self.desc)
 
-                download_complete.set()
-                monitor_thread.join(timeout=2)
+                    def __enter__(self):
+                        self._tqdm.__enter__()
+                        return self
+
+                    def __exit__(self, *args):
+                        return self._tqdm.__exit__(*args)
+
+                    def __iter__(self):
+                        return iter(self._tqdm)
+
+                # Apply the wrapper
+                hf_tqdm.tqdm = TqdmProgressWrapper
+
+                try:
+                    # Download the model using huggingface_hub
+                    local_dir = snapshot_download(
+                        repo_id=repo_id,
+                        local_dir=Path(cache_dir) / repo_id.replace("/", "--"),
+                        local_dir_use_symlinks=False
+                    )
+                finally:
+                    # Restore original tqdm
+                    hf_tqdm.tqdm = original_tqdm
 
                 # Final progress update
                 sys.stdout.write(json.dumps({
@@ -759,40 +754,115 @@ def download_model(model_name: str, progress_callback: Callable = None) -> dict:
                 result["path"] = local_dir
 
             except Exception as e:
-                download_complete.set() if 'download_complete' in dir() else None
                 result["error"] = str(e)
 
         elif model_info["type"] in ("onnx", "llm"):
-            # HuggingFace Hub download
+            # HuggingFace Hub download with progress tracking
             try:
                 from huggingface_hub import hf_hub_download, snapshot_download
+                from huggingface_hub.utils import tqdm as hf_tqdm
+
+                repo_id = model_info["repo"]
+                expected_size = model_info.get("size_mb", 500) * 1024 * 1024
 
                 sys.stdout.write(json.dumps({
                     "type": "progress",
-                    "percent": 15,
-                    "message": f"Downloading {model_info['display_name']} from Hugging Face... (Large file, this may take a few minutes without progress updates)"
+                    "percent": 2,
+                    "message": f"Connecting to HuggingFace for {model_info['display_name']}..."
                 }) + "\n")
                 sys.stdout.flush()
 
-                if "filename" in model_info:
-                    # Download specific file
-                    path = hf_hub_download(
-                        repo_id=model_info["repo"],
-                        filename=model_info["filename"],
-                        local_dir=models_dir
-                    )
-                else:
-                    # Download entire repo
-                    path = snapshot_download(
-                        repo_id=model_info["repo"],
-                        local_dir=models_dir / model_name
-                    )
+                # Custom progress tracking
+                class OnnxDownloadProgress:
+                    def __init__(self):
+                        self.start_time = time.time()
+                        self.last_update = 0
+                        self.total_downloaded = 0
+                        self.files_done = 0
+
+                    def report(self, downloaded, total, filename=""):
+                        now = time.time()
+                        if now - self.last_update < 0.5:
+                            return
+                        self.last_update = now
+
+                        elapsed = now - self.start_time
+                        speed_kb = int(downloaded / 1024 / max(elapsed, 1))
+                        percent = min(95, int((downloaded / max(total, 1)) * 100)) if total > 0 else 50
+
+                        sys.stdout.write(json.dumps({
+                            "type": "progress",
+                            "percent": max(5, percent),
+                            "bytesDownloaded": downloaded,
+                            "bytesTotal": total,
+                            "speedKB": speed_kb,
+                            "elapsed": int(elapsed),
+                            "message": f"Downloading {filename or model_info['display_name']}... ({percent}%)"
+                        }) + "\n")
+                        sys.stdout.flush()
+
+                progress = OnnxDownloadProgress()
+
+                # Patch tqdm for progress
+                original_tqdm = hf_tqdm.tqdm
+
+                class TqdmWrapper:
+                    def __init__(self, *args, **kwargs):
+                        self._tqdm = original_tqdm(*args, **kwargs)
+                        self.total = kwargs.get('total', 0)
+                        self.desc = kwargs.get('desc', '')
+
+                    def update(self, n=1):
+                        self._tqdm.update(n)
+                        if hasattr(self._tqdm, 'n'):
+                            progress.report(self._tqdm.n, self.total, self.desc)
+
+                    def close(self):
+                        self._tqdm.close()
+
+                    def __enter__(self):
+                        self._tqdm.__enter__()
+                        return self
+
+                    def __exit__(self, *args):
+                        return self._tqdm.__exit__(*args)
+
+                    def __iter__(self):
+                        return iter(self._tqdm)
+
+                hf_tqdm.tqdm = TqdmWrapper
+
+                try:
+                    if "filename" in model_info:
+                        # Download specific file
+                        path = hf_hub_download(
+                            repo_id=model_info["repo"],
+                            filename=model_info["filename"],
+                            local_dir=models_dir
+                        )
+                    else:
+                        # Download entire repo
+                        path = snapshot_download(
+                            repo_id=model_info["repo"],
+                            local_dir=models_dir / model_name,
+                            local_dir_use_symlinks=False
+                        )
+                finally:
+                    hf_tqdm.tqdm = original_tqdm
+
+                # Final progress
+                sys.stdout.write(json.dumps({
+                    "type": "progress",
+                    "percent": 100,
+                    "message": f"{model_info['display_name']} download complete!"
+                }) + "\n")
+                sys.stdout.flush()
 
                 result["success"] = True
                 result["path"] = str(path)
 
             except ImportError:
-                result["error"] = "huggingface_hub not installed"
+                result["error"] = "huggingface_hub not installed. Run: pip install huggingface_hub"
             except Exception as e:
                 result["error"] = str(e)
 

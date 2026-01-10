@@ -37,6 +37,7 @@ PYNPUT_AVAILABLE = False
 keyboard_listener = None
 try:
     from pynput import keyboard as pynput_keyboard
+
     PYNPUT_AVAILABLE = True
 except ImportError:
     PYNPUT_AVAILABLE = False
@@ -48,6 +49,7 @@ audio = None
 
 try:
     import pyaudio
+
     PYAUDIO_AVAILABLE = True
 except ImportError:
     PYAUDIO_AVAILABLE = False
@@ -57,6 +59,7 @@ except ImportError:
 TORCH_AVAILABLE = False
 try:
     import torch
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -65,6 +68,7 @@ except ImportError:
 FASTER_WHISPER_AVAILABLE = False
 try:
     from faster_whisper import WhisperModel
+
     FASTER_WHISPER_AVAILABLE = True
 except ImportError:
     FASTER_WHISPER_AVAILABLE = False
@@ -74,6 +78,7 @@ except ImportError:
 ONNX_AVAILABLE = False
 try:
     import onnxruntime as ort
+
     ONNX_AVAILABLE = True
 except ImportError:
     ONNX_AVAILABLE = False
@@ -87,6 +92,7 @@ Moonshine = None
 try:
     from moonshine import transcribe as moonshine_transcribe
     from moonshine.model import Moonshine
+
     MOONSHINE_AVAILABLE = True
 except ImportError:
     MOONSHINE_AVAILABLE = False
@@ -117,6 +123,11 @@ stream = None
 lock = threading.Lock()
 last_partial_text = ""
 
+# Microphone idle management - release mic after idle timeout
+last_recording_time = 0.0
+MIC_IDLE_TIMEOUT = 30.0  # Seconds of idle before releasing microphone
+mic_idle_timer = None
+
 # Continuous dictation state
 continuous_mode = False
 continuous_thread = None
@@ -135,25 +146,65 @@ models_dir = os.environ.get("SONU_MODELS_DIR", str(Path(__file__).parent / "mode
 
 # Whisper language codes and their full names
 LANGUAGE_NAMES = {
-    'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German',
-    'zh': 'Chinese', 'ja': 'Japanese', 'ko': 'Korean', 'pt': 'Portuguese',
-    'ru': 'Russian', 'it': 'Italian', 'nl': 'Dutch', 'sv': 'Swedish',
-    'da': 'Danish', 'no': 'Norwegian', 'fi': 'Finnish', 'pl': 'Polish',
-    'tr': 'Turkish', 'ar': 'Arabic', 'he': 'Hebrew', 'hi': 'Hindi',
-    'th': 'Thai', 'vi': 'Vietnamese', 'id': 'Indonesian', 'ms': 'Malay',
-    'cs': 'Czech', 'sk': 'Slovak', 'hu': 'Hungarian', 'ro': 'Romanian',
-    'bg': 'Bulgarian', 'hr': 'Croatian', 'sr': 'Serbian', 'uk': 'Ukrainian',
-    'el': 'Greek', 'ca': 'Catalan', 'eu': 'Basque', 'ga': 'Irish',
-    'cy': 'Welsh', 'gl': 'Galician', 'fa': 'Persian', 'ur': 'Urdu',
-    'af': 'Afrikaans', 'sw': 'Swahili', 'bn': 'Bengali', 'ta': 'Tamil',
-    'te': 'Telugu', 'ml': 'Malayalam', 'kn': 'Kannada', 'gu': 'Gujarati',
-    'mr': 'Marathi', 'pa': 'Punjabi', 'ne': 'Nepali', 'si': 'Sinhala',
-    'km': 'Khmer', 'lo': 'Lao'
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "it": "Italian",
+    "nl": "Dutch",
+    "sv": "Swedish",
+    "da": "Danish",
+    "no": "Norwegian",
+    "fi": "Finnish",
+    "pl": "Polish",
+    "tr": "Turkish",
+    "ar": "Arabic",
+    "he": "Hebrew",
+    "hi": "Hindi",
+    "th": "Thai",
+    "vi": "Vietnamese",
+    "id": "Indonesian",
+    "ms": "Malay",
+    "cs": "Czech",
+    "sk": "Slovak",
+    "hu": "Hungarian",
+    "ro": "Romanian",
+    "bg": "Bulgarian",
+    "hr": "Croatian",
+    "sr": "Serbian",
+    "uk": "Ukrainian",
+    "el": "Greek",
+    "ca": "Catalan",
+    "eu": "Basque",
+    "ga": "Irish",
+    "cy": "Welsh",
+    "gl": "Galician",
+    "fa": "Persian",
+    "ur": "Urdu",
+    "af": "Afrikaans",
+    "sw": "Swahili",
+    "bn": "Bengali",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "ml": "Malayalam",
+    "kn": "Kannada",
+    "gu": "Gujarati",
+    "mr": "Marathi",
+    "pa": "Punjabi",
+    "ne": "Nepali",
+    "si": "Sinhala",
+    "km": "Khmer",
+    "lo": "Lao",
 }
 
 # Auto-detect language settings
 auto_detect_language = True
-current_language = 'en'
+current_language = "en"
 
 # ============================================================================
 # SILERO VAD - Instant Silence Detection
@@ -161,6 +212,7 @@ current_language = 'en'
 
 silero_vad = None
 vad_model = None
+
 
 def init_silero_vad() -> bool:
     """Initialize Silero VAD for instant silence detection."""
@@ -172,10 +224,10 @@ def init_silero_vad() -> bool:
 
     try:
         hub_result = torch.hub.load(
-            repo_or_dir='snakers4/silero-vad',
-            model='silero_vad',
+            repo_or_dir="snakers4/silero-vad",
+            model="silero_vad",
             force_reload=False,
-            onnx=True
+            onnx=True,
         )
 
         if isinstance(hub_result, (list, tuple)):
@@ -186,14 +238,14 @@ def init_silero_vad() -> bool:
             utils = None
 
         silero_vad = {
-            'model': vad_model,
-            'get_speech_timestamps': utils[0] if utils and len(utils) > 0 else None,
-            'read_audio': utils[2] if utils and len(utils) > 2 else None,
-            'threshold': 0.5,
-            'min_silence_ms': 300,
-            'speech_pad_ms': 30,
-            'window_size_samples': 512,
-            'sample_rate': 16000
+            "model": vad_model,
+            "get_speech_timestamps": utils[0] if utils and len(utils) > 0 else None,
+            "read_audio": utils[2] if utils and len(utils) > 2 else None,
+            "threshold": 0.5,
+            "min_silence_ms": 300,
+            "speech_pad_ms": 30,
+            "window_size_samples": 512,
+            "sample_rate": 16000,
         }
 
         sys.stderr.write("Silero VAD initialized\n")
@@ -202,6 +254,7 @@ def init_silero_vad() -> bool:
     except Exception as e:
         sys.stderr.write(f"Silero VAD init failed: {e}\n")
         return False
+
 
 def detect_voice_activity(audio_data: np.ndarray) -> bool:
     """Check if audio contains speech using Silero VAD."""
@@ -217,12 +270,15 @@ def detect_voice_activity(audio_data: np.ndarray) -> bool:
             audio_float = audio_data.astype(np.float32)
 
         audio_tensor = torch.from_numpy(audio_float)
-        speech_prob = silero_vad['model'](audio_tensor, silero_vad['sample_rate']).item()
-        return speech_prob > silero_vad['threshold']
+        speech_prob = silero_vad["model"](
+            audio_tensor, silero_vad["sample_rate"]
+        ).item()
+        return speech_prob > silero_vad["threshold"]
 
     except Exception as e:
         sys.stderr.write(f"VAD detection error: {e}\n")
         return True
+
 
 def filter_silence_vad(audio_data: np.ndarray) -> np.ndarray:
     """Remove silence using Silero VAD timestamps."""
@@ -231,7 +287,7 @@ def filter_silence_vad(audio_data: np.ndarray) -> np.ndarray:
     if silero_vad is None or len(audio_data) == 0:
         return audio_data
 
-    if silero_vad['get_speech_timestamps'] is None:
+    if silero_vad["get_speech_timestamps"] is None:
         return audio_data
 
     try:
@@ -242,12 +298,13 @@ def filter_silence_vad(audio_data: np.ndarray) -> np.ndarray:
 
         audio_tensor = torch.from_numpy(audio_float)
 
-        speech_timestamps = silero_vad['get_speech_timestamps'](
-            audio_tensor, silero_vad['model'],
-            sampling_rate=silero_vad['sample_rate'],
-            threshold=silero_vad['threshold'],
-            min_silence_duration_ms=silero_vad['min_silence_ms'],
-            speech_pad_ms=silero_vad['speech_pad_ms']
+        speech_timestamps = silero_vad["get_speech_timestamps"](
+            audio_tensor,
+            silero_vad["model"],
+            sampling_rate=silero_vad["sample_rate"],
+            threshold=silero_vad["threshold"],
+            min_silence_duration_ms=silero_vad["min_silence_ms"],
+            speech_pad_ms=silero_vad["speech_pad_ms"],
         )
 
         if not speech_timestamps:
@@ -255,8 +312,8 @@ def filter_silence_vad(audio_data: np.ndarray) -> np.ndarray:
 
         speech_audio = []
         for ts in speech_timestamps:
-            start = ts['start']
-            end = ts['end']
+            start = ts["start"]
+            end = ts["end"]
             speech_audio.append(audio_data[start:end])
 
         if speech_audio:
@@ -267,6 +324,7 @@ def filter_silence_vad(audio_data: np.ndarray) -> np.ndarray:
     except Exception as e:
         sys.stderr.write(f"VAD filtering error: {e}\n")
         return audio_data
+
 
 # ============================================================================
 # WHISPER TRANSCRIPTION ENGINE
@@ -280,16 +338,17 @@ model_type = None
 # Model type detection based on model name
 MODEL_TYPE_MAP = {
     # Moonshine models
-    'moonshine-tiny': 'moonshine',
-    'moonshine-base': 'moonshine',
+    "moonshine-tiny": "moonshine",
+    "moonshine-base": "moonshine",
     # ONNX/NVIDIA models (not yet fully implemented)
-    'parakeet-v3': 'onnx',
-    'canary-qwen': 'onnx',
+    "parakeet-v3": "onnx",
+    "canary-qwen": "onnx",
     # All other models use faster-whisper
 }
 
+
 def load_faster_whisper_model(model_name: str) -> bool:
-    """Load model using faster-whisper library."""
+    """Load model using faster-whisper library with CPU optimization for older laptops."""
     global whisper_model, model_type
 
     if not FASTER_WHISPER_AVAILABLE:
@@ -300,34 +359,67 @@ def load_faster_whisper_model(model_name: str) -> bool:
         # Map model names to faster-whisper HuggingFace repo format
         # Standard models: tiny, base, small, medium, large-v2, large-v3
         # Distil models: distil-small.en, distil-medium.en, distil-large-v3
-        
-        if model_name.startswith('distil-'):
+
+        if model_name.startswith("distil-"):
             # Distil models: distil-small.en -> Systran/faster-distil-whisper-small.en
-            repo_id = f"Systran/faster-distil-whisper-{model_name.replace('distil-', '')}"
-        elif model_name.startswith('faster-'):
+            repo_id = (
+                f"Systran/faster-distil-whisper-{model_name.replace('distil-', '')}"
+            )
+        elif model_name.startswith("faster-"):
             # Already prefixed faster- models: faster-tiny -> Systran/faster-whisper-tiny
             repo_id = f"Systran/faster-whisper-{model_name.replace('faster-', '')}"
-        elif model_name in ['tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en', 
-                            'medium', 'medium.en', 'large', 'large-v2', 'large-v3']:
+        elif model_name in [
+            "tiny",
+            "tiny.en",
+            "base",
+            "base.en",
+            "small",
+            "small.en",
+            "medium",
+            "medium.en",
+            "large",
+            "large-v2",
+            "large-v3",
+        ]:
             # Standard Whisper model names -> Systran repo
             repo_id = f"Systran/faster-whisper-{model_name}"
-        elif '/' in model_name:
+        elif "/" in model_name:
             # Already a full HuggingFace repo ID
             repo_id = model_name
         else:
             # Fallback: try as-is (might be a local path or custom model)
             repo_id = model_name
 
+        # Check if download_root should be None (use HF cache) or local dir
+        download_root = None
+        if models_dir and Path(models_dir).exists():
+            local_model_path = Path(models_dir) / f"{model_name}.bin"
+            if local_model_path.exists():
+                download_root = models_dir
+
         sys.stderr.write(f"Loading model: {repo_id}\n")
 
+        # Detect CPU cores for optimal thread count
+        try:
+            import multiprocessing
+            cpu_count = multiprocessing.cpu_count()
+            # Use 2/3 of available cores, minimum 2, maximum 8
+            optimal_threads = max(2, min(8, (cpu_count * 2) // 3))
+        except:
+            optimal_threads = 4
+
+        sys.stderr.write(f"Using {optimal_threads} CPU threads for inference\n")
+
+        # Optimized settings for older laptops (2018 era)
         whisper_model = WhisperModel(
             repo_id,
             device="cpu",
-            compute_type="int8",
-            cpu_threads=4,
-            download_root=models_dir
+            compute_type="int8",  # Fastest for CPU, minimal quality loss
+            cpu_threads=optimal_threads,
+            download_root=download_root,
+            num_workers=1,  # Single worker to reduce memory
         )
-        model_type = 'faster_whisper'
+        model_type = "faster_whisper"
 
         sys.stderr.write(f"✓ Model '{model_name}' loaded successfully\n")
         return True
@@ -335,6 +427,7 @@ def load_faster_whisper_model(model_name: str) -> bool:
     except Exception as e:
         sys.stderr.write(f"Faster-whisper load error: {e}\n")
         return False
+
 
 def load_moonshine_model(model_name: str) -> bool:
     """Load Moonshine ultra-light model."""
@@ -349,9 +442,9 @@ def load_moonshine_model(model_name: str) -> bool:
         sys.stderr.write(f"Loading Moonshine model: {model_name}\n")
 
         # Moonshine uses model names like 'moonshine/tiny', 'moonshine/base'
-        size = model_name.replace('moonshine-', '')  # 'tiny', 'base'
+        size = model_name.replace("moonshine-", "")  # 'tiny', 'base'
         moonshine_model = Moonshine(f"moonshine/{size}")
-        model_type = 'moonshine'
+        model_type = "moonshine"
 
         sys.stderr.write(f"✓ Moonshine '{model_name}' loaded successfully\n")
         return True
@@ -360,25 +453,162 @@ def load_moonshine_model(model_name: str) -> bool:
         sys.stderr.write(f"Moonshine load error: {e}\n")
         return False
 
+
 def load_onnx_model(model_name: str) -> bool:
-    """Load ONNX model (Parakeet, Canary)."""
-    global onnx_session, model_type
+    """Load ONNX model (Parakeet, Canary, SenseVoice, Moonshine).
+
+    For 2018-era laptops, ONNX Runtime provides efficient CPU inference.
+    Falls back to faster-whisper for models without ONNX support.
+    """
+    global onnx_session, model_type, whisper_model
 
     if not ONNX_AVAILABLE:
         sys.stderr.write("Error: onnxruntime not available\n")
         sys.stderr.write("Install with: pip install onnxruntime\n")
         return False
 
-    # Note: Full ONNX implementation requires model-specific code
-    # For now, fall back to faster-whisper if available
-    sys.stderr.write(f"ONNX model '{model_name}' not yet fully supported\n")
-    sys.stderr.write("Falling back to faster-whisper if available\n")
+    try:
+        # Check for ONNX model files in models directory
+        models_path = Path(models_dir)
 
-    # Try to load a comparable faster-whisper model instead
-    if FASTER_WHISPER_AVAILABLE:
-        return load_faster_whisper_model('distil-small.en')
+        # Model-specific ONNX paths - updated for correct repos
+        onnx_paths = {
+            "parakeet-v3": [
+                # Correct ONNX paths from istupakov/parakeet-tdt-0.6b-v3-onnx
+                models_path / "parakeet-v3-onnx" / "encoder-model.onnx",  # Auto-downloaded path
+                models_path / "parakeet-v3-onnx" / "encoder-model.int8.onnx",  # INT8 quantized
+                models_path / "parakeet-v3" / "encoder-model.onnx",
+                models_path / "istupakov--parakeet-tdt-0.6b-v3-onnx" / "encoder-model.onnx",
+                # Legacy paths
+                models_path / "parakeet-v3" / "encoder.onnx",
+                models_path / "nvidia--parakeet-tdt-0.6b-v3" / "model.onnx",
+            ],
+            "canary-1b": [
+                models_path / "canary-1b" / "model.onnx",
+                models_path / "nvidia--canary-1b" / "model.onnx",
+            ],
+            "moonshine-tiny": [
+                models_path / "moonshine-tiny" / "preprocess.onnx",
+                models_path / "UsefulSensors--moonshine-tiny" / "preprocess.onnx",
+            ],
+            "sensevoice": [
+                models_path / "sensevoice" / "model.onnx",
+                models_path / "FunAudioLLM--SenseVoiceSmall" / "model.onnx",
+            ],
+        }
 
-    return False
+        model_paths = onnx_paths.get(model_name, [])
+        onnx_file = None
+
+        for p in model_paths:
+            if p.exists():
+                onnx_file = p
+                break
+
+        if onnx_file and onnx_file.exists():
+            sys.stderr.write(f"Loading ONNX model from {onnx_file}\n")
+
+            # Configure ONNX Runtime for CPU optimization
+            sess_options = ort.SessionOptions()
+            sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+
+            # Detect optimal thread count
+            try:
+                import multiprocessing
+                cpu_count = multiprocessing.cpu_count()
+                optimal_threads = max(2, min(8, (cpu_count * 2) // 3))
+            except:
+                optimal_threads = 4
+
+            sess_options.intra_op_num_threads = optimal_threads
+            sess_options.inter_op_num_threads = 2
+
+            # Use CPU execution provider
+            providers = ['CPUExecutionProvider']
+
+            onnx_session = ort.InferenceSession(
+                str(onnx_file),
+                sess_options=sess_options,
+                providers=providers
+            )
+            model_type = "onnx"
+            sys.stderr.write(f"✓ ONNX model '{model_name}' loaded with {optimal_threads} threads\n")
+            return True
+        else:
+            # ONNX file not found - try moonshine package for moonshine models
+            if model_name.startswith("moonshine") and MOONSHINE_AVAILABLE:
+                sys.stderr.write(f"ONNX file not found, trying moonshine package\n")
+                return load_moonshine_model(model_name)
+
+            # Try to auto-download Parakeet ONNX model if not found
+            if model_name == "parakeet-v3":
+                sys.stderr.write(f"Parakeet ONNX not found, attempting auto-download...\n")
+                try:
+                    from huggingface_hub import snapshot_download
+                    repo_id = "istupakov/parakeet-tdt-0.6b-v3-onnx"
+                    local_dir = models_path / "parakeet-v3-onnx"
+                    
+                    sys.stderr.write(f"Downloading {repo_id}...\n")
+                    snapshot_download(
+                        repo_id=repo_id,
+                        local_dir=str(local_dir),
+                        local_dir_use_symlinks=False
+                    )
+                    sys.stderr.write(f"✓ Parakeet ONNX downloaded to {local_dir}\n")
+                    
+                    # Check if encoder-model.onnx exists after download
+                    # Try INT8 quantized first (smaller, faster), then full precision
+                    encoder_path = local_dir / "encoder-model.int8.onnx"
+                    if not encoder_path.exists():
+                        encoder_path = local_dir / "encoder-model.onnx"
+                    
+                    if encoder_path.exists():
+                        onnx_file = encoder_path
+                        sess_options = ort.SessionOptions()
+                        sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+                        
+                        try:
+                            import multiprocessing
+                            cpu_count = multiprocessing.cpu_count()
+                            optimal_threads = max(2, min(8, (cpu_count * 2) // 3))
+                        except:
+                            optimal_threads = 4
+                        
+                        sess_options.intra_op_num_threads = optimal_threads
+                        sess_options.inter_op_num_threads = 2
+                        providers = ['CPUExecutionProvider']
+                        
+                        onnx_session = ort.InferenceSession(
+                            str(onnx_file),
+                            sess_options=sess_options,
+                            providers=providers
+                        )
+                        model_type = "onnx"
+                        sys.stderr.write(f"✓ Parakeet v3 ONNX loaded with {optimal_threads} threads\n")
+                        return True
+                except Exception as e:
+                    sys.stderr.write(f"Failed to auto-download Parakeet ONNX: {e}\n")
+
+            # Fall back to faster-whisper for best compatibility
+            sys.stderr.write(f"ONNX model '{model_name}' not found locally\n")
+            sys.stderr.write("Falling back to faster-whisper (distil-small.en) for best CPU performance\n")
+
+            if FASTER_WHISPER_AVAILABLE:
+                # Use distil-small.en as it's optimized for speed on older hardware
+                return load_faster_whisper_model("distil-small.en")
+
+            return False
+
+    except Exception as e:
+        sys.stderr.write(f"ONNX load error: {e}\n")
+
+        # Fallback to faster-whisper
+        if FASTER_WHISPER_AVAILABLE:
+            sys.stderr.write("Falling back to faster-whisper\n")
+            return load_faster_whisper_model("distil-small.en")
+
+        return False
+
 
 def load_whisper_model(model_name: str) -> bool:
     """Load model based on type - routes to appropriate engine."""
@@ -391,18 +621,21 @@ def load_whisper_model(model_name: str) -> bool:
     model_type = None
 
     # Determine engine type
-    engine_type = MODEL_TYPE_MAP.get(model_name, 'faster_whisper')
+    engine_type = MODEL_TYPE_MAP.get(model_name, "faster_whisper")
 
-    if engine_type == 'moonshine':
+    if engine_type == "moonshine":
         return load_moonshine_model(model_name)
-    elif engine_type == 'onnx':
+    elif engine_type == "onnx":
         return load_onnx_model(model_name)
     else:
         return load_faster_whisper_model(model_name)
 
-def transcribe_audio(audio_path: str, language: Optional[str] = None) -> Tuple[str, str]:
+
+def transcribe_audio(
+    audio_path: str, language: Optional[str] = None
+) -> Tuple[str, str]:
     """Transcribe audio file with language detection - supports multiple engines."""
-    global whisper_model, moonshine_model, model_type, current_language
+    global whisper_model, moonshine_model, onnx_session, model_type, current_language
 
     try:
         # Determine language
@@ -410,35 +643,74 @@ def transcribe_audio(audio_path: str, language: Optional[str] = None) -> Tuple[s
         if auto_detect_language:
             lang = None  # Let engine auto-detect
 
-        if model_type == 'moonshine' and moonshine_model is not None and moonshine_transcribe is not None:
+        if (
+            model_type == "moonshine"
+            and moonshine_model is not None
+            and moonshine_transcribe is not None
+        ):
             # Moonshine transcription
             try:
                 text = moonshine_transcribe(audio_path)
                 if isinstance(text, list):
                     text = " ".join(text)
-                return text.strip(), lang if lang is not None else 'en'
+                return text.strip(), lang if lang is not None else "en"
             except Exception as e:
                 sys.stderr.write(f"Moonshine transcription error: {e}\n")
                 return "", current_language
 
-        elif model_type == 'faster_whisper' and whisper_model is not None:
-            # Faster-whisper transcription
-            segments, info = whisper_model.transcribe(
-                audio_path,
-                language=lang,
-                beam_size=1,
-                best_of=1,
-                temperature=0.0,
-                vad_filter=True,
-                vad_parameters=dict(min_silence_duration_ms=300),
-                no_speech_threshold=0.6
-            )
+        elif model_type == "onnx" and onnx_session is not None:
+            # ONNX transcription (for Parakeet, SenseVoice, etc.)
+            try:
+                import soundfile as sf
+                import scipy.signal
 
-            segment_list = list(segments)
-            text = " ".join(seg.text.strip() for seg in segment_list)
-            detected_lang = info.language if hasattr(info, 'language') else current_language
+                # Load and preprocess audio
+                audio_data, sample_rate = sf.read(audio_path)
 
-            return text.strip(), detected_lang if detected_lang else current_language
+                # Resample to 16kHz if needed
+                if sample_rate != 16000:
+                    num_samples = int(len(audio_data) * 16000 / sample_rate)
+                    audio_data = scipy.signal.resample(audio_data, num_samples)
+
+                # Convert to float32 and normalize
+                if audio_data.dtype != np.float32:
+                    audio_data = audio_data.astype(np.float32)
+
+                # Get input name from ONNX model
+                input_name = onnx_session.get_inputs()[0].name
+                input_shape = onnx_session.get_inputs()[0].shape
+
+                # Prepare input (batch dimension if needed)
+                if len(input_shape) == 2:
+                    audio_input = audio_data.reshape(1, -1)
+                else:
+                    audio_input = audio_data
+
+                # Run inference
+                outputs = onnx_session.run(None, {input_name: audio_input})
+
+                # Process output (model-specific)
+                if outputs and len(outputs) > 0:
+                    result = outputs[0]
+                    if isinstance(result, np.ndarray):
+                        # Decode output tokens if needed
+                        text = str(result)
+                    else:
+                        text = str(result)
+                else:
+                    text = ""
+
+                return text.strip(), lang if lang else "en"
+
+            except Exception as e:
+                sys.stderr.write(f"ONNX transcription error: {e}\n")
+                # Fallback to faster-whisper if available
+                if whisper_model is not None:
+                    return transcribe_with_faster_whisper(audio_path, lang)
+                return "", current_language
+
+        elif model_type == "faster_whisper" and whisper_model is not None:
+            return transcribe_with_faster_whisper(audio_path, lang)
 
         else:
             sys.stderr.write(f"No model loaded for transcription\n")
@@ -447,6 +719,47 @@ def transcribe_audio(audio_path: str, language: Optional[str] = None) -> Tuple[s
     except Exception as e:
         sys.stderr.write(f"Transcription error: {e}\n")
         return "", current_language
+
+
+def transcribe_with_faster_whisper(audio_path: str, lang: Optional[str]) -> Tuple[str, str]:
+    """Transcribe using faster-whisper engine with speed optimizations."""
+    global whisper_model, current_language
+
+    try:
+        # Speed-optimized transcription settings
+        # beam_size=1 is fastest (greedy decoding)
+        # temperature=0 for deterministic output
+        # vad_filter removes silence for faster processing
+        segments, info = whisper_model.transcribe(
+            audio_path,
+            language=lang,
+            beam_size=1,          # Greedy decoding - fastest
+            best_of=1,            # No sampling
+            temperature=0.0,      # Deterministic
+            vad_filter=True,      # Skip silence for speed
+            vad_parameters=dict(
+                min_silence_duration_ms=200,  # Faster silence detection
+                speech_pad_ms=100,            # Less padding
+                threshold=0.4,                # More aggressive VAD
+            ),
+            no_speech_threshold=0.5,          # More lenient
+            compression_ratio_threshold=2.4,  # Standard
+            condition_on_previous_text=False, # Faster processing
+            word_timestamps=False,            # Skip word-level timing
+        )
+
+        segment_list = list(segments)
+        text = " ".join(seg.text.strip() for seg in segment_list)
+        detected_lang = (
+            info.language if hasattr(info, "language") else current_language
+        )
+
+        return text.strip(), detected_lang if detected_lang else current_language
+
+    except Exception as e:
+        sys.stderr.write(f"Faster-whisper transcription error: {e}\n")
+        return "", current_language
+
 
 def transcribe_frames_fast() -> Tuple[str, str]:
     """Transcribe accumulated audio frames."""
@@ -457,7 +770,7 @@ def transcribe_frames_fast() -> Tuple[str, str]:
 
     # Convert frames to numpy array
     with lock:
-        audio_data = np.frombuffer(b''.join(frames), dtype=np.int16)
+        audio_data = np.frombuffer(b"".join(frames), dtype=np.int16)
 
     if len(audio_data) == 0:
         return "", current_language
@@ -475,7 +788,7 @@ def transcribe_frames_fast() -> Tuple[str, str]:
     os.close(fd)
 
     try:
-        wf = wave.open(tmp_path, 'wb')
+        wf = wave.open(tmp_path, "wb")
         wf.setnchannels(CHANNELS)
         wf.setsampwidth(2)
         wf.setframerate(RATE)
@@ -497,9 +810,11 @@ def transcribe_frames_fast() -> Tuple[str, str]:
         except:
             pass
 
+
 # ============================================================================
 # CONTINUOUS DICTATION MODE
 # ============================================================================
+
 
 def continuous_dictation_worker():
     """Background thread for continuous dictation with VAD-based segmentation.
@@ -518,7 +833,9 @@ def continuous_dictation_worker():
 
     sys.stderr.write("Continuous dictation worker started\n")
 
-    while continuous_mode and (continuous_stop_event is None or not continuous_stop_event.is_set()):
+    while continuous_mode and (
+        continuous_stop_event is None or not continuous_stop_event.is_set()
+    ):
         try:
             current_time = time.time()
 
@@ -536,7 +853,7 @@ def continuous_dictation_worker():
                 current_frames = frames.copy()
 
             # Convert to numpy
-            audio_data = np.frombuffer(b''.join(current_frames), dtype=np.int16)
+            audio_data = np.frombuffer(b"".join(current_frames), dtype=np.int16)
 
             if len(audio_data) < RATE // 4:  # Less than 250ms
                 continue
@@ -593,6 +910,7 @@ def continuous_dictation_worker():
 
     sys.stderr.write("Continuous dictation worker stopped\n")
 
+
 def start_continuous_dictation():
     """Start continuous dictation mode."""
     global continuous_mode, continuous_thread, continuous_stop_event
@@ -611,12 +929,15 @@ def start_continuous_dictation():
     continuous_mode = True
     continuous_stop_event = threading.Event()
 
-    continuous_thread = threading.Thread(target=continuous_dictation_worker, daemon=True)
+    continuous_thread = threading.Thread(
+        target=continuous_dictation_worker, daemon=True
+    )
     continuous_thread.start()
 
     sys.stdout.write("EVENT: CONTINUOUS_STARTED\n")
     sys.stdout.flush()
     sys.stderr.write("Continuous dictation mode started\n")
+
 
 def stop_continuous_dictation():
     """Stop continuous dictation mode."""
@@ -652,9 +973,11 @@ def stop_continuous_dictation():
     sys.stdout.flush()
     sys.stderr.write("Continuous dictation mode stopped\n")
 
+
 # ============================================================================
 # AUDIO RECORDING
 # ============================================================================
+
 
 def start_audio_stream() -> bool:
     """Start audio input stream."""
@@ -677,12 +1000,13 @@ def start_audio_stream() -> bool:
             channels=CHANNELS,
             rate=RATE,
             input=True,
-            frames_per_buffer=CHUNK
+            frames_per_buffer=CHUNK,
         )
         return True
     except Exception as e:
         sys.stderr.write(f"Audio stream error: {e}\n")
         return False
+
 
 def stop_audio_stream():
     """Stop audio input stream."""
@@ -692,9 +1016,44 @@ def stop_audio_stream():
         try:
             stream.stop_stream()
             stream.close()
+            sys.stderr.write("Microphone released (idle timeout)\\n")
         except:
             pass
         stream = None
+
+
+def schedule_mic_release():
+    """Schedule microphone release after idle timeout."""
+    global mic_idle_timer, last_recording_time
+
+    # Cancel any existing timer
+    if mic_idle_timer is not None:
+        mic_idle_timer.cancel()
+
+    # Schedule new timer
+    def release_mic():
+        global stream
+        if not recording_flag and stream is not None:
+            stop_audio_stream()
+
+    mic_idle_timer = threading.Timer(MIC_IDLE_TIMEOUT, release_mic)
+    mic_idle_timer.daemon = True
+    mic_idle_timer.start()
+
+
+def ensure_mic_ready():
+    """Ensure microphone is ready for recording."""
+    global mic_idle_timer
+
+    # Cancel idle timer if running
+    if mic_idle_timer is not None:
+        mic_idle_timer.cancel()
+        mic_idle_timer = None
+
+    # Start audio stream if not running
+    if stream is None:
+        start_audio_stream()
+
 
 def record_audio_thread():
     """Background thread for audio recording."""
@@ -714,21 +1073,22 @@ def record_audio_thread():
         else:
             time.sleep(0.01)
 
+
 # ============================================================================
 # EXPERIMENTAL SETTINGS
 # ============================================================================
 
 experimental_settings = {
-    'vad_enabled': True,
-    'beam_size': 1,
-    'best_of': 1,
-    'temperature': 0.0,
-    'min_silence_ms': 300,
-    'low_latency': True,
-    'continuous_dictation': False,
-    'noise_reduction': False,
-    'auto_detect_language': True,
-    'language': 'en'
+    "vad_enabled": True,
+    "beam_size": 1,
+    "best_of": 1,
+    "temperature": 0.0,
+    "min_silence_ms": 300,
+    "low_latency": True,
+    "continuous_dictation": False,
+    "noise_reduction": False,
+    "auto_detect_language": True,
+    "language": "en",
 }
 
 # ============================================================================
@@ -737,30 +1097,33 @@ experimental_settings = {
 
 hold_mode = False
 hold_keys_combo = "ctrl+shift+space"
-combo_keys = ['ctrl', 'shift', 'space']
+combo_keys = ["ctrl", "shift", "space"]
 keys_pressed = set()  # Track currently pressed keys
 hold_key_monitor_active = False
 
+
 def parse_combo(combo: str) -> List[str]:
     """Parse hotkey combo string."""
-    parts = [p.strip().lower() for p in combo.split('+') if p.strip()]
+    parts = [p.strip().lower() for p in combo.split("+") if p.strip()]
     mapped = []
     for p in parts:
-        if p in ('commandorcontrol', 'cmd', 'ctrl', 'control'):
-            mapped.append('ctrl')
-        elif p in ('win', 'windows', 'super'):
-            mapped.append('windows')
-        elif p in ('alt', 'option'):
-            mapped.append('alt')
-        elif p == 'shift':
-            mapped.append('shift')
+        if p in ("commandorcontrol", "cmd", "ctrl", "control"):
+            mapped.append("ctrl")
+        elif p in ("win", "windows", "super"):
+            mapped.append("windows")
+        elif p in ("alt", "option"):
+            mapped.append("alt")
+        elif p == "shift":
+            mapped.append("shift")
         else:
             mapped.append(p)
     return mapped
 
+
 # ============================================================================
 # KEYBOARD MONITORING FOR HOLD-TO-RECORD
 # ============================================================================
+
 
 def get_key_name(key) -> Optional[str]:
     """Get normalized key name from pynput key."""
@@ -769,25 +1132,26 @@ def get_key_name(key) -> Optional[str]:
 
     try:
         # Check for special keys
-        if hasattr(key, 'name'):
+        if hasattr(key, "name"):
             name = key.name.lower()
-            if name in ('ctrl_l', 'ctrl_r', 'ctrl'):
-                return 'ctrl'
-            elif name in ('alt_l', 'alt_r', 'alt'):
-                return 'alt'
-            elif name in ('shift_l', 'shift_r', 'shift'):
-                return 'shift'
-            elif name in ('cmd', 'cmd_l', 'cmd_r'):
-                return 'ctrl'  # Map cmd to ctrl for cross-platform
-            elif name == 'space':
-                return 'space'
+            if name in ("ctrl_l", "ctrl_r", "ctrl"):
+                return "ctrl"
+            elif name in ("alt_l", "alt_r", "alt"):
+                return "alt"
+            elif name in ("shift_l", "shift_r", "shift"):
+                return "shift"
+            elif name in ("cmd", "cmd_l", "cmd_r"):
+                return "ctrl"  # Map cmd to ctrl for cross-platform
+            elif name == "space":
+                return "space"
             return name
         # Regular character key
-        elif hasattr(key, 'char') and key.char:
+        elif hasattr(key, "char") and key.char:
             return key.char.lower()
     except:
         pass
     return None
+
 
 def on_key_press(key):
     """Handle key press event."""
@@ -795,6 +1159,7 @@ def on_key_press(key):
     key_name = get_key_name(key)
     if key_name:
         keys_pressed.add(key_name)
+
 
 def on_key_release(key):
     """Handle key release event - trigger STOP if hold keys released."""
@@ -828,6 +1193,7 @@ def on_key_release(key):
             sys.stdout.write("EVENT: RELEASE\n")
             sys.stdout.flush()
 
+
 def start_keyboard_monitor():
     """Start keyboard monitoring for hold-to-record."""
     global keyboard_listener
@@ -841,13 +1207,13 @@ def start_keyboard_monitor():
 
     try:
         keyboard_listener = pynput_keyboard.Listener(
-            on_press=on_key_press,
-            on_release=on_key_release
+            on_press=on_key_press, on_release=on_key_release
         )
         keyboard_listener.start()
         sys.stderr.write("Keyboard monitoring started for hold-to-record\n")
     except Exception as e:
         sys.stderr.write(f"Failed to start keyboard monitoring: {e}\n")
+
 
 def main():
     """Main service loop."""
@@ -893,6 +1259,8 @@ def main():
 
             # Parse commands
             if cmd == "START":
+                # Ensure microphone is ready (reopens if it was released)
+                ensure_mic_ready()
                 with lock:
                     recording_flag = True
                     frames = []
@@ -918,9 +1286,12 @@ def main():
                 sys.stdout.write("EVENT: RELEASE\n")
                 sys.stdout.flush()
 
+                # Schedule microphone release after idle timeout
+                schedule_mic_release()
+
             elif cmd.startswith("SET_MODE "):
                 mode = cmd.split(" ", 1)[1].strip().upper()
-                hold_mode = (mode == "HOLD")
+                hold_mode = mode == "HOLD"
                 sys.stderr.write(f"Mode set to: {mode}\n")
 
             elif cmd.startswith("SET_HOLD_KEYS "):
@@ -933,12 +1304,14 @@ def main():
 
             elif cmd.startswith("SET_LANGUAGE "):
                 lang_code = cmd.split(" ", 1)[1].strip().lower()
-                if lang_code in LANGUAGE_NAMES or lang_code == 'auto':
-                    current_language = lang_code if lang_code != 'auto' else 'en'
-                    auto_detect_language = (lang_code == 'auto')
-                    experimental_settings['language'] = current_language
-                    experimental_settings['auto_detect_language'] = auto_detect_language
-                    sys.stderr.write(f"Language set to: {LANGUAGE_NAMES.get(current_language, current_language)}\n")
+                if lang_code in LANGUAGE_NAMES or lang_code == "auto":
+                    current_language = lang_code if lang_code != "auto" else "en"
+                    auto_detect_language = lang_code == "auto"
+                    experimental_settings["language"] = current_language
+                    experimental_settings["auto_detect_language"] = auto_detect_language
+                    sys.stderr.write(
+                        f"Language set to: {LANGUAGE_NAMES.get(current_language, current_language)}\n"
+                    )
                 sys.stderr.flush()
 
             elif cmd.startswith("SET_MODEL "):
@@ -955,26 +1328,32 @@ def main():
                 parts = cmd.split()
                 if len(parts) >= 3:
                     value = parts[2].strip().lower()
-                    experimental_settings['continuous_dictation'] = value == 'true'
-                    sys.stderr.write(f"Continuous dictation: {experimental_settings['continuous_dictation']}\n")
+                    experimental_settings["continuous_dictation"] = value == "true"
+                    sys.stderr.write(
+                        f"Continuous dictation: {experimental_settings['continuous_dictation']}\n"
+                    )
                 sys.stderr.flush()
 
             elif cmd.startswith("SET_LOW_LATENCY "):
                 parts = cmd.split()
                 if len(parts) >= 3:
                     value = parts[2].strip().lower()
-                    experimental_settings['low_latency'] = value == 'true'
-                    if experimental_settings['low_latency']:
-                        experimental_settings['min_silence_ms'] = 200
-                    sys.stderr.write(f"Low latency: {experimental_settings['low_latency']}\n")
+                    experimental_settings["low_latency"] = value == "true"
+                    if experimental_settings["low_latency"]:
+                        experimental_settings["min_silence_ms"] = 200
+                    sys.stderr.write(
+                        f"Low latency: {experimental_settings['low_latency']}\n"
+                    )
                 sys.stderr.flush()
 
             elif cmd.startswith("SET_NOISE_REDUCTION "):
                 parts = cmd.split()
                 if len(parts) >= 3:
                     value = parts[2].strip().lower()
-                    experimental_settings['noise_reduction'] = value == 'true'
-                    sys.stderr.write(f"Noise reduction: {experimental_settings['noise_reduction']}\n")
+                    experimental_settings["noise_reduction"] = value == "true"
+                    sys.stderr.write(
+                        f"Noise reduction: {experimental_settings['noise_reduction']}\n"
+                    )
                 sys.stderr.flush()
 
             elif cmd == "START_CONTINUOUS":
@@ -1009,6 +1388,7 @@ def main():
         audio.terminate()
 
     sys.stderr.write("SONU Whisper Service stopped\n")
+
 
 if __name__ == "__main__":
     main()

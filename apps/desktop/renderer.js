@@ -471,6 +471,11 @@ window.accessibilityManager = accessibilityManager;
         setTimeout(initializeLogsTab, 100);
       }
 
+      // Initialize Post-Processing tab when opened
+      if (page === 'postprocessing') {
+        setTimeout(setupPostProcessingTab, 100);
+      }
+
       console.log('Settings navigation complete. Current settings page:', currentSettingsPage);
     } catch (e) {
       console.error('Error in navigateToSettingsPage:', e);
@@ -849,11 +854,15 @@ window.accessibilityManager = accessibilityManager;
     loadCurrentLanguage();
   }
 
-  // Waveform animation
+  // Waveform animation with real audio visualization
   const waveformContainer = document.getElementById('waveform-container');
   const waveformCanvas = document.getElementById('waveform-canvas');
   let waveformAnimationId = null;
   let waveformData = [];
+  let audioAnalyser = null;
+  let audioDataArray = null;
+  let waveformAudioContext = null;
+  let waveformStream = null;
 
   // Helper function to check if waveform should be enabled
   function isWaveformEnabled() {
@@ -862,6 +871,59 @@ window.accessibilityManager = accessibilityManager;
     return waveformToggle &&
       waveformToggle.checked === true &&
       appSettings.waveform_animation === true;
+  }
+
+  // Initialize real audio visualization
+  async function initAudioVisualization() {
+    try {
+      // Create audio context if not exists
+      if (!waveformAudioContext) {
+        waveformAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      // Resume if suspended
+      if (waveformAudioContext.state === 'suspended') {
+        await waveformAudioContext.resume();
+      }
+
+      // Get microphone stream for visualization only
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      waveformStream = stream;
+
+      // Create analyser node
+      audioAnalyser = waveformAudioContext.createAnalyser();
+      audioAnalyser.fftSize = 256;
+      audioAnalyser.smoothingTimeConstant = 0.7;
+
+      // Connect stream to analyser
+      const source = waveformAudioContext.createMediaStreamSource(stream);
+      source.connect(audioAnalyser);
+
+      // Create data array for frequency data
+      audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+
+      console.log('[WAVEFORM] Real audio visualization initialized');
+      return true;
+    } catch (e) {
+      console.warn('[WAVEFORM] Could not init real audio, using simulated:', e.message);
+      return false;
+    }
+  }
+
+  // Cleanup audio visualization
+  function cleanupAudioVisualization() {
+    if (waveformStream) {
+      waveformStream.getTracks().forEach(track => track.stop());
+      waveformStream = null;
+    }
+    audioAnalyser = null;
+    audioDataArray = null;
   }
 
   function drawWaveform() {
@@ -889,90 +951,97 @@ window.accessibilityManager = accessibilityManager;
       waveformCanvas.style.backgroundColor = 'transparent';
     }
 
-    // Generate waveform data if empty (more bars for smoother look)
-    if (waveformData.length === 0) {
-      const numBars = Math.floor(width / 4); // More bars for better visualization
+    const numBars = Math.floor(width / 5);
+
+    // Use real audio data if available
+    if (audioAnalyser && audioDataArray) {
+      audioAnalyser.getByteFrequencyData(audioDataArray);
+
+      // Map frequency data to waveform bars
+      const step = Math.floor(audioDataArray.length / numBars);
+      waveformData = [];
       for (let i = 0; i < numBars; i++) {
-        waveformData.push(Math.random() * 0.3 + 0.4);
+        // Average a few frequency bins for smoother visualization
+        let sum = 0;
+        for (let j = 0; j < step; j++) {
+          sum += audioDataArray[i * step + j] || 0;
+        }
+        const avg = sum / step / 255;
+        // Boost and smooth the values for better visualization
+        waveformData.push(Math.max(0.15, Math.min(1, avg * 2.5 + 0.1)));
+      }
+    } else {
+      // Fallback: Generate realistic-looking simulated waveform
+      if (waveformData.length === 0 || waveformData.length !== numBars) {
+        waveformData = [];
+        for (let i = 0; i < numBars; i++) {
+          waveformData.push(Math.random() * 0.3 + 0.3);
+        }
+      }
+
+      // Animate with smooth, speech-like patterns
+      const time = Date.now() / 1000;
+      for (let i = 0; i < waveformData.length; i++) {
+        // Create wave patterns that mimic speech
+        const wave1 = Math.sin(time * 3 + i * 0.3) * 0.15;
+        const wave2 = Math.sin(time * 7 + i * 0.5) * 0.1;
+        const wave3 = Math.sin(time * 1.5 + i * 0.1) * 0.2;
+        const target = 0.4 + wave1 + wave2 + wave3 + (Math.random() - 0.5) * 0.05;
+        // Smooth transition
+        waveformData[i] += (target - waveformData[i]) * 0.15;
+        waveformData[i] = Math.max(0.15, Math.min(0.95, waveformData[i]));
       }
     }
 
-    // Update waveform data with smooth animation
-    for (let i = 0; i < waveformData.length; i++) {
-      waveformData[i] += (Math.random() - 0.5) * 0.15;
-      waveformData[i] = Math.max(0.3, Math.min(1, waveformData[i]));
-    }
-
     // Draw waveform bars with rounded tops and nice colors
-    const barWidth = Math.max(2, width / waveformData.length - 1);
-    const spacing = 1;
+    const barWidth = Math.max(2, width / waveformData.length - 2);
+    const spacing = 2;
 
     for (let i = 0; i < waveformData.length; i++) {
       const x = i * (barWidth + spacing);
-      const amplitude = waveformData[i] * (height * 0.45);
+      const amplitude = waveformData[i] * (height * 0.42);
       const y1 = centerY - amplitude;
       const y2 = centerY + amplitude;
-      const barHeight = y2 - y1;
 
       // Create beautiful gradient for each bar
       const barGradient = ctx.createLinearGradient(x, y1, x, y2);
-      const color1 = accentPurple || '#7c5cff';
-      const color2 = color1.replace(')', ', 0.7)').replace('rgb', 'rgba').replace('#', 'rgba(124, 92, 255,');
-      const color3 = color1.replace(')', ', 0.4)').replace('rgb', 'rgba').replace('#', 'rgba(124, 92, 255,');
-
-      barGradient.addColorStop(0, color1);
-      barGradient.addColorStop(0.5, color2 || color1);
-      barGradient.addColorStop(1, color3 || color1);
+      barGradient.addColorStop(0, accentPurple);
+      barGradient.addColorStop(0.5, `${accentPurple}cc`);
+      barGradient.addColorStop(1, `${accentPurple}66`);
 
       ctx.fillStyle = barGradient;
 
       // Draw rounded rectangle for each bar
-      const radius = barWidth / 2;
+      const radius = Math.min(barWidth / 2, 3);
       ctx.beginPath();
-      ctx.moveTo(x + radius, y1);
-      ctx.lineTo(x + barWidth - radius, y1);
-      ctx.quadraticCurveTo(x + barWidth, y1, x + barWidth, y1 + radius);
-      ctx.lineTo(x + barWidth, y2 - radius);
-      ctx.quadraticCurveTo(x + barWidth, y2, x + barWidth - radius, y2);
-      ctx.lineTo(x + radius, y2);
-      ctx.quadraticCurveTo(x, y2, x, y2 - radius);
-      ctx.lineTo(x, y1 + radius);
-      ctx.quadraticCurveTo(x, y1, x + radius, y1);
-      ctx.closePath();
+      ctx.roundRect(x, y1, barWidth, y2 - y1, radius);
       ctx.fill();
     }
   }
 
-  function startWaveformAnimation() {
-    console.log('[WAVEFORM DEBUG] startWaveformAnimation called');
-    console.log('[WAVEFORM DEBUG] waveformContainer exists:', !!waveformContainer);
-    console.log('[WAVEFORM DEBUG] isWaveformEnabled():', isWaveformEnabled());
-    console.log('[WAVEFORM DEBUG] appSettings.waveform_animation:', appSettings.waveform_animation);
-    const waveformToggle = document.getElementById('waveform-toggle');
-    console.log('[WAVEFORM DEBUG] waveformToggle exists:', !!waveformToggle);
-    console.log('[WAVEFORM DEBUG] waveformToggle.checked:', waveformToggle?.checked);
+  async function startWaveformAnimation() {
+    console.log('[WAVEFORM] Starting waveform animation');
 
     // Always check first - if not enabled, stop and hide immediately
     if (!isWaveformEnabled()) {
-      console.log('[WAVEFORM DEBUG] Not enabled, stopping');
+      console.log('[WAVEFORM] Not enabled, stopping');
       stopWaveformAnimation();
       return;
     }
 
     // Don't start if already running
     if (waveformAnimationId) {
-      console.log('[WAVEFORM DEBUG] Already running, skipping');
+      console.log('[WAVEFORM] Already running, skipping');
       return;
     }
 
-    // Show container only if enabled - use multiple methods to ensure it's visible
+    // Show container only if enabled
     if (waveformContainer && isWaveformEnabled()) {
-      console.log('[WAVEFORM DEBUG] Showing container');
+      console.log('[WAVEFORM] Showing container');
       waveformContainer.style.display = 'flex';
       waveformContainer.style.visibility = 'visible';
       waveformContainer.removeAttribute('hidden');
     } else {
-      // Double-check: if somehow we got here but it's not enabled, hide it
       if (waveformContainer) {
         waveformContainer.style.display = 'none';
         waveformContainer.style.visibility = 'hidden';
@@ -980,6 +1049,9 @@ window.accessibilityManager = accessibilityManager;
       }
       return;
     }
+
+    // Initialize real audio visualization
+    await initAudioVisualization();
 
     function animate() {
       // Check on every frame - if disabled, stop immediately
@@ -1000,6 +1072,9 @@ window.accessibilityManager = accessibilityManager;
       cancelAnimationFrame(waveformAnimationId);
       waveformAnimationId = null;
     }
+
+    // Cleanup audio resources
+    cleanupAudioVisualization();
 
     // Immediately hide the container - use multiple methods to ensure it's hidden
     if (waveformContainer) {
@@ -1817,6 +1892,17 @@ window.accessibilityManager = accessibilityManager;
     return num.toString();
   }
 
+  // Format download speed for display
+  function formatSpeed(bytesPerSecond) {
+    if (!bytesPerSecond || bytesPerSecond <= 0) return '';
+    if (bytesPerSecond >= 1024 * 1024) {
+      return (bytesPerSecond / (1024 * 1024)).toFixed(1) + ' MB/s';
+    } else if (bytesPerSecond >= 1024) {
+      return (bytesPerSecond / 1024).toFixed(1) + ' KB/s';
+    }
+    return bytesPerSecond.toFixed(0) + ' B/s';
+  }
+
   function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -2225,6 +2311,9 @@ window.accessibilityManager = accessibilityManager;
       'auto-delete-cache-toggle': appSettings.auto_delete_cache !== undefined ? appSettings.auto_delete_cache : false,
       'launch-on-startup-toggle': appSettings.launch_on_startup !== undefined ? appSettings.launch_on_startup : false,
       'sound-feedback-toggle': appSettings.sound_feedback !== undefined ? appSettings.sound_feedback : true,
+      'show-widget-always-toggle': appSettings.show_widget_always !== undefined ? appSettings.show_widget_always : false,
+      'widget-live-preview-toggle': appSettings.widget_live_preview !== undefined ? appSettings.widget_live_preview : true,
+      'post-processing-toggle': appSettings.post_processing_enabled !== undefined ? appSettings.post_processing_enabled : true,
     };
 
     Object.entries(toggles).forEach(([id, value]) => {
@@ -2234,6 +2323,12 @@ window.accessibilityManager = accessibilityManager;
         toggle.checked = value === true;
       }
     });
+
+    // Initialize post-processing mode select
+    const postProcessingModeSelect = document.getElementById('post-processing-mode-select');
+    if (postProcessingModeSelect && appSettings.post_processing_mode) {
+      postProcessingModeSelect.value = appSettings.post_processing_mode;
+    }
 
     // CRITICAL: Always ensure waveform container visibility matches toggle state
     // This runs whenever settings are applied, so we must enforce the toggle state
@@ -2778,12 +2873,33 @@ window.accessibilityManager = accessibilityManager;
         if (ipc.onModelProgress && typeof ipc.onModelProgress === 'function') {
           progressListener = (data) => {
             console.log('Progress update:', data);
+
+            // CRITICAL: Re-query elements to ensure we have current references
+            const progressContainer = document.getElementById('model-progress');
+            const progressFill = document.getElementById('model-progress-fill');
+            const progressText = document.getElementById('model-progress-text');
+            const progressSpeed = document.getElementById('model-progress-speed');
+
+            // CRITICAL: Ensure progress container is visible and has active class
+            if (progressContainer) {
+              progressContainer.classList.add('active');
+              progressContainer.style.display = 'block';
+            }
+
             if (data.percent !== undefined) {
-              const currentPercent = data.percent;
+              const currentPercent = Math.round(data.percent);
               const currentTime = Date.now();
 
-              // Update progress bar
-              if (progressFill) progressFill.style.width = `${currentPercent}%`;
+              // Update progress bar with explicit % suffix
+              if (progressFill) {
+                progressFill.style.width = currentPercent + '%';
+              }
+
+              // Update progress text with percentage - always show this
+              if (progressText) {
+                progressText.textContent = `Downloading... ${currentPercent}%`;
+                progressText.style.display = 'block';
+              }
 
               // Once download actually starts (>5%), hide patience message
               if (currentPercent > 5) {
@@ -2794,15 +2910,21 @@ window.accessibilityManager = accessibilityManager;
                 }
               }
 
-              // Handle speed display
-              if (progressSpeed && data.speedKB !== undefined && data.speedKB > 0) {
-                const speedText = data.speedKB >= 1024
-                  ? `${(data.speedKB / 1024).toFixed(2)} MB/s`
-                  : `${data.speedKB.toFixed(1)} KB/s`;
-                progressSpeed.textContent = speedText;
-                progressSpeed.style.display = 'block';
-              } else if (progressSpeed) {
-                progressSpeed.style.display = 'none';
+              // Handle speed display - support both speedKB and speed (bytes per second)
+              if (progressSpeed) {
+                let speedText = '';
+                if (data.speedKB !== undefined && data.speedKB > 0) {
+                  speedText = data.speedKB >= 1024
+                    ? `${(data.speedKB / 1024).toFixed(1)} MB/s`
+                    : `${data.speedKB.toFixed(1)} KB/s`;
+                } else if (data.speed !== undefined && data.speed > 0) {
+                  speedText = formatSpeed(data.speed);
+                }
+
+                if (speedText) {
+                  progressSpeed.textContent = speedText;
+                  progressSpeed.style.display = 'block';
+                }
               }
 
               // Show detailed download progress (bytes downloaded vs expected)
@@ -2816,11 +2938,11 @@ window.accessibilityManager = accessibilityManager;
                 progressDetails.style.display = 'block';
               }
 
-              // Handle progress text with better messages
-              if (progressText) {
-                let message = data.message || `Downloading ${modelName}...`;
+              // Handle progress text with better messages for edge cases
+              if (progressText && data.message) {
+                let message = data.message;
 
-                // Handle edge cases
+                // Handle edge cases where message contains stale info
                 if (currentPercent > 0 && currentPercent < 20 && message.includes('0 MB')) {
                   message = `Connecting to download source... (${currentPercent}%)`;
                 } else if (currentPercent >= 20 && currentPercent < 50 && message.includes('0 MB')) {
@@ -2829,13 +2951,13 @@ window.accessibilityManager = accessibilityManager;
                   message = `Download starting... (${currentPercent}%)`;
                 } else if (currentPercent >= 98) {
                   message = `Finalizing download... (${currentPercent}%)`;
+                } else {
+                  // Default: show percentage
+                  message = `Downloading... ${currentPercent}%`;
                 }
 
                 progressText.textContent = message;
               }
-
-              // Don't update statusDesc during download - keep it clean
-              // All info is shown in progressText, progressSpeed, and progressDetails
 
               // Track progress for stuck detection
               if (currentPercent === lastProgressPercent) {
@@ -2881,25 +3003,41 @@ window.accessibilityManager = accessibilityManager;
               stuckProgressTimeout = null;
             }
 
-            // Don't manually hide cancel button - it will hide when progressContainer hides
-            // The CSS rule .model-progress[style*="display: none"] .cancel-download-button handles it
+            // Reset action button state
+            const actionBtn = document.getElementById('download-action-btn');
+            if (actionBtn) {
+              actionBtn.setAttribute('data-state', 'idle');
+              const btnText = actionBtn.querySelector('.btn-text');
+              const btnIconCancel = actionBtn.querySelector('.btn-icon-cancel');
+              const btnIconResume = actionBtn.querySelector('.btn-icon-resume');
+              if (btnText) btnText.textContent = 'Cancel';
+              if (btnIconCancel) btnIconCancel.style.display = 'none';
+              if (btnIconResume) btnIconResume.style.display = 'none';
+            }
+
+            // Hide patience message
             const patienceMsg = document.getElementById('download-patience-message');
             if (patienceMsg) patienceMsg.style.display = 'none';
             activeDownloads.delete(modelName);
 
+            // Re-query progress elements to ensure we have current references
+            const progressFillEl = document.getElementById('model-progress-fill');
+            const progressSpeedEl = document.getElementById('model-progress-speed');
+            const progressTextEl = document.getElementById('model-progress-text');
+            const progressContainerEl = document.getElementById('model-progress');
+
             if (data.success) {
-              if (progressFill) progressFill.style.width = '100%';
-              if (progressSpeed) progressSpeed.style.display = 'none';
+              if (progressFillEl) progressFillEl.style.width = '100%';
+              if (progressSpeedEl) progressSpeedEl.style.display = 'none';
 
               const sizeInfo = data.size_mb ? ` (${data.size_mb} MB)` : '';
-              const pathInfo = data.path ? `\nLocation: ${data.path}` : '';
 
               if (data.cached) {
                 // Model was already downloaded
-                if (progressText) progressText.textContent = `✅ ${modelName.toUpperCase()} already downloaded${sizeInfo}`;
+                if (progressTextEl) progressTextEl.textContent = `✅ ${modelName.toUpperCase()} already downloaded${sizeInfo}`;
               } else {
                 // Model was just downloaded
-                if (progressText) progressText.textContent = `✅ ${modelName.toUpperCase()} downloaded successfully${sizeInfo}`;
+                if (progressTextEl) progressTextEl.textContent = `✅ ${modelName.toUpperCase()} downloaded successfully${sizeInfo}`;
               }
 
               if (data.path) {
@@ -2926,13 +3064,16 @@ window.accessibilityManager = accessibilityManager;
                 }, 1000);
               }
             } else {
-              if (progressFill) progressFill.style.width = '0%';
-              if (progressSpeed) progressSpeed.style.display = 'none';
-              if (progressText) progressText.textContent = `❌ Error: ${data.error || data.message || 'Unknown error'}`;
+              if (progressFillEl) progressFillEl.style.width = '0%';
+              if (progressSpeedEl) progressSpeedEl.style.display = 'none';
+              if (progressTextEl) progressTextEl.textContent = `❌ Error: ${data.error || data.message || 'Unknown error'}`;
             }
 
             setTimeout(() => {
-              if (progressContainer) progressContainer.style.display = 'none';
+              if (progressContainerEl) {
+                progressContainerEl.style.display = 'none';
+                progressContainerEl.classList.remove('active');
+              }
             }, 5000);
 
             downloadModelBtn.disabled = false;
@@ -2952,14 +3093,31 @@ window.accessibilityManager = accessibilityManager;
               stuckProgressTimeout = null;
             }
 
-            // Don't manually hide cancel button - it will hide when progressContainer hides
-            // The CSS rule .model-progress[style*="display: none"] .cancel-download-button handles it
+            // Reset action button state
+            const actionBtn = document.getElementById('download-action-btn');
+            if (actionBtn) {
+              actionBtn.setAttribute('data-state', 'idle');
+              const btnText = actionBtn.querySelector('.btn-text');
+              const btnIconCancel = actionBtn.querySelector('.btn-icon-cancel');
+              const btnIconResume = actionBtn.querySelector('.btn-icon-resume');
+              if (btnText) btnText.textContent = 'Cancel';
+              if (btnIconCancel) btnIconCancel.style.display = 'none';
+              if (btnIconResume) btnIconResume.style.display = 'none';
+            }
+
+            // Hide patience message
             const patienceMsg = document.getElementById('download-patience-message');
             if (patienceMsg) patienceMsg.style.display = 'none';
             activeDownloads.delete(modelName);
 
-            if (progressFill) progressFill.style.width = '0%';
-            if (progressSpeed) progressSpeed.style.display = 'none';
+            // Re-query progress elements to ensure we have current references
+            const progressFillEl = document.getElementById('model-progress-fill');
+            const progressSpeedEl = document.getElementById('model-progress-speed');
+            const progressTextEl = document.getElementById('model-progress-text');
+            const progressContainerEl = document.getElementById('model-progress');
+
+            if (progressFillEl) progressFillEl.style.width = '0%';
+            if (progressSpeedEl) progressSpeedEl.style.display = 'none';
 
             const errorMessage = data.error || data.message || 'Unknown error';
             let userFriendlyMessage = errorMessage;
@@ -2973,13 +3131,16 @@ window.accessibilityManager = accessibilityManager;
               userFriendlyMessage = 'Download source unavailable. Trying alternative sources...';
             }
 
-            if (progressText) progressText.textContent = `❌ Error: ${userFriendlyMessage}`;
+            if (progressTextEl) progressTextEl.textContent = `❌ Error: ${userFriendlyMessage}`;
 
             // Show manual download section on error
             await showManualDownloadLinks();
 
             setTimeout(() => {
-              if (progressContainer) progressContainer.style.display = 'none';
+              if (progressContainerEl) {
+                progressContainerEl.style.display = 'none';
+                progressContainerEl.classList.remove('active');
+              }
             }, 5000);
 
             downloadModelBtn.disabled = false;
@@ -3430,6 +3591,25 @@ window.accessibilityManager = accessibilityManager;
     });
   }
 
+  // Post-Processing Settings
+  const postProcessingToggle = document.getElementById('post-processing-toggle');
+  if (postProcessingToggle) {
+    postProcessingToggle.addEventListener('change', (e) => {
+      saveAppSettings({ post_processing_enabled: e.target.checked });
+      // Also update the flowRefinement setting in main settings
+      if (ipc.setSettings) {
+        ipc.setSettings({ flowRefinement: e.target.checked });
+      }
+    });
+  }
+
+  const postProcessingModeSelect = document.getElementById('post-processing-mode-select');
+  if (postProcessingModeSelect) {
+    postProcessingModeSelect.addEventListener('change', (e) => {
+      saveAppSettings({ post_processing_mode: e.target.value });
+    });
+  }
+
   // Vibe Coding Tab
   const vibeCodingToggle = document.getElementById('vibe-coding-toggle');
   if (vibeCodingToggle) {
@@ -3473,6 +3653,19 @@ window.accessibilityManager = accessibilityManager;
     });
   }
 
+  const showWidgetAlwaysToggle = document.getElementById('show-widget-always-toggle');
+  if (showWidgetAlwaysToggle) {
+    showWidgetAlwaysToggle.addEventListener('change', (e) => {
+      saveAppSettings({ show_widget_always: e.target.checked });
+    });
+  }
+
+  const widgetLivePreviewToggle = document.getElementById('widget-live-preview-toggle');
+  if (widgetLivePreviewToggle) {
+    widgetLivePreviewToggle.addEventListener('change', (e) => {
+      saveAppSettings({ widget_live_preview: e.target.checked });
+    });
+  }
 
   // Experimental Tab
   const continuousDictationToggle = document.getElementById('continuous-dictation-toggle');
@@ -3599,8 +3792,9 @@ window.accessibilityManager = accessibilityManager;
       const gain = ctx.createGain();
       osc.type = type;
       osc.frequency.value = freq;
+      // Increased volume for audibility (was 0.08, now 0.25)
       gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration / 1000);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -3618,11 +3812,15 @@ window.accessibilityManager = accessibilityManager;
   }
 
   function playBeepStart() {
-    playBeep(880, 140, 'sine');
+    // Pleasant ascending two-tone beep for start
+    playBeep(660, 80, 'sine');
+    setTimeout(() => playBeep(880, 100, 'sine'), 80);
   }
 
   function playBeepStop() {
-    playBeep(440, 160, 'sine');
+    // Pleasant descending two-tone beep for stop
+    playBeep(880, 80, 'sine');
+    setTimeout(() => playBeep(660, 100, 'sine'), 80);
   }
 
   // Listen for sound feedback events
@@ -4626,6 +4824,165 @@ window.accessibilityManager = accessibilityManager;
       if (statusText) {
         statusText.textContent = 'Error checking status';
         statusText.style.color = 'var(--text-muted)';
+      }
+    }
+  }
+
+  // ========================================
+  // Post-Processing Tab Setup
+  // ========================================
+  let postProcessingTabInitialized = false;
+
+  async function setupPostProcessingTab() {
+    if (postProcessingTabInitialized) return;
+    postProcessingTabInitialized = true;
+    console.log('🔧 Setting up Post-Processing tab...');
+
+    try {
+      const appSettings = await ipc.getAppSettings();
+
+      // Post-Processing Enable Toggle
+      const ppToggle = document.getElementById('post-processing-toggle-pp');
+      if (ppToggle) {
+        ppToggle.checked = appSettings.post_processing_enabled !== undefined ? appSettings.post_processing_enabled : true;
+        ppToggle.addEventListener('change', async (e) => {
+          await saveAppSettings({ post_processing_enabled: e.target.checked });
+          if (ipc.setSettings) {
+            ipc.setSettings({ flowRefinement: e.target.checked });
+          }
+        });
+      }
+
+      // Post-Processing Mode Select
+      const ppModeSelect = document.getElementById('post-processing-mode-select-pp');
+      const ruleBasedCard = document.getElementById('rule-based-options-card');
+      const llmOptionsCard = document.getElementById('llm-options-card');
+
+      function updatePPModeVisibility(mode) {
+        if (ruleBasedCard) {
+          ruleBasedCard.style.display = mode === 'rules' ? 'block' : 'none';
+        }
+        if (llmOptionsCard) {
+          llmOptionsCard.style.display = mode === 'llm' ? 'block' : 'none';
+        }
+      }
+
+      if (ppModeSelect) {
+        ppModeSelect.value = appSettings.post_processing_mode || 'rules';
+        updatePPModeVisibility(ppModeSelect.value);
+        ppModeSelect.addEventListener('change', async (e) => {
+          await saveAppSettings({ post_processing_mode: e.target.value });
+          updatePPModeVisibility(e.target.value);
+          if (e.target.value === 'llm') {
+            checkPostProcessingLLMStatus();
+          }
+        });
+      }
+
+      // Rule-Based Options
+      const ppRemoveFillers = document.getElementById('pp-remove-fillers');
+      const ppCapitalize = document.getElementById('pp-capitalize');
+      const ppPunctuation = document.getElementById('pp-punctuation');
+      const ppFixStuttering = document.getElementById('pp-fix-stuttering');
+
+      if (ppRemoveFillers) {
+        ppRemoveFillers.checked = appSettings.pp_remove_fillers !== undefined ? appSettings.pp_remove_fillers : true;
+        ppRemoveFillers.addEventListener('change', (e) => saveAppSettings({ pp_remove_fillers: e.target.checked }));
+      }
+      if (ppCapitalize) {
+        ppCapitalize.checked = appSettings.pp_capitalize !== undefined ? appSettings.pp_capitalize : true;
+        ppCapitalize.addEventListener('change', (e) => saveAppSettings({ pp_capitalize: e.target.checked }));
+      }
+      if (ppPunctuation) {
+        ppPunctuation.checked = appSettings.pp_punctuation !== undefined ? appSettings.pp_punctuation : true;
+        ppPunctuation.addEventListener('change', (e) => saveAppSettings({ pp_punctuation: e.target.checked }));
+      }
+      if (ppFixStuttering) {
+        ppFixStuttering.checked = appSettings.pp_fix_stuttering !== undefined ? appSettings.pp_fix_stuttering : true;
+        ppFixStuttering.addEventListener('change', (e) => saveAppSettings({ pp_fix_stuttering: e.target.checked }));
+      }
+
+      // LLM Download Button
+      const downloadLLMBtn = document.getElementById('download-llm-model-btn-pp');
+      const llmStatusText = document.getElementById('llm-model-status-text-pp');
+
+      if (downloadLLMBtn) {
+        downloadLLMBtn.addEventListener('click', async () => {
+          try {
+            downloadLLMBtn.disabled = true;
+            downloadLLMBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-animation" style="margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Downloading...';
+
+            if (llmStatusText) {
+              llmStatusText.textContent = 'Downloading TinyLlama 1.1B (~700MB)...';
+              llmStatusText.style.color = 'var(--text-secondary)';
+            }
+
+            const result = await ipc.downloadLLMModel();
+
+            if (result.success) {
+              downloadLLMBtn.style.display = 'none';
+              if (llmStatusText) {
+                llmStatusText.textContent = result.cached ? '✓ Model already downloaded' : '✓ Model downloaded successfully';
+                llmStatusText.style.color = 'var(--accent-blue)';
+              }
+              setTimeout(checkPostProcessingLLMStatus, 1000);
+            } else {
+              downloadLLMBtn.disabled = false;
+              downloadLLMBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Download TinyLlama Model (~700MB)';
+              if (llmStatusText) {
+                llmStatusText.textContent = `Download failed: ${result.error || 'Unknown error'}`;
+                llmStatusText.style.color = 'var(--text-muted)';
+              }
+            }
+          } catch (error) {
+            console.error('LLM model download error:', error);
+            downloadLLMBtn.disabled = false;
+            downloadLLMBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Download TinyLlama Model (~700MB)';
+            if (llmStatusText) {
+              llmStatusText.textContent = `Error: ${error.message}`;
+              llmStatusText.style.color = 'var(--text-muted)';
+            }
+          }
+        });
+      }
+
+      // Check LLM status on load
+      checkPostProcessingLLMStatus();
+
+      console.log('✅ Post-Processing tab setup complete');
+    } catch (e) {
+      console.error('❌ Error setting up Post-Processing tab:', e);
+    }
+  }
+
+  async function checkPostProcessingLLMStatus() {
+    const llmStatusText = document.getElementById('llm-model-status-text-pp');
+    const downloadLLMBtn = document.getElementById('download-llm-model-btn-pp');
+
+    try {
+      const status = await ipc.checkLLMModel();
+
+      if (llmStatusText) {
+        if (status.exists && status.ready) {
+          llmStatusText.textContent = '✓ TinyLlama model ready';
+          llmStatusText.style.color = 'var(--accent-blue)';
+        } else if (status.exists) {
+          llmStatusText.textContent = 'Model found but not loaded. Restart app to use.';
+          llmStatusText.style.color = 'var(--text-secondary)';
+        } else {
+          llmStatusText.textContent = 'Model not downloaded. Click below to download.';
+          llmStatusText.style.color = 'var(--text-muted)';
+        }
+      }
+
+      if (downloadLLMBtn) {
+        downloadLLMBtn.style.display = status.exists ? 'none' : 'block';
+      }
+    } catch (e) {
+      console.error('Error checking LLM model status:', e);
+      if (llmStatusText) {
+        llmStatusText.textContent = 'Error checking model status';
+        llmStatusText.style.color = 'var(--text-muted)';
       }
     }
   }

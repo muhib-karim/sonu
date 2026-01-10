@@ -73,14 +73,36 @@ let settings = {
   toggleHotkey: 'CommandOrControl+Shift+Space',
   activeModel: 'tiny', // Default model
   flowRefinement: true, // Enable Wispr Flow-style auto-refinement by default
+  post_processing_enabled: true, // Alias for flowRefinement (UI compatibility)
+  post_processing_mode: 'rules', // 'rules' = rule-based only, 'llm' = AI-powered
   context_awareness: true, // Enable Chameleon Mode - auto style switching by context
-  activeStyle: 'neutral' // Current style (auto-updated by context manager)
+  activeStyle: 'neutral', // Current style (auto-updated by context manager)
+  mute_audio_while_dictating: true // Mute system audio while recording (Wispr Flow-like)
 };
 const historyPath = path.join(__dirname, 'history.json');
 let logger = null; // Initialize after app ready
 let whisperModelReady = false; // Track if whisper model is loaded
 let activeDownloadProcess = null; // Track active download process for cancellation
 let pendingRecordingAction = null; // Queue recording action if model not ready yet
+
+// ============================================
+// Sound Feedback Helper - plays through widget for reliability
+// ============================================
+function playSoundFeedback(type) {
+  // Check if sound feedback is enabled
+  if (settings.sound_feedback === false) {
+    return;
+  }
+
+  // Send to widget (indicatorWindow) which is visible during recording
+  try {
+    if (indicatorWindow && !indicatorWindow.isDestroyed()) {
+      indicatorWindow.webContents.send('play-sound', type);
+    }
+  } catch (e) {
+    console.error('Error playing sound feedback:', e);
+  }
+}
 
 // ============================================
 // WPM Stats Tracking (module-level)
@@ -123,29 +145,106 @@ function trackTranscriptionForWPM(text) {
   sessionStats.lastTranscriptionTime = now;
 }
 
+// Nut.js keyboard instance for auto-typing
+let nutKeyboard = null;
+
 if (!isTestMode) {
+  // First try nut-tree-fork/nut-js (modern, well-maintained, no native compilation needed)
   try {
-    robot = require('robot-js');
-    robotType = 'robot-js';
-    console.log('✓ robot-js loaded successfully');
-  } catch (e1) {
+    const { keyboard, Key: NutKey } = require('@nut-tree-fork/nut-js');
+    nutKeyboard = keyboard;
+    robot = { nutKeyboard, NutKey };
+    robotType = 'nut-js';
+    console.log('✓ @nut-tree-fork/nut-js loaded successfully');
+  } catch (e0) {
+    console.log('nut-js not available:', e0.message);
+    // Fallback to robot-js
     try {
-      robot = require('robotjs');
-      robotType = 'robotjs';
-      console.log('✓ robotjs loaded successfully');
-    } catch (e2) {
-      robot = null;
-      robotType = null;
-      console.warn('⚠ robot automation library not available; auto-typing disabled.');
-      console.warn('Install robotjs: npm install robotjs');
-      console.error('robot-js error:', e1.message);
-      console.error('robotjs error:', e2.message);
+      robot = require('robot-js');
+      robotType = 'robot-js';
+      console.log('✓ robot-js loaded successfully');
+    } catch (e1) {
+      // Fallback to robotjs
+      try {
+        robot = require('robotjs');
+        robotType = 'robotjs';
+        console.log('✓ robotjs loaded successfully');
+      } catch (e2) {
+        robot = null;
+        robotType = null;
+        console.warn('⚠ robot automation library not available; auto-typing disabled.');
+        console.warn('Text will be copied to clipboard instead.');
+        console.error('nut-js error:', e0.message);
+        console.error('robot-js error:', e1.message);
+        console.error('robotjs error:', e2.message);
+      }
     }
   }
 } else {
   robot = null;
   robotType = null;
   console.log('Test mode detected: skipping robot libraries for E2E stability');
+}
+
+// ============================================
+// SYSTEM AUDIO MUTING (Wispr Flow-like feature)
+// ============================================
+// Mute system audio while dictating, unmute when done
+let wasAudioMutedBefore = false;
+let audioMuteEnabled = true; // Can be controlled via settings
+
+/**
+ * Mute system audio while dictating (Windows only)
+ */
+function muteSystemAudio() {
+  if (!settings.mute_audio_while_dictating || process.platform !== 'win32') return;
+
+  try {
+    // Check if already muted and save state
+    const checkMuteScript = `
+      Add-Type -TypeDefinition @"
+        using System.Runtime.InteropServices;
+        [Guid("A95664D2-1F6F-4F5A-99D0-D6C4A8772E95")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IAudioEndpointVolume {
+            int NotImpl1(); int NotImpl2(); int NotImpl3(); int NotImpl4();
+            int GetMute(out bool mute);
+            int SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref System.Guid eventContext);
+        }
+"@
+      $null = [NAudio.CoreAudioApi.MMDeviceEnumerator] 2>$null
+    `;
+
+    // Simple approach: use nircmd if available, otherwise PowerShell
+    // Try to mute using PowerShell's audio API
+    spawn('powershell', ['-WindowStyle', 'Hidden', '-Command', `
+      $obj = new-object -com wscript.shell
+      $obj.SendKeys([char]173)
+    `], { stdio: 'ignore', detached: true });
+
+    console.log('[AUDIO] System audio muted for dictation');
+  } catch (e) {
+    console.log('[AUDIO] Could not mute system audio:', e.message);
+  }
+}
+
+/**
+ * Unmute system audio after dictating (Windows only)
+ */
+function unmuteSystemAudio() {
+  if (!settings.mute_audio_while_dictating || process.platform !== 'win32') return;
+
+  try {
+    // Send mute key again to unmute (toggle)
+    spawn('powershell', ['-WindowStyle', 'Hidden', '-Command', `
+      $obj = new-object -com wscript.shell
+      $obj.SendKeys([char]173)
+    `], { stdio: 'ignore', detached: true });
+
+    console.log('[AUDIO] System audio unmuted after dictation');
+  } catch (e) {
+    console.log('[AUDIO] Could not unmute system audio:', e.message);
+  }
 }
 
 // Helper function to find Python executable
@@ -443,6 +542,10 @@ function showIndicator() {
   if (indicatorState === 'visible' || indicatorState === 'fading_in') return;
   if (fadeTimer) { clearInterval(fadeTimer); fadeTimer = null; }
   indicatorState = 'visible';
+
+  // Mute system audio while dictating (Wispr Flow-like feature)
+  muteSystemAudio();
+
   try {
     // CRITICAL: Set ignore mouse events to FALSE to allow dragging
     // The CSS -webkit-app-region: drag will handle the dragging
@@ -456,8 +559,15 @@ function showIndicator() {
     indicatorWindow.showInactive();
     indicatorWindow.setOpacity(1); // Show instantly - no fade
 
+    // Set widget to recording state IMMEDIATELY (don't wait for timeout)
+    setWidgetState('recording');
+
+    // Play start sound IMMEDIATELY
+    indicatorWindow.webContents.send('play-sound', 'start');
+    console.log('[WIDGET] Shown in recording state');
+
     // Force window to be movable and ensure drag works
-    // Wait for window to be fully rendered
+    // Wait for window to be fully rendered for drag functionality
     setTimeout(() => {
       if (indicatorWindow && !indicatorWindow.isDestroyed()) {
         indicatorWindow.setMovable(true);
@@ -467,11 +577,7 @@ function showIndicator() {
           document.body.style.pointerEvents = 'auto';
           document.body.style.cursor = 'default';
         `).catch(() => { });
-        // Set widget to recording state (cyan glow, waveform animation)
-        setWidgetState('recording');
-        // Play start sound
-        indicatorWindow.webContents.send('play-sound', 'start');
-        console.log('Widget shown and should be draggable');
+        console.log('Widget drag enabled');
       }
     }, 50);
   } catch (e) {
@@ -484,6 +590,10 @@ function hideIndicator() {
   if (indicatorState === 'hidden' || indicatorState === 'fading_out') return;
   if (fadeTimer) { clearInterval(fadeTimer); fadeTimer = null; }
   indicatorState = 'hidden';
+
+  // Unmute system audio after dictating (Wispr Flow-like feature)
+  unmuteSystemAudio();
+
   try {
     // CRITICAL: Hide window FIRST for instant visual feedback
     // Position saving can happen asynchronously
@@ -546,17 +656,36 @@ function setWidgetState(state) {
 
 // Apply Wispr Flow-style refinement to final transcription
 // Removes filler words, fixes stuttering, adds natural punctuation
+// Respects post_processing_mode setting: 'rules' = rule-based only, 'llm' = AI-powered
 function applyFlowRefinement(originalText, callback) {
-  if (!settings.flowRefinement) {
+  // Check if post-processing is enabled (supports both setting names)
+  const isEnabled = settings.flowRefinement || settings.post_processing_enabled;
+  if (!isEnabled) {
     // Flow refinement disabled, return original
     callback(originalText);
     return;
   }
 
-  // Use LLM manager to refine the text
+  // Check post-processing mode: 'rules' or 'llm'
+  const mode = settings.post_processing_mode || 'rules';
+
+  if (mode === 'rules') {
+    // Use rule-based cleanup only (no LLM)
+    const cleanedText = llmManager.quickCleanup(originalText);
+    console.log(`Rule-based cleanup: "${originalText}" → "${cleanedText}"`);
+    callback(cleanedText);
+    return;
+  }
+
+  // Mode is 'llm' - use LLM manager to refine the text (with rule-based fallback)
+  let callbackCalled = false;
+
   llmManager.flowRefine(originalText, (refinedText) => {
+    if (callbackCalled) return; // Prevent double callback
+    callbackCalled = true;
+
     if (refinedText && refinedText.trim()) {
-      console.log(`Flow refinement: "${originalText}" → "${refinedText}"`);
+      console.log(`Flow refinement (LLM): "${originalText}" → "${refinedText}"`);
       callback(refinedText);
     } else {
       // Fallback to original if refinement failed
@@ -566,8 +695,11 @@ function applyFlowRefinement(originalText, callback) {
 
   // Set a timeout in case LLM takes too long (don't block indefinitely)
   setTimeout(() => {
-    // If callback hasn't been called yet, use original
-    // (This is a safety net - the actual callback timing depends on llmManager)
+    if (!callbackCalled) {
+      callbackCalled = true;
+      console.log('Flow refinement timeout, using original text');
+      callback(originalText);
+    }
   }, 5000);
 }
 
@@ -857,6 +989,40 @@ function typeStringRobot(text) {
 
   // INSTANT TYPING: Use clipboard+paste for ALL text (fastest method, no character delays)
   // This is how Wispr Flow, Typeless, and MacWhisper achieve instant output
+
+  // Try nut-js first (clipboard + paste method)
+  if (robotType === 'nut-js' && nutKeyboard) {
+    try {
+      clipboard.writeText(text);
+      if (logger) logger.typing('Text copied to clipboard', { duration_ms: Date.now() - startTime });
+
+      // Paste immediately using nut-js
+      process.nextTick(async () => {
+        try {
+          const { Key: NutKey } = require('@nut-tree-fork/nut-js');
+          // Press Ctrl+V to paste
+          await nutKeyboard.pressKey(NutKey.LeftControl);
+          await nutKeyboard.pressKey(NutKey.V);
+          await nutKeyboard.releaseKey(NutKey.V);
+          await nutKeyboard.releaseKey(NutKey.LeftControl);
+
+          const totalTime = Date.now() - startTime;
+          if (logger) logger.typing('✓ Pasted instantly with nut-js Ctrl+V', { total_duration_ms: totalTime });
+          console.log(`✓ Typed instantly in ${totalTime}ms (nut-js clipboard method)`);
+        } catch (pasteErr) {
+          if (logger) logger.typingError('nut-js paste failed', pasteErr);
+          console.warn('Text is in clipboard, use Ctrl+V manually:', pasteErr.message);
+        }
+      });
+      return true;
+    } catch (clipErr) {
+      if (logger) logger.typingError('Clipboard failed', clipErr);
+      console.error('Failed to copy to clipboard:', clipErr);
+      // Fall through to alternative methods
+    }
+  }
+
+  // Try robotjs clipboard+paste method
   if (robot && robot.keyTap) {
     // Write to clipboard synchronously (fast)
     try {
@@ -1189,22 +1355,22 @@ function createTray() {
 function ensureLLMService() {
   // Helper to safely get models dir
   const getModelsDir = () => {
-      // Try global setting first
-      if (typeof settings !== 'undefined' && settings.model_download_path) {
-          return settings.model_download_path;
-      }
-      // Try calling existing function if accessible
-      try {
-          if (typeof getDefaultModelsDir === 'function') return getDefaultModelsDir();
-      } catch (e) { }
+    // Try global setting first
+    if (typeof settings !== 'undefined' && settings.model_download_path) {
+      return settings.model_download_path;
+    }
+    // Try calling existing function if accessible
+    try {
+      if (typeof getDefaultModelsDir === 'function') return getDefaultModelsDir();
+    } catch (e) { }
 
-      // Fallback implementation
-      const platform = process.platform;
-      const home = require('os').homedir();
-      const p = require('path');
-      if (platform === 'win32') return p.join(home, 'AppData', 'Roaming', 'Sonu', 'models');
-      if (platform === 'darwin') return p.join(home, 'Library', 'Application Support', 'Sonu', 'models');
-      return p.join(home, '.local', 'share', 'Sonu', 'models');
+    // Fallback implementation
+    const platform = process.platform;
+    const home = require('os').homedir();
+    const p = require('path');
+    if (platform === 'win32') return p.join(home, 'AppData', 'Roaming', 'Sonu', 'models');
+    if (platform === 'darwin') return p.join(home, 'Library', 'Application Support', 'Sonu', 'models');
+    return p.join(home, '.local', 'share', 'Sonu', 'models');
   };
 
   if (llmProcess && !llmProcess.killed) return;
@@ -1217,72 +1383,72 @@ function ensureLLMService() {
 
   try {
     llmProcess = spawn(pythonCmd, [scriptPath], {
-       stdio: ['pipe', 'pipe', 'pipe'],
-       shell: process.platform === 'win32',
-       env: env
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
+      env: env
     });
 
     llmProcess.stdout.on('data', (data) => {
-       llmStdoutBuffer += data.toString();
-       const lines = llmStdoutBuffer.split('\n');
-       llmStdoutBuffer = lines.pop() || '';
-       for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-             // Handle structured JSON messages
-             if (line.trim().startsWith('{')) {
-                 const msg = JSON.parse(line.trim());
-                 if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('llm:message', msg);
-                 }
-                 // Handle specific status updates
-                 if (msg.type === 'status') {
-                     llmServiceReady = msg.ready;
-                     console.log('LLM Status:', msg.status);
-                 }
-             } else {
-                 console.log('LLM:', line);
-             }
-          } catch (e) { console.log('LLM Raw:', line); }
-       }
+      llmStdoutBuffer += data.toString();
+      const lines = llmStdoutBuffer.split('\n');
+      llmStdoutBuffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          // Handle structured JSON messages
+          if (line.trim().startsWith('{')) {
+            const msg = JSON.parse(line.trim());
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('llm:message', msg);
+            }
+            // Handle specific status updates
+            if (msg.type === 'status') {
+              llmServiceReady = msg.ready;
+              console.log('LLM Status:', msg.status);
+            }
+          } else {
+            console.log('LLM:', line);
+          }
+        } catch (e) { console.log('LLM Raw:', line); }
+      }
     });
 
     llmProcess.stderr.on('data', d => console.error('LLM Err:', d.toString()));
 
     llmProcess.on('exit', (code) => {
-        console.log('LLM Service exited:', code);
-        llmProcess = null;
-        llmServiceReady = false;
+      console.log('LLM Service exited:', code);
+      llmProcess = null;
+      llmServiceReady = false;
     });
 
     // Init Context Manager listener
     try {
-        contextManager.addListener((ctx) => {
-           if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send('context:changed', ctx);
+      contextManager.addListener((ctx) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('context:changed', ctx);
 
-              // Auto-apply style based on context (Chameleon Mode)
-              if (contextManager.isAutoStyleEnabled() && ctx.recommendedStyle) {
-                  const currentStyle = settings.activeStyle || 'neutral';
-                  const newStyle = ctx.recommendedStyle;
+          // Auto-apply style based on context (Chameleon Mode)
+          if (contextManager.isAutoStyleEnabled() && ctx.recommendedStyle) {
+            const currentStyle = settings.activeStyle || 'neutral';
+            const newStyle = ctx.recommendedStyle;
 
-                  // Only update if style changed
-                  if (currentStyle !== newStyle) {
-                      settings.activeStyle = newStyle;
-                      settings.flowRefinement = ctx.flowRefinement !== false; // Default to true
+            // Only update if style changed
+            if (currentStyle !== newStyle) {
+              settings.activeStyle = newStyle;
+              settings.flowRefinement = ctx.flowRefinement !== false; // Default to true
 
-                      console.log(`[ContextManager] Auto-switched to '${newStyle}' style for ${ctx.category} context (${ctx.app})`);
+              console.log(`[ContextManager] Auto-switched to '${newStyle}' style for ${ctx.category} context (${ctx.app})`);
 
-                      // Notify renderer of style change
-                      mainWindow.webContents.send('style-category-auto-updated', ctx.category);
-                  }
-              }
-           }
-        });
-        // Auto-start tracking if settings allow (optional, defaulted to manual start via IPC)
-        // if (settings.context_awareness) contextManager.start();
-    } catch(e) {
-        console.warn('Context Manager listener error:', e);
+              // Notify renderer of style change
+              mainWindow.webContents.send('style-category-auto-updated', ctx.category);
+            }
+          }
+        }
+      });
+      // Auto-start tracking if settings allow (optional, defaulted to manual start via IPC)
+      // if (settings.context_awareness) contextManager.start();
+    } catch (e) {
+      console.warn('Context Manager listener error:', e);
     }
 
   } catch (e) {
@@ -1291,21 +1457,21 @@ function ensureLLMService() {
 }
 
 function writeToLLM(cmd) {
-   if (llmProcess && !llmProcess.killed) {
-      try {
-        llmProcess.stdin.write(cmd + '\n');
-      } catch (e) {
-        console.error('Error writing to LLM:', e);
+  if (llmProcess && !llmProcess.killed) {
+    try {
+      llmProcess.stdin.write(cmd + '\n');
+    } catch (e) {
+      console.error('Error writing to LLM:', e);
+    }
+  } else {
+    ensureLLMService();
+    // Retry once after short delay
+    setTimeout(() => {
+      if (llmProcess && !llmProcess.killed) {
+        try { llmProcess.stdin.write(cmd + '\n'); } catch (e) { }
       }
-   } else {
-      ensureLLMService();
-      // Retry once after short delay
-      setTimeout(() => {
-          if (llmProcess && !llmProcess.killed) {
-              try { llmProcess.stdin.write(cmd + '\n'); } catch(e) {}
-          }
-      }, 1000);
-   }
+    }, 1000);
+  }
 }
 
 
@@ -1399,6 +1565,20 @@ function ensureWhisperService() {
                 lastTypedText = partial;
               }
             }
+
+            // IMPORTANT: Show 'done' state and hide widget after release partial is typed
+            // This was missing - widget was staying in 'processing' state forever
+            setWidgetState('done');
+            setTimeout(() => {
+              hideIndicator();
+              lastTypedText = ''; // Reset for next recording
+            }, 800);
+
+            // Update history and clipboard
+            try { clipboard.writeText(partial); } catch (e) { }
+            appendHistory(partial);
+            try { mainWindow.webContents.send('transcription', partial); } catch (e) { }
+
           } else {
             // Regular partial during recording - use incremental typing
             typeIncrementalText(partial, true); // true = isPartial
@@ -1530,7 +1710,7 @@ function ensureWhisperService() {
           // Send UI updates (non-blocking)
           try {
             mainWindow.webContents.send('recording-stop');
-            mainWindow.webContents.send('play-sound', 'stop');
+            playSoundFeedback('stop');
           } catch (e) { }
 
           // INSTANT TYPING: If we have partial text, type it immediately on release
@@ -1656,7 +1836,7 @@ function ensureWhisperService() {
         // Update UI state after a transcription completes (covers HOLD release)
         try {
           mainWindow.webContents.send('recording-stop');
-          mainWindow.webContents.send('play-sound', 'stop');
+          playSoundFeedback('stop');
         } catch (e) { }
 
         // INSTANT TYPING: Type only the delta (new words not in last partial)
@@ -1806,27 +1986,34 @@ function registerHotkeys() {
   // When key is held, globalShortcut fires repeatedly
   // When key is released, it stops firing - timer expires and we detect the release
   let holdKeyReleaseTimer = null;
-  const HOLD_KEY_RELEASE_DELAY = 250; // ms - time to wait before considering key released (increased for reliability)
+  let holdKeyPressCount = 0; // Track number of press events for debouncing
+  const HOLD_KEY_RELEASE_DELAY = 150; // ms - time to wait before considering key released
+  const HOLD_KEY_DEBOUNCE = 50; // ms - minimum time between press events
 
   const regHold = globalShortcut.register(holdAcc, () => {
+    holdKeyPressCount++;
+    const currentPressCount = holdKeyPressCount;
+
     // Clear any existing release timer - key is still being pressed
     if (holdKeyReleaseTimer) {
       clearTimeout(holdKeyReleaseTimer);
       holdKeyReleaseTimer = null;
     }
 
-    // If not recording yet, start recording
+    // If not recording yet, start recording (only on first press)
     if (!isRecording && !isHoldKeyPressed) {
       console.log(`[HOTKEYS] Hold hotkey pressed - starting recording`);
+      // Note: startHoldRecording() will set isHoldKeyPressed = true internally
       startHoldRecording();
     }
 
     // Set a timer to detect when key is released (stops firing)
     holdKeyReleaseTimer = setTimeout(() => {
-      if (isRecording && isHoldKeyPressed) {
+      // Only trigger release if no new press events came in
+      if (currentPressCount === holdKeyPressCount && isHoldKeyPressed) {
         console.log(`[HOTKEYS] Hold hotkey released - stopping recording`);
-        // Stop recording and trigger transcription
         stopHoldRecording();
+        holdKeyPressCount = 0; // Reset counter
       }
       holdKeyReleaseTimer = null;
     }, HOLD_KEY_RELEASE_DELAY);
@@ -1887,6 +2074,16 @@ function loadSettings() {
 
       settings = { ...settings, ...parsed };
       console.log('Settings loaded from:', settingsPath);
+
+      // Sync rule-based post-processing options to llmManager
+      if (llmManager.setRuleOptions) {
+        llmManager.setRuleOptions({
+          pp_remove_fillers: parsed.pp_remove_fillers,
+          pp_fix_stuttering: parsed.pp_fix_stuttering,
+          pp_punctuation: parsed.pp_punctuation,
+          pp_capitalize: parsed.pp_capitalize
+        });
+      }
     } else {
       console.log('No settings file found at:', settingsPath, 'using defaults');
     }
@@ -1943,13 +2140,21 @@ function electronToPythonCombo(accelerator) {
 
 let holdRecordingTimeout = null;
 let isHoldKeyPressed = false;
+let lastHoldReleaseTime = 0; // Debounce rapid press/release cycles
 
 function startHoldRecording() {
   console.log('[RECORDING] startHoldRecording called');
 
-  // Prevent multiple calls when key is held down
-  if (isHoldKeyPressed || isRecording) {
-    console.log('[RECORDING] Already recording or key pressed, skipping');
+  // Debounce: Prevent starting too quickly after a release (250ms cooldown)
+  const now = Date.now();
+  if (now - lastHoldReleaseTime < 250) {
+    console.log('[RECORDING] Debounce: too soon after last release, skipping');
+    return;
+  }
+
+  // Prevent multiple calls when already recording
+  if (isRecording) {
+    console.log('[RECORDING] Already recording, skipping');
     return;
   }
 
@@ -1976,7 +2181,7 @@ function startHoldRecording() {
 
       mainWindow.hide();
       mainWindow.webContents.send('recording-start');
-      mainWindow.webContents.send('play-sound', 'start');
+      playSoundFeedback('start');
 
       ensureWhisperService();
 
@@ -1992,7 +2197,7 @@ function startHoldRecording() {
           hideIndicator();
           try {
             mainWindow.webContents.send('recording-stop');
-            mainWindow.webContents.send('play-sound', 'stop');
+            playSoundFeedback('stop');
           } catch (e) { }
         }
         holdRecordingTimeout = null;
@@ -2032,7 +2237,7 @@ function startHoldRecording() {
   mainWindow.webContents.send('recording-start');
 
   // Play sound feedback if enabled
-  mainWindow.webContents.send('play-sound', 'start');
+  playSoundFeedback('start');
 
   // Ensure service is ready (should already be pre-initialized)
   ensureWhisperService();
@@ -2050,7 +2255,7 @@ function startHoldRecording() {
       hideIndicator();
       try {
         mainWindow.webContents.send('recording-stop');
-        mainWindow.webContents.send('play-sound', 'stop');
+        playSoundFeedback('stop');
       } catch (e) { }
     }
     holdRecordingTimeout = null;
@@ -2089,6 +2294,7 @@ function stopHoldRecording() {
   // Reset state immediately
   isRecording = false;
   isHoldKeyPressed = false;
+  lastHoldReleaseTime = Date.now(); // Set release time for debounce
 
   // Clear timeout
   if (holdRecordingTimeout) {
@@ -2106,11 +2312,21 @@ function stopHoldRecording() {
   try {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('recording-stop');
-      mainWindow.webContents.send('play-sound', 'stop');
+      playSoundFeedback('stop');
     }
   } catch (e) {
     console.error('Error sending recording-stop event:', e);
   }
+
+  // CRITICAL: Fallback timeout to ensure widget hides even if no transcription comes back
+  // This prevents the widget from staying visible forever
+  setTimeout(() => {
+    if (widgetVisualState === 'processing') {
+      console.log('[RECORDING] Fallback: hiding widget after timeout');
+      setWidgetState('done');
+      setTimeout(() => hideIndicator(), 800);
+    }
+  }, 5000); // 5 second fallback
 }
 
 function startToggleRecording() {
@@ -2137,7 +2353,7 @@ function startToggleRecording() {
       ensureWhisperService();
 
       mainWindow.webContents.send('recording-start');
-      mainWindow.webContents.send('play-sound', 'start');
+      playSoundFeedback('start');
 
       if (whisperProcess && !whisperProcess.killed) {
         writeToWhisper(`SET_MODE TOGGLE\n`);
@@ -2167,7 +2383,7 @@ function startToggleRecording() {
 
   // Send UI updates
   mainWindow.webContents.send('recording-start');
-  mainWindow.webContents.send('play-sound', 'start');
+  playSoundFeedback('start');
   showIndicator();
 
   // Send commands IMMEDIATELY - ULTRA FAST (no delays)
@@ -2194,11 +2410,25 @@ function toggleRecording() {
     startToggleRecording();
   } else {
     mainWindow.webContents.send('recording-stop');
-    mainWindow.webContents.send('play-sound', 'stop');
+    playSoundFeedback('stop');
+
+    // Show processing state while waiting for transcription (same as hold mode)
+    setWidgetState('processing');
+
     writeToWhisper('STOP\n');
-    hideIndicator();
-    // Hide immediately so auto-typing targets the previous app
+
+    // Hide window immediately so auto-typing targets the previous app
     mainWindow.hide();
+
+    // CRITICAL: Fallback timeout to ensure widget hides even if no transcription comes back
+    setTimeout(() => {
+      if (widgetVisualState === 'processing') {
+        console.log('[TOGGLE] Fallback: hiding widget after timeout');
+        setWidgetState('done');
+        setTimeout(() => hideIndicator(), 800);
+      }
+    }, 5000); // 5 second fallback
+
     // Text will be typed when transcription comes back from Python service
   }
   // Update tray menu to reflect recording state
@@ -2349,7 +2579,7 @@ app.whenReady().then(() => {
       writeToWhisper('STOP\n');
       try {
         mainWindow.webContents.send('recording-stop');
-        mainWindow.webContents.send('play-sound', 'stop');
+        playSoundFeedback('stop');
       } catch (e) { }
     }
   });
@@ -2367,7 +2597,7 @@ app.whenReady().then(() => {
       hideIndicator();
       try {
         mainWindow.webContents.send('recording-stop');
-        mainWindow.webContents.send('play-sound', 'stop');
+        playSoundFeedback('stop');
       } catch (e) { }
     }
   });
@@ -2389,23 +2619,23 @@ app.whenReady().then(() => {
 
   // LLM IPC Handlers
   ipcMain.handle('llm:transform', async (_, { text, style, context }) => {
-     // Send transform command to Python: TRANSFORM:style:context:text
-     const safeText = (text || '').replace(/\n/g, '\\n');
-     const cmd = `TRANSFORM:${style}:${context || 'general'}:${safeText}`;
-     writeToLLM(cmd);
-     return { status: 'processing' };
+    // Send transform command to Python: TRANSFORM:style:context:text
+    const safeText = (text || '').replace(/\n/g, '\\n');
+    const cmd = `TRANSFORM:${style}:${context || 'general'}:${safeText}`;
+    writeToLLM(cmd);
+    return { status: 'processing' };
   });
 
   ipcMain.handle('tools:refresh', async () => {
-     writeToLLM('REFRESH_TOOLS');
-     return { status: 'requested' };
+    writeToLLM('REFRESH_TOOLS');
+    return { status: 'requested' };
   });
 
   ipcMain.handle('llm:status', async () => {
-     return {
-         running: !!(llmProcess && !llmProcess.killed),
-         ready: llmServiceReady
-     };
+    return {
+      running: !!(llmProcess && !llmProcess.killed),
+      ready: llmServiceReady
+    };
   });
 
   ipcMain.on('context:start-tracking', () => contextManager.start());
@@ -3196,6 +3426,25 @@ app.whenReady().then(() => {
       type: 'moonshine',
       description: 'Ultra-light multilingual model - 50+ languages, balanced',
       recommended_for: 'All systems'
+    },
+    // Parakeet V3 - NVIDIA ONNX model with auto-punctuation
+    'parakeet-v3': {
+      filename: 'parakeet-v3',
+      size_mb: 850,
+      sha: null,
+      type: 'onnx',
+      repo: 'istupakov/parakeet-tdt-0.6b-v3-onnx',
+      description: 'NVIDIA Parakeet V3 - Best accuracy, auto-punctuation, no post-processing needed',
+      recommended_for: 'All systems (Recommended)'
+    },
+    // Large V3 Turbo Quantized - best bang for buck
+    'large-v3-turbo-q5_0': {
+      filename: 'large-v3-turbo-q5_0',
+      size_mb: 550,
+      sha: null,
+      type: 'whisper',
+      description: 'Large V3 Turbo quantized - large quality, small size',
+      recommended_for: '4+ cores / 8GB RAM'
     }
   };
 
@@ -4275,6 +4524,153 @@ app.whenReady().then(() => {
     }
   });
 
+  // Model delete handler - removes downloaded model files
+  ipcMain.handle('model:delete', async (_evt, modelName) => {
+    try {
+      console.log('Deleting model:', modelName);
+
+      // Get model definition
+      const modelDef = MODEL_DEFINITIONS[modelName];
+      if (!modelDef) {
+        return {
+          success: false,
+          error: 'Unknown model',
+          message: `Unknown model: ${modelName}`
+        };
+      }
+
+      // Get download path from settings
+      let downloadPath = null;
+      try {
+        const settingsPath = path.join(__dirname, 'data', 'settings.json');
+        if (fs.existsSync(settingsPath)) {
+          const settingsData = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+          if (settingsData.model_download_path) {
+            downloadPath = settingsData.model_download_path;
+          }
+        }
+      } catch (e) {
+        console.warn('Error reading download path from settings:', e);
+      }
+
+      if (!downloadPath) {
+        downloadPath = getDefaultModelsDir();
+      }
+
+      let deletedPaths = [];
+      let errors = [];
+
+      // Check and delete from custom download path
+      const modelPath = path.join(downloadPath, modelDef.filename);
+      if (fs.existsSync(modelPath)) {
+        try {
+          if (fs.statSync(modelPath).isDirectory()) {
+            fs.rmSync(modelPath, { recursive: true, force: true });
+          } else {
+            fs.unlinkSync(modelPath);
+          }
+          deletedPaths.push(modelPath);
+          console.log('Deleted model file:', modelPath);
+        } catch (e) {
+          errors.push(`Failed to delete ${modelPath}: ${e.message}`);
+        }
+      }
+
+      // Also check and delete from HuggingFace cache (for faster-whisper and ONNX models)
+      let hfCacheDir;
+      if (process.platform === 'win32') {
+        const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+        hfCacheDir = path.join(localAppData, '.cache', 'huggingface', 'hub');
+      } else {
+        hfCacheDir = path.join(os.homedir(), '.cache', 'huggingface', 'hub');
+      }
+
+      // Check various HuggingFace cache patterns
+      const cachePatterns = [
+        `models--Systran--faster-whisper-${modelName}`,
+        `models--openai--whisper-${modelName}`,
+        `models--istupakov--parakeet-tdt-0.6b-v3-onnx`,
+        modelName
+      ];
+
+      for (const pattern of cachePatterns) {
+        const cachePath = path.join(hfCacheDir, pattern);
+        if (fs.existsSync(cachePath)) {
+          try {
+            fs.rmSync(cachePath, { recursive: true, force: true });
+            deletedPaths.push(cachePath);
+            console.log('Deleted HF cache:', cachePath);
+          } catch (e) {
+            errors.push(`Failed to delete ${cachePath}: ${e.message}`);
+          }
+        }
+      }
+
+      // Also delete from Sonu models directory
+      const sonuModelsPatterns = [
+        path.join(downloadPath, modelName),
+        path.join(downloadPath, `ggml-${modelName}.bin`),
+        path.join(downloadPath, modelDef.filename)
+      ];
+
+      for (const modelFilePath of sonuModelsPatterns) {
+        if (fs.existsSync(modelFilePath)) {
+          try {
+            if (fs.statSync(modelFilePath).isDirectory()) {
+              fs.rmSync(modelFilePath, { recursive: true, force: true });
+            } else {
+              fs.unlinkSync(modelFilePath);
+            }
+            deletedPaths.push(modelFilePath);
+            console.log('Deleted model:', modelFilePath);
+          } catch (e) {
+            errors.push(`Failed to delete ${modelFilePath}: ${e.message}`);
+          }
+        }
+      }
+
+      if (deletedPaths.length === 0 && errors.length === 0) {
+        return {
+          success: false,
+          error: 'Model not found',
+          message: `No cached files found for model ${modelName}. It may not be downloaded.`
+        };
+      }
+
+      // If this was the active model, restart whisper service
+      if (settings.activeModel === modelName) {
+        whisperModelReady = false;
+        if (whisperProcess && !whisperProcess.killed) {
+          whisperProcess.kill();
+          whisperProcess = null;
+        }
+      }
+
+      const result = {
+        success: deletedPaths.length > 0,
+        model: modelName,
+        deletedPaths: deletedPaths,
+        errors: errors,
+        message: deletedPaths.length > 0
+          ? `Deleted ${deletedPaths.length} file(s) for ${modelName.toUpperCase()}`
+          : 'No files were deleted'
+      };
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('model:deleted', result);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error deleting model:', error);
+      return {
+        success: false,
+        error: error.message,
+        message: `Failed to delete model: ${error.message}`
+      };
+    }
+  });
+
   // Translation service handler - uses Python service for on-the-fly translation
   ipcMain.handle('translation:translate', async (_evt, text, targetLang, sourceLang = 'en') => {
     try {
@@ -4405,6 +4801,57 @@ app.whenReady().then(() => {
       }
       const updated = { ...currentSettings, ...newSettings };
       fs.writeFileSync(appSettingsPath, JSON.stringify(updated, null, 2));
+
+      // CRITICAL: If model changed, update in-memory settings and reload whisper service
+      if (newSettings.selected_model && newSettings.selected_model !== currentSettings.selected_model) {
+        console.log(`Model changed from ${currentSettings.selected_model} to ${newSettings.selected_model}, reloading whisper service...`);
+
+        // Sync to activeModel for whisper service
+        settings.activeModel = newSettings.selected_model;
+        settings.selected_model = newSettings.selected_model;
+        saveSettings();
+
+        // Kill existing whisper process to force reload with new model
+        whisperModelReady = false;
+        if (whisperProcess && !whisperProcess.killed) {
+          whisperProcess.kill();
+          whisperProcess = null;
+        }
+
+        // Restart whisper service with new model
+        setTimeout(() => {
+          ensureWhisperService();
+        }, 500);
+      }
+
+      // Sync post-processing settings to in-memory settings object
+      if (newSettings.post_processing_enabled !== undefined) {
+        settings.post_processing_enabled = newSettings.post_processing_enabled;
+        settings.flowRefinement = newSettings.post_processing_enabled;
+        console.log(`Post-processing ${newSettings.post_processing_enabled ? 'enabled' : 'disabled'}`);
+      }
+
+      if (newSettings.post_processing_mode !== undefined) {
+        settings.post_processing_mode = newSettings.post_processing_mode;
+        console.log(`Post-processing mode set to: ${newSettings.post_processing_mode}`);
+      }
+
+      // Sync rule-based post-processing options to llmManager
+      const ruleOptionsChanged = newSettings.pp_remove_fillers !== undefined ||
+        newSettings.pp_fix_stuttering !== undefined ||
+        newSettings.pp_punctuation !== undefined ||
+        newSettings.pp_capitalize !== undefined;
+
+      if (ruleOptionsChanged && llmManager.setRuleOptions) {
+        llmManager.setRuleOptions({
+          pp_remove_fillers: updated.pp_remove_fillers,
+          pp_fix_stuttering: updated.pp_fix_stuttering,
+          pp_punctuation: updated.pp_punctuation,
+          pp_capitalize: updated.pp_capitalize
+        });
+        console.log('Rule-based post-processing options updated');
+      }
+
       return updated;
     } catch (e) {
       console.error('Error saving app settings:', e);
@@ -4921,18 +5368,150 @@ app.whenReady().then(() => {
   // ============================================
   ipcMain.handle('llm:check-model', async () => {
     try {
-      const llmModelsDir = path.join(app.getPath('userData'), 'models', 'llm');
-      const modelPath = path.join(llmModelsDir, 'lfm2-1b.gguf');
-      const exists = fs.existsSync(modelPath);
-      return { exists, path: modelPath };
+      // Check multiple possible locations for the TinyLlama model
+      const MODEL_FILENAME = 'TinyLlama-1.1B-Chat-v1.0-Q4_K_M.gguf';
+      const possiblePaths = [
+        // Default SONU models directory
+        path.join(os.homedir(), '.sonu', 'models', 'llm', MODEL_FILENAME),
+        // App data directory
+        path.join(app.getPath('userData'), 'models', 'llm', MODEL_FILENAME),
+        // Relative to app
+        path.join(__dirname, 'models', 'llm', MODEL_FILENAME),
+        path.join(__dirname, 'data', 'models', 'llm', MODEL_FILENAME),
+        path.join(__dirname, 'src', 'core', 'python', 'models', 'llm', MODEL_FILENAME),
+      ];
+
+      for (const modelPath of possiblePaths) {
+        if (fs.existsSync(modelPath)) {
+          return { exists: true, path: modelPath, ready: llmServiceReady };
+        }
+      }
+
+      return { exists: false, path: null, ready: false };
     } catch (e) {
       return { exists: false, error: e.message };
     }
   });
 
   ipcMain.handle('llm:download-model', async () => {
-    // Trigger LLM model download - similar to whisper model download
-    return { started: true, message: 'LLM model download not yet implemented' };
+    // Download TinyLlama 1.1B model for post-processing
+    const MODEL_FILENAME = 'TinyLlama-1.1B-Chat-v1.0-Q4_K_M.gguf';
+    const MODEL_URL = 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf';
+    const MODEL_SIZE_MB = 700;
+
+    // Target directory
+    const llmModelsDir = path.join(os.homedir(), '.sonu', 'models', 'llm');
+    const targetPath = path.join(llmModelsDir, MODEL_FILENAME);
+
+    // Check if already exists
+    if (fs.existsSync(targetPath)) {
+      return { success: true, cached: true, path: targetPath, message: 'Model already downloaded' };
+    }
+
+    // Ensure directory exists
+    if (!fs.existsSync(llmModelsDir)) {
+      fs.mkdirSync(llmModelsDir, { recursive: true });
+    }
+
+    try {
+      // Send initial progress
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('llm:download-progress', {
+          percent: 0,
+          message: 'Starting TinyLlama download...'
+        });
+      }
+
+      // Download using https with progress
+      return new Promise((resolve, reject) => {
+        const partPath = `${targetPath}.part`;
+        const file = fs.createWriteStream(partPath);
+        let downloadedBytes = 0;
+        const totalBytes = MODEL_SIZE_MB * 1024 * 1024;
+
+        const request = https.get(MODEL_URL, {
+          headers: { 'User-Agent': 'Sonu/1.0' },
+          maxRedirects: 5
+        }, (response) => {
+          if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+            // Handle redirect
+            file.close();
+            fs.unlinkSync(partPath);
+            https.get(response.headers.location, {
+              headers: { 'User-Agent': 'Sonu/1.0' },
+              maxRedirects: 5
+            }, handleResponse).on('error', reject);
+            return;
+          }
+
+          handleResponse(response);
+        });
+
+        function handleResponse(response) {
+          const contentLength = parseInt(response.headers['content-length'] || totalBytes, 10);
+          let lastProgressUpdate = 0;
+
+          response.on('data', (chunk) => {
+            downloadedBytes += chunk.length;
+            file.write(chunk);
+
+            // Update progress every 2%
+            const percent = Math.round((downloadedBytes / contentLength) * 100);
+            if (percent >= lastProgressUpdate + 2) {
+              lastProgressUpdate = percent;
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('llm:download-progress', {
+                  percent,
+                  bytesDownloaded: downloadedBytes,
+                  bytesTotal: contentLength,
+                  message: `Downloading TinyLlama... ${percent}%`
+                });
+              }
+            }
+          });
+
+          response.on('end', () => {
+            file.end(() => {
+              // Rename part file to final
+              try {
+                fs.renameSync(partPath, targetPath);
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                  mainWindow.webContents.send('llm:download-progress', {
+                    percent: 100,
+                    message: 'Download complete!'
+                  });
+                }
+                resolve({ success: true, path: targetPath, message: 'Model downloaded successfully' });
+              } catch (e) {
+                reject(e);
+              }
+            });
+          });
+
+          response.on('error', (err) => {
+            file.close();
+            try { fs.unlinkSync(partPath); } catch (e) { }
+            reject(err);
+          });
+        }
+
+        request.on('error', (err) => {
+          file.close();
+          try { fs.unlinkSync(partPath); } catch (e) { }
+          reject(err);
+        });
+
+        request.setTimeout(300000, () => {
+          request.destroy();
+          file.close();
+          try { fs.unlinkSync(partPath); } catch (e) { }
+          reject(new Error('Download timeout'));
+        });
+      });
+    } catch (e) {
+      console.error('LLM model download error:', e);
+      return { success: false, error: e.message };
+    }
   });
 
   ipcMain.handle('llm:import-model', async () => {

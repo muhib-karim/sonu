@@ -54,6 +54,7 @@
     "sharp": "^0.34.5"
   },
   "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6",
     "@paymoapp/active-window": "^2.1.2",
     "easydl": "^1.2.0",
     "electron-localshortcut": "^3.2.1",
