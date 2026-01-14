@@ -270,6 +270,41 @@
         "createFirst": "Click 'Create New Prompt' above to create your first post-processing prompt."
       }
     },
+    "offlineLLM": {
+      "title": "Offline Post-Processing",
+      "quality": "quality",
+      "toggle": {
+        "label": "Use Offline Model",
+        "description": "Process transcriptions locally using a downloaded AI model instead of cloud APIs. No internet required."
+      },
+      "modelSelector": {
+        "title": "Select Model",
+        "description": "Choose a local AI model for post-processing. Smaller models are faster but may produce lower quality results."
+      },
+      "disabledNotice": "Enable offline post-processing above to select and download models.",
+      "info": {
+        "title": "About Offline Post-Processing",
+        "description": "Offline models run entirely on your device, ensuring complete privacy. They are ideal for users who prefer not to use cloud-based AI services. Note: Offline inference requires llama.cpp integration (coming soon)."
+      },
+      "models": {
+        "smollm2-135m": {
+          "name": "SmolLM2 135M",
+          "description": "Ultra fast. Best for simple corrections."
+        },
+        "smollm2-360m": {
+          "name": "SmolLM2 360M",
+          "description": "Fast with better quality. Recommended."
+        },
+        "smollm2-1.7b": {
+          "name": "SmolLM2 1.7B",
+          "description": "High quality. Best results, slower."
+        },
+        "qwen2.5-0.5b": {
+          "name": "Qwen2.5 0.5B",
+          "description": "Fast alternative. Good instruction following."
+        }
+      }
+    },
     "history": {
       "title": "History",
       "openFolder": "Open Recordings Folder",

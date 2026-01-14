@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 use tauri::AppHandle;
+use tauri::Emitter;
 use tauri::Manager;
 
 // Shortcut Action Trait
@@ -384,8 +385,9 @@ impl ShortcutAction for TranscribeAction {
                                     ),
                                     Err(e) => error!("Failed to paste transcription: {}", e),
                                 }
-                                // Hide the overlay after transcription is complete
-                                utils::hide_recording_overlay(&ah_clone);
+                                // Emit transcription-done event to show checkmark in overlay
+                                // The overlay will auto-hide after 800ms
+                                let _ = ah_clone.emit("transcription-done", ());
                                 change_tray_icon(&ah_clone, TrayIconState::Idle);
                             })
                             .unwrap_or_else(|e| {

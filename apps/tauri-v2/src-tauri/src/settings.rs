@@ -295,6 +295,11 @@ pub struct AppSettings {
     pub app_language: String,
     #[serde(default = "default_show_waveform")]
     pub show_waveform: bool,
+    // Offline post-processing settings
+    #[serde(default)]
+    pub offline_post_process_enabled: bool,
+    #[serde(default)]
+    pub offline_llm_model: String,
 }
 
 fn default_show_waveform() -> bool {
@@ -588,6 +593,8 @@ pub fn get_default_settings() -> AppSettings {
         append_trailing_space: false,
         app_language: default_app_language(),
         show_waveform: default_show_waveform(),
+        offline_post_process_enabled: false,
+        offline_llm_model: String::new(),
     }
 }
 

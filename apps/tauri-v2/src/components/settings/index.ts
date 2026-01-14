@@ -5,6 +5,7 @@ export { DebugSettings } from "./debug/DebugSettings";
 export { HistorySettings } from "./history/HistorySettings";
 export { AboutSettings } from "./about/AboutSettings";
 export { PostProcessingSettings } from "./post-processing/PostProcessingSettings";
+export { OfflineLLMSettings } from "./offline-llm/OfflineLLMSettings";
 
 // SONU custom pages
 export { HomeSettings } from "./home/HomeSettings";
@@ -21,7 +22,7 @@ export { AlwaysOnMicrophone } from "./AlwaysOnMicrophone";
 export { PushToTalk } from "./PushToTalk";
 export { AudioFeedback } from "./AudioFeedback";
 export { ShowOverlay } from "./ShowOverlay";
-export { HandyShortcut } from "./HandyShortcut";
+export { SonuShortcut } from "./SonuShortcut";
 export { TranslateToEnglish } from "./TranslateToEnglish";
 export { CustomWords } from "./CustomWords";
 export { PostProcessingToggle } from "./PostProcessingToggle";

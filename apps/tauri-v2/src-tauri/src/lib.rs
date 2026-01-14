@@ -23,6 +23,7 @@ use env_filter::Builder as EnvFilterBuilder;
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
 use managers::model::ModelManager;
+use managers::offline_llm::OfflineLLMManager;
 use managers::transcription::TranscriptionManager;
 #[cfg(unix)]
 use signal_hook::consts::SIGUSR2;
@@ -126,12 +127,15 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
+    let offline_llm_manager =
+        Arc::new(OfflineLLMManager::new(app_handle).expect("Failed to initialize offline LLM manager"));
 
     // Add managers to Tauri's managed state
     app_handle.manage(recording_manager.clone());
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    app_handle.manage(offline_llm_manager.clone());
 
     // Initialize the shortcuts
     shortcut::init_shortcuts(app_handle);
@@ -309,6 +313,16 @@ pub fn run() {
         commands::history::delete_history_entry,
         commands::history::update_history_limit,
         commands::history::update_recording_retention_period,
+        commands::offline_llm::get_available_offline_llm_models,
+        commands::offline_llm::get_offline_llm_model_info,
+        commands::offline_llm::download_offline_llm_model,
+        commands::offline_llm::delete_offline_llm_model,
+        commands::offline_llm::cancel_offline_llm_download,
+        commands::offline_llm::set_active_offline_llm_model,
+        commands::offline_llm::get_current_offline_llm_model,
+        commands::offline_llm::set_offline_post_process_enabled,
+        commands::offline_llm::get_offline_post_process_enabled,
+        commands::offline_llm::has_any_offline_llm_models,
         helpers::clamshell::is_laptop,
     ]);
 
@@ -334,7 +348,7 @@ pub fn run() {
                 }),
                 // File logs respect the user's settings (stored in FILE_LOG_LEVEL atomic)
                 Target::new(TargetKind::LogDir {
-                    file_name: Some("handy".into()),
+                    file_name: Some("sonu".into()),
                 })
                 .filter(|metadata| {
                     let file_level = FILE_LOG_LEVEL.load(Ordering::Relaxed);

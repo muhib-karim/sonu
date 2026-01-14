@@ -20,6 +20,7 @@ import { ApiKeyField } from "../PostProcessingSettingsApi/ApiKeyField";
 import { ModelSelect } from "../PostProcessingSettingsApi/ModelSelect";
 import { usePostProcessProviderState } from "../PostProcessingSettingsApi/usePostProcessProviderState";
 import { useSettings } from "../../../hooks/useSettings";
+import { OfflineLLMSettings } from "../offline-llm/OfflineLLMSettings";
 
 const DisabledNotice: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -459,6 +460,8 @@ export const PostProcessingSettings: React.FC = () => {
       <SettingsGroup title={t("settings.postProcessing.prompts.title")}>
         <PostProcessingSettingsPrompts />
       </SettingsGroup>
+
+      <OfflineLLMSettings />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CancelIcon } from "../components/icons";
@@ -56,8 +57,14 @@ const RecordingOverlay: React.FC = () => {
       const unlistenDone = await listen("transcription-done", () => {
         setState("done");
         // Auto-hide after showing checkmark
-        setTimeout(() => {
+        setTimeout(async () => {
           setIsVisible(false);
+          // Hide the actual Tauri window after fade-out
+          try {
+            await getCurrentWindow().hide();
+          } catch (e) {
+            console.error("Failed to hide overlay window:", e);
+          }
         }, 800);
       });
 

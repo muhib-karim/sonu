@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Clock, Mic, Zap, TrendingUp } from "lucide-react";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { commands, type HistoryEntry } from "@/bindings";
-import { HandyShortcut } from "../HandyShortcut";
+import { SonuShortcut } from "../SonuShortcut";
+import { listen } from "@tauri-apps/api/event";
 
 
 interface Stats {
@@ -41,24 +42,7 @@ export const HomeSettings: React.FC = () => {
   });
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
-
-
-  const loadHistory = async () => {
-    try {
-      const result = await commands.getHistoryEntries();
-      if (result.status === "ok" && result.data) {
-        setHistory(result.data);
-        calculateStats(result.data);
-      }
-    } catch (error) {
-      console.error("Failed to load history:", error);
-    }
-  };
-
-  const calculateStats = (entries: HistoryEntry[]) => {
+  const calculateStats = useCallback((entries: HistoryEntry[]) => {
     // Estimate stats from history entries
     const totalWords = entries.reduce(
       (sum, e) => sum + (e.transcription_text?.split(/\s+/).filter(Boolean).length || 0),
@@ -78,7 +62,41 @@ export const HomeSettings: React.FC = () => {
       timeSaved: Math.round(timeSaved),
       averageWpm: wpm || 150,
     });
-  };
+  }, []);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const result = await commands.getHistoryEntries();
+      if (result.status === "ok" && result.data) {
+        setHistory(result.data);
+        calculateStats(result.data);
+      }
+    } catch (error) {
+      console.error("Failed to load history:", error);
+    }
+  }, [calculateStats]);
+
+  useEffect(() => {
+    loadHistory();
+
+    // Listen for history update events
+    const setupListener = async () => {
+      const unlisten = await listen("history-updated", () => {
+        loadHistory();
+      });
+      return unlisten;
+    };
+
+    let unlistenPromise = setupListener();
+
+    return () => {
+      unlistenPromise.then((unlisten) => {
+        if (unlisten) {
+          unlisten();
+        }
+      });
+    };
+  }, [loadHistory]);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
@@ -132,7 +150,7 @@ export const HomeSettings: React.FC = () => {
           <p className="text-sm text-mid-gray">
             {t("home.shortcut.description", "Hold this key, speak, and release to transcribe.")}
           </p>
-          <HandyShortcut shortcutId="transcribe" grouped={false} />
+          <SonuShortcut shortcutId="transcribe" grouped={false} />
         </div>
       </SettingsGroup>
 

@@ -71,7 +71,158 @@ jobs:
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
       sign-binaries: true
-      asset-prefix: "handy"
+      asset-prefix: "sonu"
       upload-artifacts: false
       release-id: ${{ needs.create-release.outputs.release-id }}
     secrets: inherit
+
+  # Generate and upload latest.json for auto-updater
+  generate-update-manifest:
+    permissions:
+      contents: write
+    needs: [create-release, publish-tauri]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tauri.conf.json
+        id: get-version
+        shell: bash
+        run: |
+          VERSION=$(grep -o '"version": "[^"]*"' src-tauri/tauri.conf.json | cut -d'"' -f4)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate latest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.create-release.outputs.version }}
+          RELEASE_ID: ${{ needs.create-release.outputs.release-id }}
+        run: |
+          # Fetch release assets
+          RELEASE_DATA=$(gh api repos/${{ github.repository }}/releases/$RELEASE_ID)
+
+          # Get the tag name
+          TAG_NAME="v${VERSION}"
+
+          # Base URL for release assets
+          BASE_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}"
+
+          # Initialize platforms object
+          echo "Generating latest.json for version ${VERSION}..."
+
+          # Create the latest.json file
+          # The Tauri updater expects a specific format with platform-specific URLs and signatures
+          cat > latest.json << EOF
+          {
+            "version": "${VERSION}",
+            "notes": "See the release notes at https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}",
+            "pub_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "",
+                "url": "${BASE_URL}/sonu_aarch64-apple-darwin.app.tar.gz"
+              },
+              "darwin-x86_64": {
+                "signature": "",
+                "url": "${BASE_URL}/sonu_x86_64-apple-darwin.app.tar.gz"
+              },
+              "linux-x86_64": {
+                "signature": "",
+                "url": "${BASE_URL}/sonu_ubuntu-24.04_x86_64-unknown-linux-gnu.AppImage"
+              },
+              "windows-x86_64": {
+                "signature": "",
+                "url": "${BASE_URL}/sonu_x86_64-pc-windows-msvc.nsis.exe"
+              },
+              "windows-aarch64": {
+                "signature": "",
+                "url": "${BASE_URL}/sonu_aarch64-pc-windows-msvc.nsis.exe"
+              }
+            }
+          }
+          EOF
+
+          # Fetch signatures from uploaded .sig files and update latest.json
+          echo "Fetching signatures from release assets..."
+
+          # Function to get signature content
+          get_signature() {
+            local sig_file="$1"
+            gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq ".[] | select(.name == \"${sig_file}\") | .url" | while read url; do
+              if [ -n "$url" ]; then
+                curl -sL -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/octet-stream" "$url" 2>/dev/null || echo ""
+              fi
+            done
+          }
+
+          # Try to get signatures (they may be uploaded as .sig files by tauri-action)
+          DARWIN_ARM_SIG=$(get_signature "sonu_aarch64-apple-darwin.app.tar.gz.sig" || echo "")
+          DARWIN_X64_SIG=$(get_signature "sonu_x86_64-apple-darwin.app.tar.gz.sig" || echo "")
+          LINUX_SIG=$(get_signature "sonu_ubuntu-24.04_x86_64-unknown-linux-gnu.AppImage.sig" || echo "")
+          WINDOWS_X64_SIG=$(get_signature "sonu_x86_64-pc-windows-msvc.nsis.exe.sig" || echo "")
+          WINDOWS_ARM_SIG=$(get_signature "sonu_aarch64-pc-windows-msvc.nsis.exe.sig" || echo "")
+
+          # Create final latest.json with signatures
+          cat > latest.json << EOF
+          {
+            "version": "${VERSION}",
+            "notes": "See the release notes at https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}",
+            "pub_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "${DARWIN_ARM_SIG}",
+                "url": "${BASE_URL}/sonu_aarch64-apple-darwin.app.tar.gz"
+              },
+              "darwin-x86_64": {
+                "signature": "${DARWIN_X64_SIG}",
+                "url": "${BASE_URL}/sonu_x86_64-apple-darwin.app.tar.gz"
+              },
+              "linux-x86_64": {
+                "signature": "${LINUX_SIG}",
+                "url": "${BASE_URL}/sonu_ubuntu-24.04_x86_64-unknown-linux-gnu.AppImage"
+              },
+              "windows-x86_64": {
+                "signature": "${WINDOWS_X64_SIG}",
+                "url": "${BASE_URL}/sonu_x86_64-pc-windows-msvc.nsis.exe"
+              },
+              "windows-aarch64": {
+                "signature": "${WINDOWS_ARM_SIG}",
+                "url": "${BASE_URL}/sonu_aarch64-pc-windows-msvc.nsis.exe"
+              }
+            }
+          }
+          EOF
+
+          echo "Generated latest.json:"
+          cat latest.json
+
+      - name: Upload latest.json to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.create-release.outputs.release-id }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=latest.json" \
+            --input latest.json
+
+  # Publish the draft release after all jobs complete
+  publish-release:
+    permissions:
+      contents: write
+    needs: [create-release, publish-tauri, generate-update-manifest]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release-id }},
+              draft: false
+            })
+            console.log('Release published successfully!')
