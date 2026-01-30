@@ -170,63 +170,49 @@ export const NotesSettings: React.FC = () => {
         </p>
       </div>
 
-      {/* Recording Input Card */}
-      <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 relative overflow-hidden">
+      {/* Recording Input Card - Informational */}
+      <div className="bg-zinc-800/50 border border-zinc-700 rounded-2xl p-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="relative min-h-[80px] flex items-center">
-          <div className="flex-1 text-sm text-mid-gray">
-            {isRecording ? (
-              <span className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-foreground font-medium">
-                  {t("notes.listening", "Listening...")}
-                </span>
-              </span>
-            ) : (
-              <span className="text-foreground/70">
-                {t("notes.placeholder", "Click on the microphone to dictate notes")}
-              </span>
-            )}
+          <div className="flex-1 text-sm text-zinc-400">
+            <span className="text-zinc-100/70">
+              {t("notes.placeholder", "Use your global shortcut (Alt) to dictate, then star it in History")}
+            </span>
           </div>
-          <button
-            onClick={toggleRecording}
-            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
-              isRecording
-                ? "bg-red-500 text-white scale-110 animate-pulse"
-                : "bg-gradient-to-br from-indigo-500 to-purple-600 text-white hover:scale-105 hover:shadow-xl"
-            }`}
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center bg-zinc-700 text-zinc-300 cursor-default"
+            title={t("notes.useShortcut", "Use Alt (or your configured hotkey) to start dictation")}
           >
             <Mic size={24} />
-          </button>
+          </div>
         </div>
       </div>
 
       {/* Notes Section */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-mid-gray uppercase tracking-wide">
+          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
             {t("notes.recents", "Recents")} {filteredNotes.length > 0 && `(${filteredNotes.length})`}
           </h2>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className={`p-2 rounded-lg transition-colors ${
-                showSearch ? "bg-indigo-500/20 text-indigo-500" : "hover:bg-mid-gray/20 text-mid-gray"
-              }`}
+              className={`p-2 rounded-lg transition-colors ${showSearch ? "bg-zinc-700 text-zinc-200" : "hover:bg-zinc-700/50 text-zinc-500"
+                }`}
               title={t("notes.search", "Search")}
             >
               <Search size={16} />
             </button>
             <button
               onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-              className="p-2 hover:bg-mid-gray/20 rounded-lg transition-colors text-mid-gray"
+              className="p-2 hover:bg-zinc-700/50 rounded-lg transition-colors text-zinc-500"
               title={t("notes.toggleView", "Toggle view")}
             >
               {viewMode === "grid" ? <List size={16} /> : <Grid size={16} />}
             </button>
             <button
               onClick={loadNotes}
-              className="p-2 hover:bg-mid-gray/20 rounded-lg transition-colors text-mid-gray"
+              className="p-2 hover:bg-zinc-700/50 rounded-lg transition-colors text-zinc-500"
               title={t("notes.refresh", "Refresh")}
             >
               <RefreshCw size={16} />
@@ -237,13 +223,13 @@ export const NotesSettings: React.FC = () => {
         {/* Search Input */}
         {showSearch && (
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-mid-gray" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("notes.searchPlaceholder", "Search notes...")}
-              className="w-full pl-10 pr-4 py-2.5 bg-mid-gray/10 border border-mid-gray/20 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/50 border border-zinc-700 rounded-xl text-sm focus:outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-500/20"
               autoFocus
             />
           </div>
@@ -252,7 +238,7 @@ export const NotesSettings: React.FC = () => {
         {/* Loading State */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-zinc-500 border-t-transparent" />
           </div>
         ) : filteredNotes.length > 0 ? (
           /* Notes Grid/List */
@@ -263,11 +249,10 @@ export const NotesSettings: React.FC = () => {
             {filteredNotes.map((note) => (
               <div
                 key={note.id}
-                className={`group relative rounded-xl border-2 transition-all hover:shadow-lg ${
-                  viewMode === "grid"
-                    ? `${getNoteColor(note.id)} p-4 min-h-[140px] flex flex-col`
-                    : "bg-background border-mid-gray/20 p-4 hover:border-indigo-500/50"
-                }`}
+                className={`group relative rounded-xl border-2 transition-all hover:shadow-lg ${viewMode === "grid"
+                  ? `${getNoteColor(note.id)} p-4 min-h-[140px] flex flex-col`
+                  : "bg-background border-zinc-700 p-4 hover:border-zinc-500"
+                  }`}
               >
                 {/* Note Content */}
                 <p className={`text-sm flex-1 ${viewMode === "grid" ? "line-clamp-4" : ""}`}>
@@ -275,26 +260,24 @@ export const NotesSettings: React.FC = () => {
                 </p>
 
                 {/* Footer */}
-                <div className={`flex items-center justify-between mt-3 pt-2 ${
-                  viewMode === "grid" ? "border-t border-current/10" : ""
-                }`}>
-                  <span className="text-xs text-mid-gray">
+                <div className={`flex items-center justify-between mt-3 pt-2 ${viewMode === "grid" ? "border-t border-current/10" : ""
+                  }`}>
+                  <span className="text-xs text-zinc-500">
                     {formatDate(note.timestamp)}
                   </span>
 
                   {/* Actions */}
-                  <div className={`flex items-center gap-1 ${
-                    viewMode === "grid" ? "opacity-0 group-hover:opacity-100" : ""
-                  } transition-opacity`}>
+                  <div className={`flex items-center gap-1 ${viewMode === "grid" ? "opacity-0 group-hover:opacity-100" : ""
+                    } transition-opacity`}>
                     <button
                       onClick={() => toggleAudio(note)}
                       className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors"
                       title={playingId === note.id ? "Pause" : "Play"}
                     >
                       {playingId === note.id ? (
-                        <Pause size={14} className="text-indigo-500" />
+                        <Pause size={14} className="text-zinc-200" />
                       ) : (
-                        <Play size={14} className="text-mid-gray" />
+                        <Play size={14} className="text-zinc-500" />
                       )}
                     </button>
                     <button
@@ -305,7 +288,7 @@ export const NotesSettings: React.FC = () => {
                       {copiedId === note.id ? (
                         <Check size={14} className="text-green-500" />
                       ) : (
-                        <Copy size={14} className="text-mid-gray" />
+                        <Copy size={14} className="text-zinc-500" />
                       )}
                     </button>
                     <button
@@ -323,10 +306,10 @@ export const NotesSettings: React.FC = () => {
         ) : (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mb-4">
-              <Mic size={28} className="text-indigo-500" />
+            <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
+              <Mic size={28} className="text-zinc-400" />
             </div>
-            <p className="text-sm text-mid-gray max-w-xs">
+            <p className="text-sm text-zinc-500 max-w-xs">
               {searchQuery
                 ? t("notes.noResults", "No notes found")
                 : t("notes.empty", "No notes yet. Star a transcription in History to save it as a note.")}

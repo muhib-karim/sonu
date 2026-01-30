@@ -1,0 +1,209 @@
+name: Sync Upstream Handy
+
+on:
+  schedule:
+    # Check weekly on Mondays at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      handy_version:
+        description: 'Handy version tag to sync (e.g., v0.7.0)'
+        required: false
+        default: ''
+
+env:
+  UPSTREAM_REPO: 'cjpais/Handy'
+  UPSTREAM_BRANCH: 'main'
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    outputs:
+      has_update: ${{ steps.check.outputs.has_update }}
+      latest_version: ${{ steps.check.outputs.latest_version }}
+      current_version: ${{ steps.check.outputs.current_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for upstream updates
+        id: check
+        run: |
+          # Get latest Handy release
+          if [ -n "${{ github.event.inputs.handy_version }}" ]; then
+            LATEST_VERSION="${{ github.event.inputs.handy_version }}"
+          else
+            LATEST_VERSION=$(curl -s "https://api.github.com/repos/${{ env.UPSTREAM_REPO }}/releases/latest" | jq -r '.tag_name // empty')
+          fi
+          
+          if [ -z "$LATEST_VERSION" ]; then
+            echo "Could not fetch latest Handy version"
+            echo "has_update=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Get current synced version from file
+          CURRENT_VERSION=""
+          if [ -f ".handy-version" ]; then
+            CURRENT_VERSION=$(cat .handy-version)
+          fi
+          
+          echo "Latest Handy: $LATEST_VERSION"
+          echo "Current synced: $CURRENT_VERSION"
+          echo "latest_version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
+            echo "has_update=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_update=false" >> $GITHUB_OUTPUT
+          fi
+
+  sync-upstream:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.has_update == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/${{ env.UPSTREAM_REPO }}.git || true
+          git fetch upstream --tags
+
+      - name: Create sync branch
+        id: branch
+        run: |
+          BRANCH_NAME="upstream/handy-${{ needs.check-upstream.outputs.latest_version }}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Merge upstream changes
+        id: merge
+        run: |
+          # Try to merge upstream main
+          if git merge upstream/${{ env.UPSTREAM_BRANCH }} --no-commit --no-ff; then
+            echo "Merge successful"
+            echo "merge_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "Merge has conflicts - creating PR for manual resolution"
+            git merge --abort
+            echo "merge_status=conflicts" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Preserve SONU customizations
+        if: steps.merge.outputs.merge_status == 'success'
+        run: |
+          # Restore SONU-specific files if overwritten
+          git checkout HEAD -- apps/tauri-v2/src-tauri/tauri.conf.json || true
+          git checkout HEAD -- apps/tauri-v2/src-tauri/icons/ || true
+          git checkout HEAD -- apps/tauri-v2/src/components/icons/SonuLogo.tsx || true
+          git checkout HEAD -- apps/tauri-v2/src/App.css || true
+          
+          # Commit preserved files
+          git add -A
+          git diff --staged --quiet || git commit -m "Preserve SONU customizations after upstream merge"
+
+      - name: Update version tracking
+        if: steps.merge.outputs.merge_status == 'success'
+        run: |
+          echo "${{ needs.check-upstream.outputs.latest_version }}" > .handy-version
+          git add .handy-version
+          git commit -m "Track Handy ${{ needs.check-upstream.outputs.latest_version }}"
+
+      - name: Bump SONU version
+        if: steps.merge.outputs.merge_status == 'success'
+        run: |
+          # Read current SONU version
+          CURRENT=$(jq -r '.version' apps/tauri-v2/src-tauri/tauri.conf.json)
+          
+          # Increment patch version
+          IFS='.' read -ra PARTS <<< "$CURRENT"
+          MAJOR=${PARTS[0]}
+          MINOR=${PARTS[1]}
+          PATCH=${PARTS[2]}
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          
+          # Update version in tauri.conf.json
+          jq --arg v "$NEW_VERSION" '.version = $v' apps/tauri-v2/src-tauri/tauri.conf.json > tmp.json
+          mv tmp.json apps/tauri-v2/src-tauri/tauri.conf.json
+          
+          # Update package.json
+          jq --arg v "$NEW_VERSION" '.version = $v' apps/tauri-v2/package.json > tmp.json
+          mv tmp.json apps/tauri-v2/package.json
+          
+          git add apps/tauri-v2/src-tauri/tauri.conf.json apps/tauri-v2/package.json
+          git commit -m "Bump SONU version to $NEW_VERSION (synced with Handy ${{ needs.check-upstream.outputs.latest_version }})"
+          
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Update changelog
+        if: steps.merge.outputs.merge_status == 'success'
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          HANDY_VERSION="${{ needs.check-upstream.outputs.latest_version }}"
+          
+          # Prepend new changelog entry
+          cat > /tmp/changelog_entry.md << EOF
+          ## ${{ env.NEW_VERSION }} ($DATE)
+
+          ### Upstream Sync
+          - Synced with Handy $HANDY_VERSION
+          - See [Handy changelog](https://github.com/${{ env.UPSTREAM_REPO }}/releases/tag/$HANDY_VERSION)
+
+          EOF
+          
+          if [ -f "apps/tauri-v2/CHANGELOG.md" ]; then
+            cat apps/tauri-v2/CHANGELOG.md >> /tmp/changelog_entry.md
+          fi
+          mv /tmp/changelog_entry.md apps/tauri-v2/CHANGELOG.md
+          
+          git add apps/tauri-v2/CHANGELOG.md
+          git commit -m "Update changelog for ${{ env.NEW_VERSION }}"
+
+      - name: Push branch
+        run: |
+          git push origin ${{ steps.branch.outputs.branch_name }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.branch.outputs.branch_name }}
+          base: main
+          title: "🔄 Sync with Handy ${{ needs.check-upstream.outputs.latest_version }}"
+          body: |
+            ## Upstream Sync
+            
+            This PR syncs SONU with [Handy ${{ needs.check-upstream.outputs.latest_version }}](https://github.com/${{ env.UPSTREAM_REPO }}/releases/tag/${{ needs.check-upstream.outputs.latest_version }})
+            
+            ### Changes
+            - Merged upstream changes from Handy
+            - Preserved SONU customizations (icons, theme, branding)
+            - Bumped SONU version to ${{ env.NEW_VERSION }}
+            - Updated changelog
+            
+            ### Review Checklist
+            - [ ] Verify theme customizations are intact
+            - [ ] Test build locally
+            - [ ] Check for any breaking changes
+            
+            ---
+            *Auto-generated by sync-upstream workflow*
+          labels: |
+            upstream-sync
+            automated
+          draft: false

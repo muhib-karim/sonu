@@ -152,14 +152,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <React.Fragment key={section.id}>
               <div
-                className={`flex gap-3 items-center px-3 py-2.5 w-full rounded-lg cursor-pointer transition-all duration-200 ${
-                  isActive
-                    ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/10 text-indigo-400 border-l-2 border-indigo-500"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-                }`}
+                className={`flex gap-3 items-center px-3 py-2.5 w-full rounded-lg cursor-pointer transition-all duration-200 ${isActive
+                    ? "bg-zinc-800 text-zinc-100 border-l-2 border-zinc-400"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                  }`}
                 onClick={() => onSectionChange(section.id)}
               >
-                <Icon size={18} className={`shrink-0 ${isActive ? "text-indigo-400" : ""}`} />
+                <Icon size={18} className={`shrink-0 ${isActive ? "text-zinc-100" : ""}`} />
                 <p
                   className="text-sm font-medium truncate"
                   title={t(section.labelKey)}
@@ -168,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </p>
               </div>
               {showDivider && (
-                <div className="w-full h-px bg-white/5 my-3" />
+                <div className="w-full h-px bg-zinc-700/50 my-3" />
               )}
             </React.Fragment>
           );

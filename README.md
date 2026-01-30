@@ -74,7 +74,7 @@ stateDiagram-v2
 
 ```bash
 # Navigate to Tauri app
-cd apps/tauri
+cd apps/tauri-v2
 
 # Install dependencies
 npm install
@@ -95,6 +95,25 @@ cd apps/mobile
 # Build APK
 ./build.sh
 ```
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| **Alt** (hold) | Start/stop dictation (default, configurable) |
+| **Ctrl+Shift+D** | Toggle Debug Mode (shows advanced options) |
+| **Ctrl+/** | Show keyboard shortcuts help |
+| **Escape** | Cancel current recording |
+
+### Debug Mode
+
+Press **Ctrl+Shift+D** to enable Debug Mode. This reveals:
+- Advanced timeout options (5 seconds, 30 seconds)
+- Log level controls
+- System paths and diagnostics
+- Additional configuration options
 
 ---
 

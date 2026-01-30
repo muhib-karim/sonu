@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v2.0.1)'
+        description: 'Version tag (e.g., v2.1.0)'
         required: true
-        default: 'v2.0.0'
+        default: 'v2.1.0'
 
-# env:
-#   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+env:
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
 jobs:
   build:
@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: apps/tauri/package-lock.json
+          cache-dependency-path: apps/tauri-v2/package-lock.json
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -57,14 +57,20 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
 
       - name: Install frontend dependencies
-        working-directory: apps/tauri
+        working-directory: apps/tauri-v2
         run: npm ci
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         with:
-          projectPath: apps/tauri
+          projectPath: apps/tauri-v2
           args: ${{ matrix.args }}
+          tagName: ${{ github.ref_name }}
+          releaseName: 'SONU Desktop ${{ github.ref_name }}'
+          releaseBody: 'See the assets below for downloads.'
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,8 +78,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sonu-desktop-${{ matrix.target }}
-          path: apps/tauri/src-tauri/target/*/release/bundle/**/*
-          if-no-files-found: error
+          path: |
+            apps/tauri-v2/src-tauri/target/*/release/bundle/**/*
+            apps/tauri-v2/src-tauri/target/release/bundle/**/*
+          if-no-files-found: warn
 
   release:
     needs: build
@@ -88,24 +96,46 @@ jobs:
         with:
           path: artifacts
 
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#desktop-v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Read changelog
+        id: changelog
+        run: |
+          if [ -f "apps/tauri-v2/CHANGELOG.md" ]; then
+            # Extract latest version section
+            CHANGELOG=$(awk '/^## /{if(p)exit; p=1} p' apps/tauri-v2/CHANGELOG.md)
+            echo "content<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGELOG" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "content=See assets below for downloads." >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: SONU Desktop ${{ github.ref_name }}
+          name: SONU Desktop ${{ steps.version.outputs.version }}
           body: |
-            ## SONU Desktop ${{ github.ref_name }}
+            ## SONU Desktop v${{ steps.version.outputs.version }}
             
             ### Downloads
             
             | Platform | Download |
             |----------|----------|
-            | Windows (x64) | See assets below |
-            | macOS (Intel) | See assets below |
-            | macOS (Apple Silicon) | See assets below |
-            | Linux (x64) | See assets below |
+            | Windows (x64) | `.msi` or `.exe` |
+            | macOS (Intel) | `-x64.dmg` |
+            | macOS (Apple Silicon) | `-aarch64.dmg` |
+            | Linux (x64) | `.AppImage` or `.deb` |
             
             ### Changelog
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/apps/tauri/CHANGELOG.md)
+            ${{ steps.changelog.outputs.content }}
+            
+            ---
+            *Based on [Handy.computer](https://github.com/cjpais/Handy) with SONU customizations*
           files: artifacts/**/*
           draft: false
           prerelease: false

@@ -17,7 +17,8 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
   const { t } = useTranslation();
   const { settings, getSetting, updateSetting } = useSettings();
 
-  const timeoutOptions = [
+  // All timeout options including debug options (5 seconds)
+  const allTimeoutOptions = [
     {
       value: "never" as ModelUnloadTimeout,
       label: t("settings.advanced.modelUnload.options.never"),
@@ -25,6 +26,14 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
     {
       value: "immediately" as ModelUnloadTimeout,
       label: t("settings.advanced.modelUnload.options.immediately"),
+    },
+    {
+      value: "sec5" as ModelUnloadTimeout,
+      label: t("settings.advanced.modelUnload.options.sec5"),
+    },
+    {
+      value: "sec30" as ModelUnloadTimeout,
+      label: t("settings.advanced.modelUnload.options.sec30") || "After 30 seconds",
     },
     {
       value: "min2" as ModelUnloadTimeout,
@@ -48,14 +57,6 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
     },
   ];
 
-  const debugTimeoutOptions = [
-    ...timeoutOptions,
-    {
-      value: "sec5" as ModelUnloadTimeout,
-      label: t("settings.advanced.modelUnload.options.sec5"),
-    },
-  ];
-
   const handleChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newTimeout = event.target.value as ModelUnloadTimeout;
 
@@ -69,9 +70,10 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
 
   const currentValue = getSetting("model_unload_timeout") ?? "never";
 
+  // Always show all options - no debug_mode gating
   const options = useMemo(() => {
-    return settings?.debug_mode === true ? debugTimeoutOptions : timeoutOptions;
-  }, [settings]);
+    return allTimeoutOptions;
+  }, [t]);
 
   return (
     <SettingContainer

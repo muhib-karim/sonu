@@ -5,17 +5,17 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* SONU Brand Colors - Wispr Flow Inspired Graphite Theme */
+  /* SONU Brand Colors - Mono Dark Theme */
   --color-text: #fafafa;
   --color-background: #09090b;
   --color-foreground: #fafafa;
-  --color-background-ui: #6366f1;
-  --color-logo-primary: #6366f1;
-  --color-logo-secondary: #8b5cf6;
-  --color-logo-stroke: #c7d2fe;
+  --color-background-ui: #27272a;
+  --color-logo-primary: #a1a1aa;
+  --color-logo-secondary: #71717a;
+  --color-logo-stroke: #52525b;
   --color-text-stroke: #27272a;
   --color-mid-gray: #71717a;
-  --color-accent: #6366f1;
+  --color-accent: #a1a1aa;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
@@ -29,7 +29,7 @@
   --color-border-hover: rgba(255, 255, 255, 0.15);
 
   /* Radius */
-  --radius: 0.625rem;
+  --radius: 0rem;
 }
 
 :root {
@@ -37,7 +37,7 @@
   font-size: 14px;
   line-height: 1.5;
   font-weight: 400;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
   /* Typography settings */
   font-synthesis: none;
@@ -50,60 +50,60 @@
   color: var(--color-text);
   background-color: var(--color-background);
 
-  /* SONU Dark Theme - Wispr Flow Inspired Graphite with Indigo/Purple accents */
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #141416;
-  --card-foreground: #fafafa;
-  --popover: #141416;
-  --popover-foreground: #fafafa;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #18181b;
-  --muted-foreground: #a1a1aa;
-  --accent: #8b5cf6;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: #18181b;
-  --ring: #6366f1;
-  --chart-1: #6366f1;
-  --chart-2: #8b5cf6;
-  --chart-3: #a78bfa;
-  --chart-4: #c4b5fd;
-  --chart-5: #818cf8;
-  --radius: 0.625rem;
-  --sidebar: #0c0c0e;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #6366f1;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #8b5cf6;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-ring: #6366f1;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: "Fira Code", "Courier New", monospace;
-  --shadow-color: #000000;
-  --shadow-opacity: 0.15;
-  --shadow-blur: 8px;
+  /* SONU Dark Mono Theme - Graphite with neutral gray accents */
+  --background: oklch(0.1448 0 0);
+  --foreground: oklch(0.9851 0 0);
+  --card: oklch(0.1700 0 0);
+  --card-foreground: oklch(0.9851 0 0);
+  --popover: oklch(0.1448 0 0);
+  --popover-foreground: oklch(0.9851 0 0);
+  --primary: oklch(0.7090 0 0);
+  --primary-foreground: oklch(0.1448 0 0);
+  --secondary: oklch(0.2046 0 0);
+  --secondary-foreground: oklch(0.9851 0 0);
+  --muted: oklch(0.2046 0 0);
+  --muted-foreground: oklch(0.5486 0 0);
+  --accent: oklch(0.2500 0 0);
+  --accent-foreground: oklch(0.9851 0 0);
+  --destructive: oklch(0.5830 0.2387 28.4765);
+  --destructive-foreground: oklch(0.9702 0 0);
+  --border: oklch(0.2500 0 0);
+  --input: oklch(0.2500 0 0);
+  --ring: oklch(0.5486 0 0);
+  --chart-1: oklch(0.5555 0 0);
+  --chart-2: oklch(0.4500 0 0);
+  --chart-3: oklch(0.6500 0 0);
+  --chart-4: oklch(0.3500 0 0);
+  --chart-5: oklch(0.7500 0 0);
+  --radius: 0rem;
+  --sidebar: oklch(0.1200 0 0);
+  --sidebar-foreground: oklch(0.9851 0 0);
+  --sidebar-primary: oklch(0.9851 0 0);
+  --sidebar-primary-foreground: oklch(0.1448 0 0);
+  --sidebar-accent: oklch(0.2046 0 0);
+  --sidebar-accent-foreground: oklch(0.9851 0 0);
+  --sidebar-border: oklch(0.2046 0 0);
+  --sidebar-ring: oklch(0.5486 0 0);
+  --font-sans: "Geist Mono", ui-monospace, monospace;
+  --font-serif: "Geist Mono", ui-monospace, monospace;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --shadow-color: hsl(0 0% 0%);
+  --shadow-opacity: 0.2;
+  --shadow-blur: 0px;
   --shadow-spread: 0px;
   --shadow-offset-x: 0px;
-  --shadow-offset-y: 4px;
-  --letter-spacing: 0.01em;
+  --shadow-offset-y: 1px;
+  --letter-spacing: 0em;
   --spacing: 0.25rem;
-  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 6px 10px -1px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --tracking-normal: 0.01em;
+  --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0px 1px 1px 0px hsl(0 0% 0% / 0.10);
+  --shadow-sm: 0px 1px 2px 0px hsl(0 0% 0% / 0.10), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+  --shadow: 0px 1px 3px 0px hsl(0 0% 0% / 0.10), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+  --shadow-md: 0px 4px 6px -1px hsl(0 0% 0% / 0.10), 0px 2px 4px -1px hsl(0 0% 0% / 0.05);
+  --shadow-lg: 0px 10px 15px -3px hsl(0 0% 0% / 0.10), 0px 4px 6px -1px hsl(0 0% 0% / 0.05);
+  --shadow-xl: 0px 20px 25px -5px hsl(0 0% 0% / 0.10), 0px 8px 10px -1px hsl(0 0% 0% / 0.05);
+  --shadow-2xl: 0px 25px 50px -12px hsl(0 0% 0% / 0.25);
+  --tracking-normal: 0em;
 }
 
 /* Force dark theme always (Wispr Flow style) */
@@ -337,10 +337,10 @@ input::placeholder, textarea::placeholder {
 }
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Fira Code", "Courier New", monospace;
-  --font-serif: Georgia, serif;
-  --radius: 0.625rem;
+  --font-sans: Geist Mono, monospace;
+  --font-mono: Geist Mono, monospace;
+  --font-serif: Geist Mono, monospace;
+  --radius: 0rem;
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
@@ -407,4 +407,56 @@ input::placeholder, textarea::placeholder {
 /* .dark class kept for compatibility with shadcn/ui components that use dark: variants */
 .dark {
   /* Dark theme variables are already set in :root since SONU is dark-only */
+  --background: oklch(0.1448 0 0);
+  --foreground: oklch(0.9851 0 0);
+  --card: oklch(0.2134 0 0);
+  --card-foreground: oklch(0.9851 0 0);
+  --popover: oklch(0.2686 0 0);
+  --popover-foreground: oklch(0.9851 0 0);
+  --primary: oklch(0.5555 0 0);
+  --primary-foreground: oklch(0.9851 0 0);
+  --secondary: oklch(0.2686 0 0);
+  --secondary-foreground: oklch(0.9851 0 0);
+  --muted: oklch(0.2686 0 0);
+  --muted-foreground: oklch(0.7090 0 0);
+  --accent: oklch(0.3715 0 0);
+  --accent-foreground: oklch(0.9851 0 0);
+  --destructive: oklch(0.7022 0.1892 22.2279);
+  --destructive-foreground: oklch(0.2686 0 0);
+  --border: oklch(0.3407 0 0);
+  --input: oklch(0.4386 0 0);
+  --ring: oklch(0.5555 0 0);
+  --chart-1: oklch(0.5555 0 0);
+  --chart-2: oklch(0.5555 0 0);
+  --chart-3: oklch(0.5555 0 0);
+  --chart-4: oklch(0.5555 0 0);
+  --chart-5: oklch(0.5555 0 0);
+  --radius: 0rem;
+  --sidebar: oklch(0.2046 0 0);
+  --sidebar-foreground: oklch(0.9851 0 0);
+  --sidebar-primary: oklch(0.9851 0 0);
+  --sidebar-primary-foreground: oklch(0.2046 0 0);
+  --sidebar-accent: oklch(0.2686 0 0);
+  --sidebar-accent-foreground: oklch(0.9851 0 0);
+  --sidebar-border: oklch(1.0000 0 0);
+  --sidebar-ring: oklch(0.4386 0 0);
+  --font-sans: Geist Mono, monospace;
+  --font-serif: Geist Mono, monospace;
+  --font-mono: Geist Mono, monospace;
+  --shadow-color: hsl(0 0% 0%);
+  --shadow-opacity: 0;
+  --shadow-blur: 0px;
+  --shadow-spread: 0px;
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: 1px;
+  --letter-spacing: 0em;
+  --spacing: 0.25rem;
+  --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 0% / 0.00);
+  --shadow-xs: 0px 1px 0px 0px hsl(0 0% 0% / 0.00);
+  --shadow-sm: 0px 1px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
+  --shadow: 0px 1px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
+  --shadow-md: 0px 1px 0px 0px hsl(0 0% 0% / 0.00), 0px 2px 4px -1px hsl(0 0% 0% / 0.00);
+  --shadow-lg: 0px 1px 0px 0px hsl(0 0% 0% / 0.00), 0px 4px 6px -1px hsl(0 0% 0% / 0.00);
+  --shadow-xl: 0px 1px 0px 0px hsl(0 0% 0% / 0.00), 0px 8px 10px -1px hsl(0 0% 0% / 0.00);
+  --shadow-2xl: 0px 1px 0px 0px hsl(0 0% 0% / 0.00)
 }
