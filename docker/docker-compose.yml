@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Tauri Development Environment
+  tauri-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ../:/app
+      - /app/node_modules
+      - /app/apps/tauri-v2/node_modules
+      - /app/apps/tauri-v2/src-tauri/target
+    ports:
+      - "5173:5173"
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DISPLAY=${DISPLAY}
+    network_mode: host
+    command: bash -c "cd /app/apps/tauri-v2 && bun run dev"
+
+  # Legacy Desktop Development Environment
+  desktop-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ../:/app
+      - /app/node_modules
+      - /app/apps/desktop/node_modules
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DISPLAY=${DISPLAY}
+    network_mode: host
+    command: bash -c "cd /app/apps/desktop && npm start"
+
+  # Documentation Server
+  docs:
+    image: node:20-slim
+    volumes:
+      - ../docs:/docs
+    ports:
+      - "3002:3000"
+    working_dir: /docs
+    command: >
+      sh -c "npm install -g docsify-cli && 
+             docsify serve . --port 3000"
+
+  # Test Runner
+  test-runner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ../:/app
+    working_dir: /app/apps/tauri-v2
+    command: bun run test
+
+  # Build Environment
+  builder:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+    volumes:
+      - ../:/app
+      - build-output:/app/dist
+
+volumes:
+  build-output:

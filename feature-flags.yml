@@ -1,0 +1,94 @@
+name: Feature Flags
+
+description: |
+  Feature flags allow gradual rollouts and A/B testing of new features.
+  These settings control which features are enabled for users.
+
+flags:
+  # Transcription Features
+  - name: realtime_transcription
+    description: Show partial transcription results while recording
+    default: true
+    rollout_percentage: 100
+
+  - name: vad_improved
+    description: Use improved VAD algorithm
+    default: true
+    rollout_percentage: 50
+    # Currently testing with 50% of users
+
+  - name: speaker_diarization
+    description: Detect and label different speakers
+    default: false
+    rollout_percentage: 0
+    # Still in development
+
+  # LLM Features
+  - name: offline_llm
+    description: Enable offline LLM post-processing
+    default: true
+    rollout_percentage: 100
+
+  - name: llm_advanced_templates
+    description: Advanced prompt templates for LLM
+    default: false
+    rollout_percentage: 25
+
+  # UI Features
+  - name: new_model_selector
+    description: New model selection UI
+    default: true
+    rollout_percentage: 100
+
+  - name: dark_mode_auto
+    description: Automatic dark mode based on system
+    default: true
+    rollout_percentage: 100
+
+  - name: onboarding_v2
+    description: Improved onboarding flow
+    default: false
+    rollout_percentage: 10
+
+  # Performance Features
+  - name: model_caching
+    description: Keep models loaded in memory
+    default: true
+    rollout_percentage: 100
+
+  - name: gpu_acceleration
+    description: Use GPU for inference when available
+    default: false
+    rollout_percentage: 5
+    # Limited GPU support, testing carefully
+
+  # Beta Features
+  - name: beta_cloud_sync
+    description: Cloud sync for settings (beta)
+    default: false
+    rollout_percentage: 0
+
+  - name: beta_voice_commands
+    description: Voice-activated commands (beta)
+    default: false
+    rollout_percentage: 0
+
+# Feature flag rules
+rules:
+  # Enable beta features for specific users
+  - condition: user.email == "beta@sonu.app"
+    flags:
+      beta_cloud_sync: true
+      beta_voice_commands: true
+
+  # Enable GPU for high-end systems
+  - condition: system.gpu_memory > 4000
+    flags:
+      gpu_acceleration: true
+
+# Emergency kill switches
+emergency:
+  # Set to true to disable feature immediately
+  disable_vad_improved: false
+  disable_offline_llm: false
+  disable_model_caching: false

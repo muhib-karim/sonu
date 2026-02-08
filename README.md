@@ -1,4 +1,4 @@
-# SONU Platform
+# SONU - Professional Offline Voice Typing
 
 <p align="center">
   <img src="assets/icon.png" alt="SONU Logo" width="128" />
@@ -14,11 +14,20 @@
   <img src="https://img.shields.io/badge/Desktop-v2.0.0-6366f1?style=for-the-badge" alt="Desktop Version" />
   <img src="https://img.shields.io/badge/Mobile-v1.2.1-22c55e?style=for-the-badge" alt="Mobile Version" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
+  <img src="https://github.com/muhib-karim/sonu/workflows/CI/CD%20Pipeline/badge.svg" alt="CI/CD" />
 </p>
 
 <p align="center">
   A complete offline voice typing solution for desktop and mobile.<br/>
   No cloud. No subscriptions. 100% private.
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-installation">Installation</a> •
+  <a href="#-documentation">Documentation</a> •
+  <a href="#-contributing">Contributing</a>
 </p>
 
 ---
@@ -27,7 +36,7 @@
 
 | App | Platform | Tech Stack | Status |
 |-----|----------|------------|--------|
-| **[SONU Desktop](apps/tauri)** | Windows, macOS, Linux | Tauri + Rust + whisper.cpp | ✅ v2.0.0 |
+| **[SONU Desktop](apps/tauri-v2)** | Windows, macOS, Linux | Tauri + Rust + whisper.cpp | ✅ v2.0.0 |
 | **[Voice AI](apps/mobile)** | Android | Rust + whisper.cpp | ✅ v1.2.1 |
 | **SONU Desktop (Legacy)** | Windows | Electron + Python | 🗄️ v1.0.0 |
 

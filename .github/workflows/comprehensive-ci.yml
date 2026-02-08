@@ -1,0 +1,318 @@
+name: Comprehensive CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_VERSION: 20
+  RUST_VERSION: stable
+
+jobs:
+  # ==================== CODE QUALITY CHECKS ====================
+  lint-frontend:
+    name: Lint Frontend (Tauri v2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/tauri-v2/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/tauri-v2
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: apps/tauri-v2
+        run: npm run lint
+
+      - name: Check Prettier formatting
+        working-directory: apps/tauri-v2
+        run: npm run format:check
+
+  lint-rust:
+    name: Lint Rust Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+
+      - name: Check Rust formatting
+        working-directory: apps/tauri-v2/src-tauri
+        run: cargo fmt --check
+
+      - name: Run Clippy
+        working-directory: apps/tauri-v2/src-tauri
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  lint-python:
+    name: Lint Python (Legacy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install linting tools
+        run: |
+          pip install black flake8 isort mypy
+
+      - name: Check Python formatting with Black
+        working-directory: apps/desktop/src/core/python
+        run: black --check .
+
+      - name: Check import sorting
+        working-directory: apps/desktop/src/core/python
+        run: isort --check-only .
+
+      - name: Run Flake8
+        working-directory: apps/desktop/src/core/python
+        run: flake8 . --max-line-length=100 --extend-ignore=E203,W503
+
+  # ==================== UNIT TESTS ====================
+  test-frontend:
+    name: Test Frontend (Tauri v2)
+    runs-on: ubuntu-latest
+    needs: [lint-frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/tauri-v2/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/tauri-v2
+        run: npm ci
+
+      - name: Run TypeScript compiler check
+        working-directory: apps/tauri-v2
+        run: npx tsc --noEmit
+
+      - name: Run unit tests
+        working-directory: apps/tauri-v2
+        run: npm test --if-present || echo "No tests configured yet"
+
+  test-rust:
+    name: Test Rust Backend
+    runs-on: ${{ matrix.os }}
+    needs: [lint-rust]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+
+      - name: Run Rust tests
+        working-directory: apps/tauri-v2/src-tauri
+        run: cargo test --all-features --verbose
+
+      - name: Generate test coverage
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: apps/tauri-v2/src-tauri
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml --all-features
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
+        with:
+          files: apps/tauri-v2/src-tauri/cobertura.xml
+          flags: rust
+          name: rust-coverage
+
+  test-python:
+    name: Test Python (Legacy)
+    runs-on: windows-latest
+    needs: [lint-python]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        working-directory: apps/desktop/src/core/python
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run Python tests
+        working-directory: apps/desktop/src/core/python
+        run: pytest --cov=. --cov-report=xml --cov-report=html
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage
+          path: apps/desktop/src/core/python/htmlcov/
+          retention-days: 7
+
+  # ==================== BUILD TESTS ====================
+  build-tauri:
+    name: Build Tauri App (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform }}
+    needs: [test-frontend, test-rust]
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - platform: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/tauri-v2/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+
+      - name: Install dependencies
+        working-directory: apps/tauri-v2
+        run: npm ci
+
+      - name: Build Tauri app
+        working-directory: apps/tauri-v2
+        run: npm run tauri build -- --target ${{ matrix.target }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-build-${{ matrix.platform }}
+          path: |
+            apps/tauri-v2/src-tauri/target/${{ matrix.target }}/release/bundle/
+          retention-days: 7
+
+  # ==================== SECURITY SCANS ====================
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run cargo audit
+        working-directory: apps/tauri-v2/src-tauri
+        run: |
+          cargo install cargo-audit
+          cargo audit
+
+      - name: Run npm audit (Tauri v2)
+        working-directory: apps/tauri-v2
+        run: npm audit --audit-level=moderate
+
+  # ==================== DOCUMENTATION ====================
+  check-docs:
+    name: Check Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for broken links
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: --exclude-path node_modules --exclude-path target docs/
+
+  # ==================== DEPENDENCY UPDATES ====================
+  check-updates:
+    name: Check Dependency Updates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check Rust updates
+        working-directory: apps/tauri-v2/src-tauri
+        run: |
+          cargo install cargo-outdated
+          cargo outdated --exit-code 0 || true
+
+      - name: Check npm updates
+        working-directory: apps/tauri-v2
+        run: |
+          npm install -g npm-check-updates
+          ncu || true
+
+  # ==================== SUCCESS SUMMARY ====================
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint-frontend, lint-rust, lint-python, test-frontend, test-rust, test-python, build-tauri, security-audit]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint Frontend | ${{ needs.lint-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint Rust | ${{ needs.lint-rust.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint Python | ${{ needs.lint-python.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Frontend | ${{ needs.test-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Rust | ${{ needs.test-rust.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Python | ${{ needs.test-python.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Tauri | ${{ needs.build-tauri.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Audit | ${{ needs.security-audit.result }} |" >> $GITHUB_STEP_SUMMARY

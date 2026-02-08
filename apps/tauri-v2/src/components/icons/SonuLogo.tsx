@@ -1,72 +1,94 @@
+/**
+ * SONU Logo Component
+ * Consistent branding using shadCN design system
+ */
+
 import React from "react";
 
 interface SonuLogoProps {
-  width?: number | string;
-  height?: number | string;
-  className?: string;
+  /** Logo size variant */
+  size?: "sm" | "md" | "lg" | "xl";
+  /** Show text alongside icon */
   showText?: boolean;
+  /** Additional CSS classes */
+  className?: string;
 }
 
-const SonuLogo: React.FC<SonuLogoProps> = ({
-  width = 120,
-  height = 32,
-  className = "",
+const sizeMap = {
+  sm: { container: 24, icon: 14, text: "text-sm" },
+  md: { container: 32, icon: 18, text: "text-base" },
+  lg: { container: 48, icon: 28, text: "text-lg" },
+  xl: { container: 64, icon: 38, text: "text-xl" },
+};
+
+export const SonuLogo: React.FC<SonuLogoProps> = ({
+  size = "md",
   showText = true,
+  className = "",
 }) => {
+  const { container, icon, text } = sizeMap[size];
+
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
-      {/* Logo Icon - Stylized microphone with sound waves */}
-      <div className="relative">
-        <div className="w-8 h-8 bg-zinc-800 border border-zinc-700 rounded-lg flex items-center justify-center">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
+    <div className={`flex items-center gap-2 ${className}`}>
+      {/* Icon Container */}
+      <div
+        className="flex items-center justify-center rounded-md bg-brand-800 border border-brand-700"
+        style={{ width: container, height: container }}
+      >
+        <svg
+          width={icon}
+          height={icon}
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="text-brand-400"
+        >
+          {/* Microphone Body */}
+          <rect
+            x="8"
+            y="4"
+            width="8"
+            height="12"
+            rx="4"
+            fill="currentColor"
+          />
+          {/* Microphone Stand */}
+          <path
+            d="M6 12C6 15.3137 8.68629 18 12 18C15.3137 18 18 15.3137 18 12"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
             fill="none"
-            className="text-zinc-300"
-          >
-            {/* Microphone */}
-            <path
-              d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"
-              fill="currentColor"
-              opacity="0.9"
-            />
-            <path
-              d="M19 10v2a7 7 0 0 1-14 0v-2"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              fill="none"
-            />
-            <path
-              d="M12 19v4M8 23h8"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            {/* Sound waves */}
-            <path
-              d="M22 8c1 1.5 1 4.5 0 6"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.5"
-            />
-            <path
-              d="M2 8c-1 1.5-1 4.5 0 6"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              opacity="0.5"
-            />
-          </svg>
-        </div>
+          />
+          {/* Stand Base */}
+          <path
+            d="M12 18V21M9 21H15"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          {/* Sound Waves */}
+          <path
+            d="M4 10C4 10 3 12 4 14"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            className="text-brand-500"
+          />
+          <path
+            d="M20 10C20 10 21 12 20 14"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            className="text-brand-500"
+          />
+        </svg>
       </div>
 
+      {/* Text */}
       {showText && (
         <span
-          className="text-xl font-bold tracking-tight text-zinc-200"
-          style={{ fontFamily: "'Geist Mono', ui-monospace, monospace" }}
+          className={`font-mono font-semibold tracking-wider text-brand-50 ${text}`}
         >
           SONU
         </span>
