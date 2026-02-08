@@ -1,3 +1,4 @@
+use crate::utils::keychain::Keychain;
 use log::{debug, warn};
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -279,7 +280,7 @@ pub struct AppSettings {
     pub post_process_provider_id: String,
     #[serde(default = "default_post_process_providers")]
     pub post_process_providers: Vec<PostProcessProvider>,
-    #[serde(default = "default_post_process_api_keys")]
+    #[serde(skip)]
     pub post_process_api_keys: HashMap<String, String>,
     #[serde(default = "default_post_process_models")]
     pub post_process_models: HashMap<String, String>,
@@ -342,7 +343,7 @@ fn default_overlay_position() -> OverlayPosition {
 }
 
 fn default_debug_mode() -> bool {
-    false
+    true
 }
 
 fn default_log_level() -> LogLevel {
@@ -649,6 +650,9 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
                     store.set("settings", serde_json::to_value(&settings).unwrap());
                 }
 
+                // Load API keys from keychain
+                load_api_keys_from_keychain(&mut settings);
+
                 settings
             }
             Err(e) => {
@@ -693,15 +697,63 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
         store.set("settings", serde_json::to_value(&settings).unwrap());
     }
 
+    // Load API keys from keychain
+    load_api_keys_from_keychain(&mut settings);
+
     settings
 }
 
-pub fn write_settings(app: &AppHandle, settings: AppSettings) {
+pub fn write_settings(app: &AppHandle, settings: &AppSettings) {
     let store = app
         .store(SETTINGS_STORE_PATH)
         .expect("Failed to initialize store");
 
+    // Save API keys to keychain before removing them from the settings object
+    save_api_keys_to_keychain(settings);
+
     store.set("settings", serde_json::to_value(&settings).unwrap());
+}
+
+/// Load API keys from the OS keychain into settings
+fn load_api_keys_from_keychain(settings: &mut AppSettings) {
+    let keychain = Keychain::new();
+
+    for provider in &settings.post_process_providers {
+        let account = format!("api_key_{}", provider.id);
+        match keychain.get_password(&account) {
+            Ok(Some(api_key)) => {
+                settings
+                    .post_process_api_keys
+                    .insert(provider.id.clone(), api_key);
+            }
+            Ok(None) => {
+                // No API key stored for this provider
+                settings
+                    .post_process_api_keys
+                    .insert(provider.id.clone(), String::new());
+            }
+            Err(e) => {
+                warn!("Failed to load API key for provider {}: {}", provider.id, e);
+                settings
+                    .post_process_api_keys
+                    .insert(provider.id.clone(), String::new());
+            }
+        }
+    }
+}
+
+/// Save API keys from settings to the OS keychain
+fn save_api_keys_to_keychain(settings: &AppSettings) {
+    let keychain = Keychain::new();
+
+    for (provider_id, api_key) in &settings.post_process_api_keys {
+        if !api_key.is_empty() {
+            let account = format!("api_key_{}", provider_id);
+            if let Err(e) = keychain.set_password(&account, api_key) {
+                warn!("Failed to save API key for provider {}: {}", provider_id, e);
+            }
+        }
+    }
 }
 
 pub fn get_bindings(app: &AppHandle) -> HashMap<String, ShortcutBinding> {

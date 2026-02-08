@@ -5,3 +5,23 @@ node_modules/
 dist/
 build/
 
+# Debug and test artifacts
+test_*.js
+test2.js
+debug_*.js
+simple_test.js
+*_output*.txt
+app_output*.txt
+minimal_*.txt
+main_patch.txt
+
+# Backup files
+*backup*.py
+*backup*.js
+*backup*.json
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+

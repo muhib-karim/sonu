@@ -1,0 +1,53 @@
+#!/bin/sh
+# Pre-commit hook for SONU
+
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Check if any JavaScript/TypeScript files are staged
+if echo "$STAGED_FILES" | grep -E "\.(js|jsx|ts|tsx)$" > /dev/null; then
+    echo "📦 Checking Tauri app..."
+    cd apps/tauri-v2 || exit 1
+    
+    echo "  - Running ESLint..."
+    bun run lint || exit 1
+    
+    echo "  - Running Prettier..."
+    bun run format || exit 1
+    
+    echo "  - Running TypeScript check..."
+    bun run typecheck || exit 1
+    
+    cd ../..
+fi
+
+# Check if any Rust files are staged
+if echo "$STAGED_FILES" | grep -E "\.rs$" > /dev/null; then
+    echo "🦀 Checking Rust code..."
+    cd apps/tauri-v2/src-tauri || exit 1
+    
+    echo "  - Running cargo fmt..."
+    cargo fmt -- --check || exit 1
+    
+    echo "  - Running clippy..."
+    cargo clippy -- -D warnings || exit 1
+    
+    cd ../../..
+fi
+
+# Check if any Python files are staged (for legacy app)
+if echo "$STAGED_FILES" | grep -E "\.py$" > /dev/null; then
+    echo "🐍 Checking Python code..."
+    
+    # Run flake8 if available
+    if command -v flake8 > /dev/null; then
+        echo "  - Running flake8..."
+        flake8 apps/desktop/src/core/python/ || exit 1
+    fi
+fi
+
+echo "✅ All checks passed!"

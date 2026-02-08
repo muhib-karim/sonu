@@ -3,9 +3,37 @@ use crate::helpers::clamshell;
 use crate::settings::{get_settings, AppSettings};
 use crate::utils;
 use log::{debug, error, info};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Instant;
 use tauri::Manager;
+
+/// Errors that can occur in audio recording operations
+#[derive(Debug, thiserror::Error)]
+pub enum AudioError {
+    #[error("Mutex lock poisoned: {0}")]
+    LockPoisoned(String),
+    #[error("Recorder not initialized")]
+    RecorderNotInitialized,
+    #[error("Failed to open microphone: {0}")]
+    MicrophoneOpenFailed(String),
+    #[error("Failed to start recording: {0}")]
+    RecordingStartFailed(String),
+    #[error("Failed to stop recording: {0}")]
+    RecordingStopFailed(String),
+    #[error("Invalid device selection")]
+    InvalidDevice,
+    #[error("Path contains invalid UTF-8")]
+    InvalidPath,
+}
+
+impl<T> From<PoisonError<T>> for AudioError {
+    fn from(err: PoisonError<T>) -> Self {
+        AudioError::LockPoisoned(err.to_string())
+    }
+}
+
+/// Result type for audio operations
+pub type AudioResult<T> = Result<T, AudioError>;
 
 fn set_mute(mute: bool) {
     // Expected behavior:
@@ -183,6 +211,14 @@ impl AudioRecordingManager {
 
     /* ---------- helper methods --------------------------------------------- */
 
+    /// Safely lock a mutex, converting poison errors to AudioError
+    fn safe_lock<'a, T>(&self, mutex: &'a Mutex<T>) -> AudioResult<std::sync::MutexGuard<'a, T>> {
+        mutex.lock().map_err(|_e| {
+            error!("Mutex poison error");
+            AudioError::LockPoisoned("Mutex lock poisoned".to_string())
+        })
+    }
+
     fn get_effective_microphone_device(&self, settings: &AppSettings) -> Option<cpal::Device> {
         // Check if we're in clamshell mode and have a clamshell microphone configured
         let use_clamshell_mic = if let Ok(is_clamshell) = clamshell::is_clamshell() {
@@ -192,7 +228,7 @@ impl AudioRecordingManager {
         };
 
         let device_name = if use_clamshell_mic {
-            settings.clamshell_microphone.as_ref().unwrap()
+            settings.clamshell_microphone.as_ref()?  // Safe: checked is_some() above
         } else {
             settings.selected_microphone.as_ref()?
         };
@@ -213,29 +249,33 @@ impl AudioRecordingManager {
     /* ---------- microphone life-cycle -------------------------------------- */
 
     /// Applies mute if mute_while_recording is enabled and stream is open
-    pub fn apply_mute(&self) {
+    pub fn apply_mute(&self) -> AudioResult<()> {
         let settings = get_settings(&self.app_handle);
-        let mut did_mute_guard = self.did_mute.lock().unwrap();
+        let mut did_mute_guard = self.safe_lock(&self.did_mute)?;
+        let is_open = *self.safe_lock(&self.is_open)?;
 
-        if settings.mute_while_recording && *self.is_open.lock().unwrap() {
+        if settings.mute_while_recording && is_open {
             set_mute(true);
             *did_mute_guard = true;
             debug!("Mute applied");
         }
+        Ok(())
     }
 
     /// Removes mute if it was applied
-    pub fn remove_mute(&self) {
-        let mut did_mute_guard = self.did_mute.lock().unwrap();
+    pub fn remove_mute(&self) -> AudioResult<()> {
+        let mut did_mute_guard = self.safe_lock(&self.did_mute)?;
         if *did_mute_guard {
             set_mute(false);
             *did_mute_guard = false;
             debug!("Mute removed");
         }
+        Ok(())
     }
 
     pub fn start_microphone_stream(&self) -> Result<(), anyhow::Error> {
-        let mut open_flag = self.is_open.lock().unwrap();
+        let mut open_flag = self.safe_lock(&self.is_open)
+            .map_err(|e| anyhow::anyhow!("Failed to lock is_open: {}", e))?;
         if *open_flag {
             debug!("Microphone stream already active");
             return Ok(());
@@ -244,7 +284,8 @@ impl AudioRecordingManager {
         let start_time = Instant::now();
 
         // Don't mute immediately - caller will handle muting after audio feedback
-        let mut did_mute_guard = self.did_mute.lock().unwrap();
+        let mut did_mute_guard = self.safe_lock(&self.did_mute)
+            .map_err(|e| anyhow::anyhow!("Failed to lock did_mute: {}", e))?;
         *did_mute_guard = false;
 
         let vad_path = self
@@ -255,13 +296,13 @@ impl AudioRecordingManager {
                 tauri::path::BaseDirectory::Resource,
             )
             .map_err(|e| anyhow::anyhow!("Failed to resolve VAD path: {}", e))?;
-        let mut recorder_opt = self.recorder.lock().unwrap();
+        let mut recorder_opt = self.safe_lock(&self.recorder)
+            .map_err(|e| anyhow::anyhow!("Failed to lock recorder: {}", e))?;
 
         if recorder_opt.is_none() {
-            *recorder_opt = Some(create_audio_recorder(
-                vad_path.to_str().unwrap(),
-                &self.app_handle,
-            )?);
+            let vad_path_str = vad_path.to_str()
+                .ok_or_else(|| anyhow::anyhow!("VAD path contains invalid UTF-8"))?;
+            *recorder_opt = Some(create_audio_recorder(vad_path_str, &self.app_handle)?);
         }
 
         // Get the selected device from settings, considering clamshell mode
@@ -282,22 +323,56 @@ impl AudioRecordingManager {
     }
 
     pub fn stop_microphone_stream(&self) {
-        let mut open_flag = self.is_open.lock().unwrap();
+        // Use safe_lock with fallback to avoid panics
+        let mut open_flag = match self.safe_lock(&self.is_open) {
+            Ok(guard) => guard,
+            Err(e) => {
+                error!("Failed to lock is_open in stop_microphone_stream: {}", e);
+                return;
+            }
+        };
+        
         if !*open_flag {
             return;
         }
 
-        let mut did_mute_guard = self.did_mute.lock().unwrap();
+        let mut did_mute_guard = match self.safe_lock(&self.did_mute) {
+            Ok(guard) => guard,
+            Err(e) => {
+                error!("Failed to lock did_mute in stop_microphone_stream: {}", e);
+                return;
+            }
+        };
+        
         if *did_mute_guard {
             set_mute(false);
         }
         *did_mute_guard = false;
 
-        if let Some(rec) = self.recorder.lock().unwrap().as_mut() {
+        let mut recorder_guard = match self.safe_lock(&self.recorder) {
+            Ok(guard) => guard,
+            Err(e) => {
+                error!("Failed to lock recorder in stop_microphone_stream: {}", e);
+                *open_flag = false;
+                return;
+            }
+        };
+
+        if let Some(rec) = recorder_guard.as_mut() {
             // If still recording, stop first.
-            if *self.is_recording.lock().unwrap() {
+            let is_recording = match self.safe_lock(&self.is_recording) {
+                Ok(guard) => *guard,
+                Err(e) => {
+                    error!("Failed to lock is_recording: {}", e);
+                    false
+                }
+            };
+            
+            if is_recording {
                 let _ = rec.stop();
-                *self.is_recording.lock().unwrap() = false;
+                if let Ok(mut guard) = self.safe_lock(&self.is_recording) {
+                    *guard = false;
+                }
             }
             let _ = rec.close();
         }
@@ -309,12 +384,20 @@ impl AudioRecordingManager {
     /* ---------- mode switching --------------------------------------------- */
 
     pub fn update_mode(&self, new_mode: MicrophoneMode) -> Result<(), anyhow::Error> {
-        let mode_guard = self.mode.lock().unwrap();
+        let mode_guard = self.safe_lock(&self.mode)
+            .map_err(|e| anyhow::anyhow!("Failed to lock mode: {}", e))?;
         let cur_mode = mode_guard.clone();
 
         match (cur_mode, &new_mode) {
             (MicrophoneMode::AlwaysOn, MicrophoneMode::OnDemand) => {
-                if matches!(*self.state.lock().unwrap(), RecordingState::Idle) {
+                let is_idle = match self.safe_lock(&self.state) {
+                    Ok(guard) => matches!(*guard, RecordingState::Idle),
+                    Err(e) => {
+                        error!("Failed to lock state: {}", e);
+                        false
+                    }
+                };
+                if is_idle {
                     drop(mode_guard);
                     self.stop_microphone_stream();
                 }
@@ -326,7 +409,11 @@ impl AudioRecordingManager {
             _ => {}
         }
 
-        *self.mode.lock().unwrap() = new_mode;
+        if let Ok(mut guard) = self.safe_lock(&self.mode) {
+            *guard = new_mode;
+        } else {
+            error!("Failed to lock mode for update");
+        }
         Ok(())
     }
 

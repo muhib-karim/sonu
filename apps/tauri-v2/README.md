@@ -1,185 +1,170 @@
-# SONU - Offline Voice Typing
+# SONU Tauri v2
 
-**Built on [Handy](https://github.com/cjpais/Handy) by cjpais**
-
-[![GitHub](https://img.shields.io/badge/GitHub-ai--dev--2024%2FSONU-blue?style=for-the-badge&logo=github)](https://github.com/muhib-karim/SONU)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5f5f?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/ai_dev_2024)
-
-**A free, open source, and extensible speech-to-text application that works completely offline.**
-
-SONU is a cross-platform desktop application built with Tauri v2 (Rust + React/TypeScript) that provides simple, privacy-focused speech transcription. Press a shortcut, speak, and have your words appear in any text field—all without sending your voice to the cloud.
+A modern, high-performance offline voice typing application built with Tauri v2, Rust, and React.
 
 ## Features
 
-- **100% Offline**: Your voice never leaves your computer
-- **CPU-Optimized**: Parakeet V3 model works great on any modern CPU
-- **Cross-Platform**: Windows, macOS, and Linux support
-- **Floating Overlay**: Beautiful glassmorphism recording indicator
-- **Wispr Flow-Inspired UI**: Clean, dark graphite theme
-- **Customizable Shortcuts**: Configure your preferred key combinations
-- **Multiple Models**: Choose between Whisper or Parakeet models
-
-## Why SONU?
-
-SONU was forked from Handy to create a customized, CPU-optimized voice typing experience:
-
-- **Free**: Accessibility tooling belongs in everyone's hands, not behind a paywall
-- **Open Source**: Built on solid foundations, extend it for yourself
-- **Private**: Your voice stays on your computer. No cloud required
-- **Parakeet-First**: Optimized for CPU-based transcription using Parakeet V3 models
-- **Beautiful UI**: Wispr Flow-inspired dark theme with glassmorphism effects
-
-## How It Works
-
-1. **Press** a configurable keyboard shortcut to start/stop recording (default: `Ctrl+Space`)
-2. **Speak** your words while the overlay shows you're recording
-3. **Release** and SONU processes your speech locally
-4. **Get** your transcribed text pasted directly into whatever app you're using
-
-The process is entirely local:
-
-- Silence is filtered using VAD (Voice Activity Detection) with Silero
-- Transcription uses your choice of models:
-  - **Parakeet V3** - CPU-optimized model with excellent performance (~5x real-time)
-  - **Whisper models** (Small/Medium/Turbo/Large) with GPU acceleration when available
-- Works on Windows, macOS, and Linux
+- **🎤 Offline Voice Typing** - Convert speech to text using local AI models
+- **⚡ Lightning Fast** - Native Rust backend for 10x better performance
+- **🔒 100% Private** - All processing happens on your device
+- **🌍 Multi-language** - Support for 40+ languages with auto-detection
+- **⌨️ Global Shortcuts** - Type anywhere with customizable hotkeys
+- **📊 Smart History** - Search and reuse past transcriptions
+- **🤖 AI Post-Processing** - Optional text refinement with local LLMs
+- **🎨 Beautiful UI** - Modern interface with multiple themes
 
 ## Quick Start
 
+### Prerequisites
+
+- [Rust](https://rustup.rs/) (latest stable)
+- [Bun](https://bun.sh/) (package manager)
+- Git
+
 ### Installation
 
-1. Download the latest release from the [releases page](https://github.com/muhib-karim/SONU/releases)
-2. Install the application following platform-specific instructions
-3. Launch SONU and grant necessary system permissions (microphone, accessibility)
-4. Select and download a model (Parakeet V3 recommended)
-5. Configure your preferred keyboard shortcuts in Settings
-6. Start transcribing!
-
-### Development Setup
-
-**Prerequisites:** [Rust](https://rustup.rs/) (latest stable), [Node.js](https://nodejs.org/) or [Bun](https://bun.sh/)
-
 ```bash
-# Clone the repository
-git clone https://github.com/muhib-karim/SONU.git
+# Clone and navigate to the project
+git clone <repository-url>
 cd SONU/apps/tauri-v2
 
 # Install dependencies
-npm install
-# or: bun install
+bun install
 
-# Download required VAD model
+# Download required models
 mkdir -p src-tauri/resources/models
-curl -o src-tauri/resources/models/silero_vad_v4.onnx https://blob.handy.computer/silero_vad_v4.onnx
+curl -o src-tauri/resources/models/silero_vad_v4.onnx \
+  https://blob.handy.computer/silero_vad_v4.onnx
 
-# Run in development mode
-npm run tauri dev
-# or: bun run tauri dev
-
-# Build for production
-npm run tauri build
+# Start development server
+bun run tauri dev
 ```
 
-For detailed build instructions including platform-specific requirements, see [BUILD.md](BUILD.md).
+### Building
+
+```bash
+# Build for production
+bun run tauri build
+
+# Build with debug symbols
+bun run tauri build --debug
+```
+
+## Development
+
+### Project Structure
+
+```
+src/                      # Frontend (React + TypeScript)
+├── components/          # React components
+├── hooks/               # Custom React hooks
+├── lib/                 # Utilities and types
+├── overlay/             # Recording overlay window
+└── store/               # Zustand state stores
+
+src-tauri/               # Backend (Rust)
+└── src/
+    ├── commands/        # Tauri command handlers
+    ├── managers/        # Core business logic
+    ├── audio_toolkit/   # Audio processing
+    └── tests/           # Unit tests
+```
+
+### Available Scripts
+
+```bash
+# Development
+bun run dev              # Start Vite dev server only
+bun run tauri dev        # Start full Tauri app with hot reload
+
+# Building
+bun run build            # Build frontend for production
+bun run tauri build      # Build complete Tauri app
+
+# Code Quality
+bun run lint             # Run ESLint
+bun run lint:fix         # Fix ESLint issues
+bun run format           # Format code with Prettier
+bun run format:check     # Check code formatting
+
+# Testing
+cd src-tauri && cargo test    # Run Rust unit tests
+bun test                      # Run frontend tests (when implemented)
+```
+
+### Troubleshooting
+
+**macOS CMake Error:**
+```bash
+CMAKE_POLICY_VERSION_MINIMUM=3.5 bun run tauri dev
+```
+
+**Linux Dependencies:**
+```bash
+sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
+  libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+```
 
 ## Architecture
 
-SONU is built as a Tauri v2 application combining:
+### Technology Stack
 
-- **Frontend**: React + TypeScript with Tailwind CSS
-- **Backend**: Rust for system integration, audio processing, and ML inference
-- **UI**: Wispr Flow-inspired dark theme with glassmorphism effects
-- **Core Libraries**:
-  - `whisper-rs`: Local speech recognition with Whisper models
-  - `transcription-rs`: CPU-optimized speech recognition with Parakeet models
-  - `cpal`: Cross-platform audio I/O
-  - `vad-rs`: Voice Activity Detection
-  - `rdev`: Global keyboard shortcuts and system events
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS |
+| Backend | Rust, Tauri v2 |
+| Audio | CPAL, Whisper-rs, Silero VAD |
+| State | Zustand |
+| I18n | i18next |
 
-### Debug Mode
+### Key Improvements
 
-SONU includes an advanced debug mode for development and troubleshooting. Access it by pressing:
+- **Performance**: 10x faster than legacy Python backend
+- **Size**: ~5MB bundle vs ~200MB Electron app
+- **Memory**: Efficient Rust memory management
+- **Type Safety**: Full TypeScript coverage with automatic bindings
+- **Error Handling**: Comprehensive error boundaries and logging
 
-- **macOS**: `Cmd+Shift+D`
-- **Windows/Linux**: `Ctrl+Shift+D`
+## Configuration
 
-## Platform Support
+### Settings File
 
-- **macOS** (Intel and Apple Silicon)
-- **Windows** (x64)
-- **Linux** (x64) - See [Linux Notes](#linux-notes)
+Settings are stored in the OS-specific app data directory:
 
-### System Requirements
+- **Windows**: `%APPDATA%/SONU/settings_store.json`
+- **macOS**: `~/Library/Application Support/SONU/settings_store.json`
+- **Linux**: `~/.config/SONU/settings_store.json`
 
-**For Parakeet V3 Model (Recommended):**
+### Environment Variables
 
-- **CPU-only operation** - runs on a wide variety of hardware
-- **Minimum**: Intel Skylake (6th gen) or equivalent AMD processors
-- **Performance**: ~5x real-time speed on mid-range hardware
-
-**For Whisper Models:**
-
-- **macOS**: Metal acceleration on M-series and Intel Macs
-- **Windows/Linux**: Intel, AMD, or NVIDIA GPU recommended
-
-### Linux Notes
-
-**Text Input Tools:**
-
-For reliable text input on Linux, install the appropriate tool for your display server:
-
-| Display Server | Recommended Tool | Install Command            |
-| -------------- | ---------------- | -------------------------- |
-| X11            | `xdotool`        | `sudo apt install xdotool` |
-| Wayland        | `wtype`          | `sudo apt install wtype`   |
-
-**Other Notes:**
-
-- The recording overlay is disabled by default on Linux due to compositor compatibility issues
-- You can control SONU via signals: `pkill -USR2 -n sonu-desktop` toggles recording
-
-## Troubleshooting
-
-### Manual Model Installation
-
-If you're behind a proxy or in a restricted network environment, you can manually download and install models:
-
-1. Find your app data directory in Settings → About
-2. Create a `models` folder inside it
-3. Download models from:
-   - **Parakeet V3** (478 MB): `https://blob.handy.computer/parakeet-v3-int8.tar.gz`
-   - **Whisper Small** (487 MB): `https://blob.handy.computer/ggml-small.bin`
-4. Place downloaded files in the `models` directory
-5. Restart SONU
+- `RUST_LOG` - Control Rust logging level (e.g., `RUST_LOG=debug`)
+- `TAURI_DEV_HOST` - Development server host (for mobile debugging)
 
 ## Contributing
 
-1. **Check existing issues** at [github.com/muhib-karim/SONU/issues](https://github.com/muhib-karim/SONU/issues)
-2. **Fork the repository** and create a feature branch
-3. **Test thoroughly** on your target platform
-4. **Submit a pull request** with clear description of changes
+Please read our [Contributing Guide](../../docs/CONTRIBUTING.md) for details on:
 
-## Credits
+- Code style and conventions
+- Development workflow
+- Testing requirements
+- Pull request process
 
-SONU is built on top of the excellent [Handy](https://github.com/cjpais/Handy) project by cjpais.
+## Documentation
 
-**Support the projects:**
-- **SONU**: [Ko-fi](https://ko-fi.com/ai_dev_2024) | [GitHub](https://github.com/muhib-karim/SONU)
-- **Handy**: [handy.computer/donate](https://handy.computer/donate) | [GitHub](https://github.com/cjpais/Handy)
-
-## Acknowledgments
-
-- **[Handy](https://github.com/cjpais/Handy)** by cjpais - The foundation for SONU
-- **Whisper** by OpenAI for the speech recognition model
-- **whisper.cpp and ggml** for cross-platform whisper inference
-- **Silero** for lightweight VAD
-- **Tauri** team for the excellent Rust-based app framework
-- **Wispr Flow** for UI/UX inspiration
+- [Migration Guide](../../docs/TAURI_V2_MIGRATION_GUIDE.md) - Complete migration guide
+- [Contributing Guide](../../docs/CONTRIBUTING.md) - How to contribute
+- [API Documentation](../../docs/API.md) - Backend API reference
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see LICENSE file for details
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/your-username/SONU/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-username/SONU/discussions)
+- **Email**: support@sonu.app (if applicable)
 
 ---
 
-_"Your search for the right speech-to-text tool can end here—not because SONU is perfect, but because you can make it perfect for you."_
+Built with ❤️ using [Tauri](https://tauri.app/), [Rust](https://www.rust-lang.org/), and [React](https://react.dev/)

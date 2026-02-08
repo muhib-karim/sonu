@@ -75,10 +75,29 @@ export const NotesSettings: React.FC = () => {
     };
   }, [audioElement]);
 
+  useEffect(() => {
+    // Sync recording state on mount
+    invoke<boolean>("is_recording")
+      .then(setIsRecording)
+      .catch((err) => console.error("Failed to check recording status:", err));
+  }, []);
+
   const toggleRecording = async () => {
-    // TODO: Integrate with dedicated notes recording
-    // For now, this is a placeholder - users can use the global shortcut
-    setIsRecording(!isRecording);
+    try {
+      if (isRecording) {
+        // Stop recording
+        const text = await invoke<string>("finish_note_recording");
+        setIsRecording(false);
+        // Notes will reload automatically via the history-updated event
+      } else {
+        // Start recording
+        await invoke("start_note_recording");
+        setIsRecording(true);
+      }
+    } catch (error) {
+      console.error("Recording error:", error);
+      setIsRecording(false);
+    }
   };
 
   const deleteNote = async (id: number) => {

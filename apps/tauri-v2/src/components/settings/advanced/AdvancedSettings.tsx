@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { commands } from "@/bindings";
+import { invoke } from "@tauri-apps/api/core";
 import { ShowOverlay } from "../ShowOverlay";
 import { TranslateToEnglish } from "../TranslateToEnglish";
 import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
@@ -14,26 +16,30 @@ export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
   const [llmEnabled, setLlmEnabled] = useState(false);
 
-  // Load LLM setting
+  // Load LLM setting from backend
   useEffect(() => {
-    const saved = localStorage.getItem("sonu-styles");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setLlmEnabled(parsed.llmEnabled || false);
-      } catch (e) {
-        console.error("Failed to load LLM setting:", e);
+    commands.getAppSettings().then((settings) => {
+      if (settings.status === "ok") {
+        setLlmEnabled(settings.data.post_process_enabled);
       }
-    }
+    });
   }, []);
 
-  // Save LLM setting
-  const toggleLlm = (enabled: boolean) => {
+  // Save LLM setting to backend
+  const toggleLlm = async (enabled: boolean) => {
     setLlmEnabled(enabled);
-    const saved = localStorage.getItem("sonu-styles");
-    const parsed = saved ? JSON.parse(saved) : {};
-    parsed.llmEnabled = enabled;
-    localStorage.setItem("sonu-styles", JSON.stringify(parsed));
+    try {
+      await invoke("change_post_process_enabled_setting", { enabled });
+      // Also update local storage for style persistence if needed, but backend is source of truth
+      const saved = localStorage.getItem("sonu-styles");
+      const parsed = saved ? JSON.parse(saved) : {};
+      parsed.llmEnabled = enabled;
+      localStorage.setItem("sonu-styles", JSON.stringify(parsed));
+    } catch (error) {
+      console.error("Failed to update post-process setting:", error);
+      // Revert UI on failure
+      setLlmEnabled(!enabled);
+    }
   };
 
   return (

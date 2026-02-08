@@ -8,7 +8,9 @@ mod commands;
 mod helpers;
 mod input;
 mod llm_client;
+mod llm_inference;
 mod managers;
+mod model_config;
 mod overlay;
 mod settings;
 mod shortcut;
@@ -139,6 +141,12 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     // Initialize the shortcuts
     shortcut::init_shortcuts(app_handle);
+
+    // Pre-load model if configured (Auto-reload last used model)
+    let settings = get_settings(app_handle);
+    if !settings.selected_model.is_empty() {
+        transcription_manager.initiate_model_load();
+    }
 
     #[cfg(unix)]
     let signals = Signals::new(&[SIGUSR2]).unwrap();
@@ -307,6 +315,8 @@ pub fn run() {
         commands::transcription::set_model_unload_timeout,
         commands::transcription::get_model_load_status,
         commands::transcription::unload_model_manually,
+        commands::transcription::start_note_recording,
+        commands::transcription::finish_note_recording,
         commands::history::get_history_entries,
         commands::history::toggle_history_entry_saved,
         commands::history::get_audio_file_path,

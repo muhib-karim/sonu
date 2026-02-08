@@ -112,3 +112,6 @@ versions/*/*.bak
 .cp-images/
 
 apps/desktop/models/parakeet-v3/parakeet-tdt-0.6b-v3.nemo
+.vscode/
+apps/desktop/data/.env
+config.json

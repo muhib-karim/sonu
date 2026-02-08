@@ -1,61 +1,41 @@
 /**
- * SONU Desktop - Refactored Main Process Entry Point
- * 
- * This is an example refactored entry point showing how to integrate
- * the new modules (logger, secureStorage, constants).
- * 
- * This replaces the original main.js (5,883 lines) with a modular approach.
+ * Main Entry Point - Refactored
+ * Orchestrates all services and handles app lifecycle
  */
 
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage, clipboard, screen, shell, dialog } = require('electron');
+const { app, globalShortcut, ipcMain } = require('electron');
 const path = require('path');
-const fs = require('fs');
 
-// Import new modules
-const { constants } = require('./src/config');
-const { logger, secureStorage } = require('./src/utils');
-const { runMigrations } = require('./src/utils/migration');
-
-// Import managers (these would be separate files in a full refactor)
-// For now, we keep them here as a transition step
-const WindowManager = require('./src/main/window-manager');
-const TrayManager = require('./src/main/tray-manager');
-const PythonManager = require('./src/main/python-manager');
+// Import refactored modules
+const windowManager = require('../services/window-manager');
+const typingService = require('../services/typing-service');
+const recordingService = require('../services/recording-service');
+const settingsService = require('../services/settings-service');
+const trayService = require('../services/tray-service');
+const { getLogger } = require('../utils/logger');
 
 // Initialize logger
-const mainLogger = logger.createLogger('Main');
+const logger = getLogger('Main');
 
 // Application state
-let mainWindow = null;
-let tray = null;
 let isRecording = false;
-let settings = { ...constants.DEFAULT_SETTINGS };
 
-/**
- * Initialize the application
- */
-async function initialize() {
-  mainLogger.info('Initializing SONU Desktop...');
+// ============================================
+// Application Lifecycle
+// ============================================
+
+app.whenReady().then(async () => {
+  logger.info('Application starting...');
   
-  // Initialize secure storage
-  await secureStorage.initialize();
-  mainLogger.info('Secure storage initialized');
+  // Initialize services
+  await initializeServices();
   
-  // Run migrations
-  await runMigrations();
-  mainLogger.info('Migrations complete');
+  // Create windows
+  windowManager.createMainWindow();
+  windowManager.createIndicatorWindow();
   
-  // Load settings
-  await loadSettings();
-  
-  // Create managers
-  createManagers();
-  
-  // Create main window
-  mainWindow = WindowManager.createMainWindow(settings);
-  
-  // Create tray
-  tray = TrayManager.createTray(settings, mainWindow);
+  // Setup tray
+  trayService.createTray(windowManager.getMainWindow());
   
   // Register hotkeys
   registerHotkeys();
@@ -63,185 +43,7 @@ async function initialize() {
   // Setup IPC handlers
   setupIpcHandlers();
   
-  mainLogger.info('SONU Desktop initialized successfully');
-}
-
-/**
- * Load settings from file
- */
-async function loadSettings() {
-  try {
-    const settingsPath = path.join(constants.getDataPath(), 'settings.json');
-    
-    if (fs.existsSync(settingsPath)) {
-      const loadedSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-      settings = { ...constants.DEFAULT_SETTINGS, ...loadedSettings };
-      mainLogger.info('Settings loaded', { path: settingsPath });
-    } else {
-      mainLogger.info('Using default settings');
-    }
-  } catch (error) {
-    mainLogger.error('Failed to load settings', { error: error.message });
-    settings = { ...constants.DEFAULT_SETTINGS };
-  }
-}
-
-/**
- * Save settings to file
- */
-async function saveSettings() {
-  try {
-    const settingsPath = path.join(constants.getDataPath(), 'settings.json');
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-    mainLogger.debug('Settings saved');
-  } catch (error) {
-    mainLogger.error('Failed to save settings', { error: error.message });
-  }
-}
-
-/**
- * Create manager instances
- */
-function createManagers() {
-  // Initialize Python manager
-  PythonManager.initialize(settings);
-  
-  mainLogger.info('Managers initialized');
-}
-
-/**
- * Register global hotkeys
- */
-function registerHotkeys() {
-  // Hold hotkey
-  if (settings.holdHotkey) {
-    globalShortcut.register(settings.holdHotkey, () => {
-      toggleRecording();
-    });
-    mainLogger.info('Hold hotkey registered', { hotkey: settings.holdHotkey });
-  }
-  
-  // Toggle hotkey
-  if (settings.toggleHotkey) {
-    globalShortcut.register(settings.toggleHotkey, () => {
-      toggleRecording();
-    });
-    mainLogger.info('Toggle hotkey registered', { hotkey: settings.toggleHotkey });
-  }
-}
-
-/**
- * Toggle recording state
- */
-function toggleRecording() {
-  if (isRecording) {
-    stopRecording();
-  } else {
-    startRecording();
-  }
-}
-
-/**
- * Start recording
- */
-function startRecording() {
-  if (isRecording) return;
-  
-  isRecording = true;
-  mainLogger.info('Recording started');
-  
-  // Notify renderer
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(constants.IPC_CHANNELS.RECORDING_STARTED);
-  }
-  
-  // Start Python recording process
-  PythonManager.startRecording();
-}
-
-/**
- * Stop recording
- */
-function stopRecording() {
-  if (!isRecording) return;
-  
-  isRecording = false;
-  mainLogger.info('Recording stopped');
-  
-  // Notify renderer
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(constants.IPC_CHANNELS.RECORDING_STOPPED);
-  }
-  
-  // Stop Python recording process
-  PythonManager.stopRecording();
-}
-
-/**
- * Setup IPC handlers
- */
-function setupIpcHandlers() {
-  // Get settings
-  ipcMain.handle(constants.IPC_CHANNELS.GET_SETTINGS, async () => {
-    return settings;
-  });
-  
-  // Set settings
-  ipcMain.handle(constants.IPC_CHANNELS.SET_SETTINGS, async (event, newSettings) => {
-    settings = { ...settings, ...newSettings };
-    await saveSettings();
-    
-    // Notify all windows
-    BrowserWindow.getAllWindows().forEach(window => {
-      window.webContents.send(constants.IPC_CHANNELS.SETTINGS_CHANGED, settings);
-    });
-    
-    return settings;
-  });
-  
-  // Get API key (securely)
-  ipcMain.handle('get-api-key', async (event, keyName) => {
-    return await secureStorage.getPassword(keyName);
-  });
-  
-  // Set API key (securely)
-  ipcMain.handle('set-api-key', async (event, keyName, value) => {
-    await secureStorage.setPassword(keyName, value);
-    return true;
-  });
-  
-  // Toggle recording
-  ipcMain.handle(constants.IPC_CHANNELS.TOGGLE_RECORDING, async () => {
-    toggleRecording();
-    return isRecording;
-  });
-  
-  // Get models
-  ipcMain.handle(constants.IPC_CHANNELS.GET_MODELS, async () => {
-    return constants.MODELS;
-  });
-  
-  mainLogger.info('IPC handlers registered');
-}
-
-// App event handlers
-app.whenReady().then(async () => {
-  // Initialize logging first
-  logger.initialize({
-    level: 'debug',
-    logToFile: true,
-    logToConsole: true
-  });
-  
-  mainLogger.info('Application ready');
-  
-  await initialize();
-  
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = WindowManager.createMainWindow(settings);
-    }
-  });
+  logger.info('Application ready');
 });
 
 app.on('window-all-closed', () => {
@@ -251,33 +53,177 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  mainLogger.info('Application quitting...');
-  
-  // Unregister hotkeys
+  logger.info('Application quitting...');
+  recordingService.cleanup();
   globalShortcut.unregisterAll();
+});
+
+// ============================================
+// Service Initialization
+// ============================================
+
+async function initializeServices() {
+  try {
+    await settingsService.initialize();
+    await recordingService.initialize();
+    logger.info('All services initialized');
+  } catch (error) {
+    logger.error('Failed to initialize services:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// Hotkey Registration
+// ============================================
+
+function registerHotkeys() {
+  const settings = settingsService.getSettings();
   
-  // Close logger
-  logger.close();
-});
+  // Hold hotkey
+  if (settings.holdHotkey) {
+    globalShortcut.register(settings.holdHotkey, () => {
+      toggleRecording();
+    });
+    logger.info('Hold hotkey registered:', settings.holdHotkey);
+  }
+  
+  // Toggle hotkey
+  if (settings.toggleHotkey) {
+    globalShortcut.register(settings.toggleHotkey, () => {
+      toggleRecording();
+    });
+    logger.info('Toggle hotkey registered:', settings.toggleHotkey);
+  }
+}
 
-app.on('will-quit', () => {
-  mainLogger.info('Application will quit');
-});
+// ============================================
+// Recording Control
+// ============================================
 
-// Security: Prevent new window creation
-app.on('web-contents-created', (event, contents) => {
-  contents.on('new-window', (event, navigationUrl) => {
-    event.preventDefault();
-    shell.openExternal(navigationUrl);
+function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+function startRecording() {
+  if (isRecording) return;
+  
+  isRecording = true;
+  logger.info('Recording started');
+  
+  // Show indicator
+  const cursor = require('electron').screen.getCursorScreenPoint();
+  windowManager.showIndicator(cursor.x, cursor.y);
+  windowManager.setIndicatorState('recording');
+  
+  // Start recording service
+  recordingService.startRecording();
+  
+  // Notify renderer
+  const mainWindow = windowManager.getMainWindow();
+  if (mainWindow) {
+    mainWindow.webContents.send('recording-started');
+  }
+}
+
+function stopRecording() {
+  if (!isRecording) return;
+  
+  isRecording = false;
+  logger.info('Recording stopped');
+  
+  // Update indicator
+  windowManager.setIndicatorState('processing');
+  
+  // Stop recording and get result
+  recordingService.stopRecording(async (text) => {
+    if (text) {
+      // Type the transcription
+      await typingService.typeText(text, { incremental: true });
+      typingService.resetLastTyped();
+    }
+    
+    // Hide indicator
+    windowManager.hideIndicator();
+    
+    // Notify renderer
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow) {
+      mainWindow.webContents.send('recording-stopped', text);
+    }
   });
-});
+}
 
-// Handle uncaught errors
+// ============================================
+// IPC Handlers
+// ============================================
+
+function setupIpcHandlers() {
+  // Settings
+  ipcMain.handle('settings:get', () => {
+    return settingsService.getSettings();
+  });
+  
+  ipcMain.handle('settings:set', (event, newSettings) => {
+    settingsService.updateSettings(newSettings);
+    return settingsService.getSettings();
+  });
+  
+  // Recording
+  ipcMain.handle('recording:toggle', () => {
+    toggleRecording();
+    return isRecording;
+  });
+  
+  ipcMain.handle('recording:status', () => {
+    return isRecording;
+  });
+  
+  // Window control
+  ipcMain.handle('window:show', () => {
+    windowManager.showMainWindow();
+  });
+  
+  ipcMain.handle('window:hide', () => {
+    windowManager.hideMainWindow();
+  });
+  
+  // Typing
+  ipcMain.handle('typing:type', async (event, text) => {
+    await typingService.typeText(text);
+  });
+  
+  // Models
+  ipcMain.handle('models:list', () => {
+    return recordingService.getAvailableModels();
+  });
+  
+  ipcMain.handle('models:download', (event, modelId) => {
+    return recordingService.downloadModel(modelId);
+  });
+  
+  // History
+  ipcMain.handle('history:get', () => {
+    return recordingService.getHistory();
+  });
+  
+  ipcMain.handle('history:clear', () => {
+    recordingService.clearHistory();
+  });
+}
+
+// ============================================
+// Error Handling
+// ============================================
+
 process.on('uncaughtException', (error) => {
-  mainLogger.error('Uncaught exception', { error: error.message, stack: error.stack });
-  dialog.showErrorBox('Unexpected Error', error.message);
+  logger.error('Uncaught exception:', error);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  mainLogger.error('Unhandled rejection', { reason });
+  logger.error('Unhandled rejection at:', promise, 'reason:', reason);
 });

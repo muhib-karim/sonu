@@ -5,7 +5,7 @@ use anyhow::Result;
 use log::{debug, error, info, warn};
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::thread;
 use std::time::{Duration, SystemTime};
 use tauri::{AppHandle, Emitter};
@@ -15,6 +15,28 @@ use transcribe_rs::{
     },
     TranscriptionEngine,
 };
+
+/// Errors that can occur in transcription operations
+#[derive(Debug, thiserror::Error)]
+pub enum TranscriptionError {
+    #[error("Mutex lock poisoned: {0}")]
+    LockPoisoned(String),
+    #[error("Model not loaded")]
+    ModelNotLoaded,
+    #[error("Model loading failed: {0}")]
+    ModelLoadingFailed(String),
+    #[error("Transcription failed: {0}")]
+    TranscriptionFailed(String),
+}
+
+impl<T> From<PoisonError<T>> for TranscriptionError {
+    fn from(err: PoisonError<T>) -> Self {
+        TranscriptionError::LockPoisoned(err.to_string())
+    }
+}
+
+/// Result type for transcription operations
+pub type TranscriptionResult<T> = Result<T, TranscriptionError>;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ModelStateEvent {
@@ -43,17 +65,20 @@ pub struct TranscriptionManager {
 
 impl TranscriptionManager {
     pub fn new(app_handle: &AppHandle, model_manager: Arc<ModelManager>) -> Result<Self> {
+        let current_time_ms = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or_else(|e| {
+                error!("System time is before Unix epoch: {}", e);
+                0
+            });
+
         let manager = Self {
             engine: Arc::new(Mutex::new(None)),
             model_manager,
             app_handle: app_handle.clone(),
             current_model_id: Arc::new(Mutex::new(None)),
-            last_activity: Arc::new(AtomicU64::new(
-                SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis() as u64,
-            )),
+            last_activity: Arc::new(AtomicU64::new(current_time_ms)),
             shutdown_signal: Arc::new(AtomicBool::new(false)),
             watcher_handle: Arc::new(Mutex::new(None)),
             is_loading: Arc::new(Mutex::new(false)),
@@ -86,8 +111,8 @@ impl TranscriptionManager {
                         let last = manager_cloned.last_activity.load(Ordering::Relaxed);
                         let now_ms = SystemTime::now()
                             .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap()
-                            .as_millis() as u64;
+                            .map(|d| d.as_millis() as u64)
+                            .unwrap_or(0);
 
                         if now_ms.saturating_sub(last) > limit_seconds * 1000 {
                             // idle -> unload
@@ -117,15 +142,33 @@ impl TranscriptionManager {
                 }
                 debug!("Idle watcher thread shutting down gracefully");
             });
-            *manager.watcher_handle.lock().unwrap() = Some(handle);
+            
+            if let Ok(mut guard) = manager.watcher_handle.lock() {
+                *guard = Some(handle);
+            } else {
+                error!("Failed to lock watcher_handle during initialization");
+            }
         }
 
         Ok(manager)
     }
 
+    /// Safely lock a mutex, converting poison errors to TranscriptionError
+    fn safe_lock<'a, T>(&self, mutex: &'a Mutex<T>) -> TranscriptionResult<std::sync::MutexGuard<'a, T>> {
+        mutex.lock().map_err(|_e| {
+            error!("Mutex poison error");
+            TranscriptionError::LockPoisoned("Mutex lock poisoned".to_string())
+        })
+    }
+
     pub fn is_model_loaded(&self) -> bool {
-        let engine = self.engine.lock().unwrap();
-        engine.is_some()
+        match self.safe_lock(&self.engine) {
+            Ok(engine) => engine.is_some(),
+            Err(e) => {
+                error!("Failed to lock engine in is_model_loaded: {}", e);
+                false
+            }
+        }
     }
 
     pub fn unload_model(&self) -> Result<()> {
@@ -133,7 +176,8 @@ impl TranscriptionManager {
         debug!("Starting to unload model");
 
         {
-            let mut engine = self.engine.lock().unwrap();
+            let mut engine = self.safe_lock(&self.engine)
+                .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
             if let Some(ref mut loaded_engine) = *engine {
                 match loaded_engine {
                     LoadedEngine::Parakeet(ref mut e) => e.unload_model(),
@@ -142,7 +186,8 @@ impl TranscriptionManager {
             *engine = None; // Drop the engine to free memory
         }
         {
-            let mut current_model = self.current_model_id.lock().unwrap();
+            let mut current_model = self.safe_lock(&self.current_model_id)
+                .map_err(|e| anyhow::anyhow!("Failed to lock current_model_id: {}", e))?;
             *current_model = None;
         }
 
@@ -253,11 +298,13 @@ impl TranscriptionManager {
 
         // Update the current engine and model ID
         {
-            let mut engine = self.engine.lock().unwrap();
+            let mut engine = self.safe_lock(&self.engine)
+                .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
             *engine = Some(loaded_engine);
         }
         {
-            let mut current_model = self.current_model_id.lock().unwrap();
+            let mut current_model = self.safe_lock(&self.current_model_id)
+                .map_err(|e| anyhow::anyhow!("Failed to lock current_model_id: {}", e))?;
             *current_model = Some(model_id.to_string());
         }
 
@@ -283,7 +330,14 @@ impl TranscriptionManager {
 
     /// Kicks off the model loading in a background thread if it's not already loaded
     pub fn initiate_model_load(&self) {
-        let mut is_loading = self.is_loading.lock().unwrap();
+        let mut is_loading = match self.safe_lock(&self.is_loading) {
+            Ok(guard) => guard,
+            Err(e) => {
+                error!("Failed to lock is_loading in initiate_model_load: {}", e);
+                return;
+            }
+        };
+        
         if *is_loading || self.is_model_loaded() {
             return;
         }
@@ -295,26 +349,35 @@ impl TranscriptionManager {
             if let Err(e) = self_clone.load_model(&settings.selected_model) {
                 error!("Failed to load model: {}", e);
             }
-            let mut is_loading = self_clone.is_loading.lock().unwrap();
-            *is_loading = false;
-            self_clone.loading_condvar.notify_all();
+            if let Ok(mut guard) = self_clone.safe_lock(&self_clone.is_loading) {
+                *guard = false;
+                self_clone.loading_condvar.notify_all();
+            } else {
+                error!("Failed to lock is_loading after model load attempt");
+            }
         });
     }
 
     pub fn get_current_model(&self) -> Option<String> {
-        let current_model = self.current_model_id.lock().unwrap();
-        current_model.clone()
+        match self.safe_lock(&self.current_model_id) {
+            Ok(current_model) => current_model.clone(),
+            Err(e) => {
+                error!("Failed to lock current_model_id: {}", e);
+                None
+            }
+        }
     }
 
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
         // Update last activity timestamp
-        self.last_activity.store(
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64,
-            Ordering::Relaxed,
-        );
+        let current_time_ms = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or_else(|e| {
+                error!("System time is before Unix epoch: {}", e);
+                0
+            });
+        self.last_activity.store(current_time_ms, Ordering::Relaxed);
 
         let st = std::time::Instant::now();
 
@@ -329,12 +392,17 @@ impl TranscriptionManager {
         // Check if model is loaded, if not try to load it
         {
             // If the model is loading, wait for it to complete.
-            let mut is_loading = self.is_loading.lock().unwrap();
+            let mut is_loading = self.safe_lock(&self.is_loading)
+                .map_err(|e| anyhow::anyhow!("Failed to lock is_loading: {}", e))?;
+            
             while *is_loading {
-                is_loading = self.loading_condvar.wait(is_loading).unwrap();
+                is_loading = self.loading_condvar.wait(is_loading)
+                    .map_err(|e| anyhow::anyhow!("Condvar wait failed: {}", e))?;
             }
 
-            let engine_guard = self.engine.lock().unwrap();
+            let engine_guard = self.safe_lock(&self.engine)
+                .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
+            
             if engine_guard.is_none() {
                 return Err(anyhow::anyhow!("Model is not loaded for transcription."));
             }
@@ -345,7 +413,8 @@ impl TranscriptionManager {
 
         // Perform transcription with the appropriate engine
         let result = {
-            let mut engine_guard = self.engine.lock().unwrap();
+            let mut engine_guard = self.safe_lock(&self.engine)
+                .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
             let engine = engine_guard.as_mut().ok_or_else(|| {
                 anyhow::anyhow!(
                     "Model failed to load after auto-load attempt. Please check your model settings."
@@ -410,11 +479,18 @@ impl Drop for TranscriptionManager {
         self.shutdown_signal.store(true, Ordering::Relaxed);
 
         // Wait for the thread to finish gracefully
-        if let Some(handle) = self.watcher_handle.lock().unwrap().take() {
-            if let Err(e) = handle.join() {
-                warn!("Failed to join idle watcher thread: {:?}", e);
-            } else {
-                debug!("Idle watcher thread joined successfully");
+        match self.safe_lock(&self.watcher_handle) {
+            Ok(mut guard) => {
+                if let Some(handle) = guard.take() {
+                    if let Err(e) = handle.join() {
+                        warn!("Failed to join idle watcher thread: {:?}", e);
+                    } else {
+                        debug!("Idle watcher thread joined successfully");
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Failed to lock watcher_handle during drop: {}", e);
             }
         }
     }

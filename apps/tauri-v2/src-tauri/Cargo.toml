@@ -70,6 +70,8 @@ flate2 = "1.0"
 # SONU: Focus on Parakeet for CPU-optimized transcription
 transcribe-rs = { version = "0.2", features = ["parakeet"] }
 ferrous-opencc = "0.2.3"
+thiserror = "1.0"
+keyring = { version = "3", features = ["linux-native", "windows-native", "apple-native"] }
 specta = "=2.0.0-rc.22"
 specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
@@ -96,7 +98,8 @@ windows = { version = "0.61.3", features = [
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
 
 [profile.release]
-lto = false
-codegen-units = 4
+lto = "thin"
+codegen-units = 1
 strip = true
 panic = "abort"
+opt-level = 3

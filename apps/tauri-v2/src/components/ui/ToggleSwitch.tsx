@@ -11,6 +11,8 @@ interface ToggleSwitchProps {
   descriptionMode?: "inline" | "tooltip";
   grouped?: boolean;
   tooltipPosition?: "top" | "bottom";
+  "aria-label"?: string;
+  "data-testid"?: string;
 }
 
 export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
@@ -23,6 +25,8 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   descriptionMode = "tooltip",
   grouped = false,
   tooltipPosition = "top",
+  "aria-label": ariaLabel,
+  "data-testid": dataTestId,
 }) => {
   return (
     <SettingContainer
@@ -42,6 +46,10 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
           className="sr-only peer"
           checked={checked}
           disabled={disabled || isUpdating}
+          role="switch"
+          aria-label={ariaLabel ?? label}
+          aria-checked={checked}
+          data-testid={dataTestId}
           onChange={(e) => onChange(e.target.checked)}
         />
         <div className="relative w-11 h-6 bg-mid-gray/20 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-logo-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-zinc-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-background-ui peer-disabled:opacity-50"></div>

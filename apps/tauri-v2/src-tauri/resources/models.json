@@ -1,0 +1,139 @@
+{
+  "models": {
+    "whisper": {
+      "tiny": {
+        "name": "tiny",
+        "size": "39 MB",
+        "description": "Fastest, lowest accuracy",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
+        "multilingual": true,
+        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+      },
+      "base": {
+        "name": "base",
+        "size": "74 MB",
+        "description": "Fast, decent accuracy",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+        "multilingual": true,
+        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+      },
+      "small": {
+        "name": "small",
+        "size": "244 MB",
+        "description": "Balanced speed/accuracy",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
+        "multilingual": true,
+        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+      },
+      "medium": {
+        "name": "medium",
+        "size": "769 MB",
+        "description": "High accuracy, slower",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
+        "multilingual": true,
+        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+      },
+      "large-v1": {
+        "name": "large-v1",
+        "size": "1.5 GB",
+        "description": "Highest accuracy, slowest",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v1.bin",
+        "multilingual": true,
+        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+      },
+      "large-v2": {
+        "name": "large-v2",
+        "size": "1.5 GB",
+        "description": "Latest large model",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2.bin",
+        "multilingual": true,
+        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+      },
+      "large-v3": {
+        "name": "large-v3",
+        "size": "1.5 GB",
+        "description": "Latest large model (v3)",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
+        "multilingual": true,
+        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+      }
+    },
+    "parakeet": {
+      "parakeet-tdt-0.6b-v3": {
+        "name": "parakeet-tdt-0.6b-v3",
+        "size": "600 MB",
+        "description": "English only, very fast on GPU",
+        "repo": "istupakov/parakeet-tdt-0.6b-v3-onnx",
+        "multilingual": false,
+        "languages": ["en"]
+      }
+    },
+    "offline_llm": {
+      "smollm2-360m-instruct": {
+        "name": "SmolLM2 360M Instruct",
+        "size": "720 MB",
+        "description": "Lightweight instruction model",
+        "repo": "HuggingFaceTB/SmolLM2-360M-Instruct",
+        "quantization": "Q4_K_M",
+        "context_length": 2048,
+        "recommended_for": ["text_cleanup", "basic_formatting"]
+      },
+      "smollm2-1.7b-instruct": {
+        "name": "SmolLM2 1.7B Instruct",
+        "size": "1.1 GB",
+        "description": "Better quality instruction model",
+        "repo": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        "quantization": "Q4_K_M",
+        "context_length": 2048,
+        "recommended_for": ["text_cleanup", "formatting", "summarization"]
+      },
+      "qwen2.5-0.5b-instruct": {
+        "name": "Qwen2.5 0.5B Instruct",
+        "size": "400 MB",
+        "description": "Ultra-lightweight model",
+        "repo": "Qwen/Qwen2.5-0.5B-Instruct",
+        "quantization": "Q4_K_M",
+        "context_length": 32768,
+        "recommended_for": ["text_cleanup"]
+      },
+      "qwen2.5-1.5b-instruct": {
+        "name": "Qwen2.5 1.5B Instruct",
+        "size": "1.0 GB",
+        "description": "Balanced quality and speed",
+        "repo": "Qwen/Qwen2.5-1.5B-Instruct",
+        "quantization": "Q4_K_M",
+        "context_length": 32768,
+        "recommended_for": ["text_cleanup", "formatting", "summarization", "expansion"]
+      },
+      "qwen2.5-3b-instruct": {
+        "name": "Qwen2.5 3B Instruct",
+        "size": "1.9 GB",
+        "description": "High quality local LLM",
+        "repo": "Qwen/Qwen2.5-3B-Instruct",
+        "quantization": "Q4_K_M",
+        "context_length": 32768,
+        "recommended_for": ["text_cleanup", "formatting", "summarization", "expansion", "complex_tasks"]
+      }
+    }
+  },
+  "vad": {
+    "silero_v4": {
+      "name": "Silero VAD v4",
+      "url": "https://blob.handy.computer/silero_vad_v4.onnx",
+      "size": "1.1 MB",
+      "required": true
+    }
+  },
+  "default_settings": {
+    "whisper_model": "small",
+    "offline_llm_model": "qwen2.5-1.5b-instruct",
+    "use_offline_llm": true,
+    "cpu_threads": 4,
+    "beam_size": 5,
+    "temperature": 0.0,
+    "compression_ratio_threshold": 2.4,
+    "vad_enabled": true,
+    "vad_threshold": 0.5,
+    "vad_min_silence_duration": 500
+  }
+}
