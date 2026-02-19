@@ -11,56 +11,32 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Desktop-v2.0.0-6366f1?style=for-the-badge" alt="Desktop Version" />
-  <img src="https://img.shields.io/badge/Mobile-v1.2.1-22c55e?style=for-the-badge" alt="Mobile Version" />
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
-  <img src="https://github.com/muhib-karim/sonu/workflows/CI/CD%20Pipeline/badge.svg" alt="CI/CD" />
+  <img src="https://img.shields.io/badge/Desktop-v3.6.1-blue?style=for-the-badge" alt="Desktop Version" />
+  <img src="https://img.shields.io/badge/Tauri-v2.1.0-6366f1?style=for-the-badge" alt="Tauri Version" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
 </p>
 
 <p align="center">
-  A complete offline voice typing solution for desktop and mobile.<br/>
+  A complete offline voice typing solution for desktop.<br/>
   No cloud. No subscriptions. 100% private.
 </p>
 
 <p align="center">
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-features">Features</a> •
-  <a href="#-installation">Installation</a> •
-  <a href="#-documentation">Documentation</a> •
-  <a href="#-contributing">Contributing</a>
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-development">Development</a> •
+  <a href="#-security">Security</a>
 </p>
 
 ---
 
 ## 📱 Applications
 
-| App | Platform | Tech Stack | Status |
-|-----|----------|------------|--------|
-| **[SONU Desktop](apps/tauri-v2)** | Windows, macOS, Linux | Tauri + Rust + whisper.cpp | ✅ v2.1.0 |
-| **[Voice AI](apps/mobile)** | Android | Rust + whisper.cpp | ✅ v1.2.1 |
-| **SONU Desktop (Legacy)** | Windows | Electron + Python | 🗄️ v1.0.0 |
-
----
-
-## 📊 State Diagram
-
-```mermaid
-stateDiagram-v2
-    [*] --> Idle: App Launched
-    
-    Idle --> ModelLoading: Load Model
-    ModelLoading --> Ready: Model Loaded
-    
-    Ready --> Recording: Hotkey Pressed
-    Recording --> Processing: Hotkey Released
-    
-    Processing --> VAD: Audio Captured
-    VAD --> Transcribing: Speech Detected
-    VAD --> Ready: No Speech
-    
-    Transcribing --> Typing: Text Ready
-    Typing --> Ready: Complete
-```
+| App | Platform | Tech Stack | Status | Location |
+|-----|----------|------------|--------|----------|
+| **SONU Desktop** | Windows | Electron + Python | ✅ Active | `apps/desktop/` |
+| **SONU Desktop v2** | Windows, macOS, Linux | Tauri + Rust | ✅ Active | `apps/tauri-v2/` |
 
 ---
 
@@ -71,176 +47,308 @@ stateDiagram-v2
 | 🔒 **100% Offline** | All processing stays on your device |
 | 🚀 **Fast** | Optimized whisper.cpp for real-time transcription |
 | 🎯 **Accurate** | OpenAI Whisper models (tiny to large-v3) |
+| 🤖 **AI Enhancement** | Optional LLM post-processing for better text |
 | 🔇 **Smart VAD** | Filters silence automatically |
 | ⌨️ **Auto-Type** | Pastes text into any application |
-| 🌍 **Multi-Platform** | Desktop + Mobile support |
+| 🌍 **Multi-Language** | 50+ languages supported |
+| 📚 **Dictionary** | Custom word corrections |
+| 📝 **Snippets** | Text expansion shortcuts |
 
 ---
 
 ## 🚀 Quick Start
 
-### Desktop (Windows/macOS/Linux)
+### Desktop (Windows)
+
+```bash
+# Navigate to desktop app
+cd apps/desktop
+
+# Install dependencies
+npm install
+
+# Run in development
+npm start
+
+# Build for production
+npm run build
+```
+
+### Desktop v2 (Tauri - All Platforms)
 
 ```bash
 # Navigate to Tauri app
 cd apps/tauri-v2
 
 # Install dependencies
-npm install
+bun install
 
 # Run in development
-npm run tauri dev
+bun run tauri dev
 
 # Build for production
-npm run tauri build
-```
-
-### Mobile (Android)
-
-```bash
-# Navigate to mobile app
-cd apps/mobile
-
-# Build APK
-./build.sh
+bun run tauri build
 ```
 
 ---
 
-## 🎉 Recent Major Improvements (February 2026)
+## 🏗️ Architecture
 
-### ✅ Complete 5-Phase Transformation
-
-We recently completed a comprehensive transformation of the SONU codebase:
-
-#### Phase 1: Critical Security & Error Handling
-- 🔒 **Comprehensive Input Validation** - Prevents injection attacks, path traversal
-- 🦀 **SafeLock System** - Replaces all 77 dangerous `.unwrap()` calls
-- 🛡️ **API Key Validation** - Secure storage with OS keychain integration
-- ✅ **40+ Unit Tests** Added for validation and safety
-
-#### Phase 2: Architecture Refactoring
-- 📦 **main.js Refactored** - 5,883 lines → 200 lines (96% reduction)
-- 🏗️ **Modular Services** - Window, typing, recording services separated
-- 📄 **Model Configs Extracted** - Single source of truth in `shared/config/models.json`
-- 🗑️ **Removed Duplicates** - Deleted handy-base (1,500+ duplicate lines)
-
-#### Phase 3: Testing Infrastructure
-- 🧪 **40+ New Tests** - Unit, integration, and E2E tests
-- 🎭 **Playwright E2E** - Full workflow testing
-- 📊 **Coverage Increased** - From 7% to 40%+
-- ✅ **All Tests Passing**
-
-#### Phase 4: Project Reorganization
-- 📁 **Clean Structure** - Organized by concern (main/, services/, utils/)
-- 🧹 **Consolidated Assets** - Unified icon and resource locations
-- 📦 **Docker Support** - Development and production containers
-- 🔧 **Helper Scripts** - setup.sh, test-all.sh, build.sh
-
-#### Phase 5: Documentation & DevOps
-- 📝 **10+ New Docs** - Complete guides and API references
-- 🚀 **CI/CD Pipeline** - GitHub Actions with multi-platform builds
-- 🐳 **Docker Compose** - Full development environment
-- 📚 **Brand Guidelines** - Professional design system
-
-### 📊 Impact Summary
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **Code Quality** | B- | A | Critical fixes |
-| **Test Coverage** | 7% | 40%+ | +33% |
-| **main.js Size** | 5,883 lines | ~200 lines | -96% |
-| **Security Issues** | 8 critical | 0 | Fixed all |
-| **Documentation** | Basic | Complete | 10+ new docs |
-| **CI/CD** | None | Full | Multi-platform |
-
-**See full details:** [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)
-
----
-
-## ⌨️ Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| **Alt** (hold) | Start/stop dictation (default, configurable) |
-| **Ctrl+Shift+D** | Toggle Debug Mode (shows advanced options) |
-| **Ctrl+/** | Show keyboard shortcuts help |
-| **Escape** | Cancel current recording |
-
-### Debug Mode
-
-Press **Ctrl+Shift+D** to enable Debug Mode. This reveals:
-- Advanced timeout options (5 seconds, 30 seconds)
-- Log level controls
-- System paths and diagnostics
-- Additional configuration options
-
----
-
-## 🏗️ Project Structure
+### Project Structure
 
 ```
 SONU/
 ├── apps/
-│   ├── tauri-v2/       # 🖥️ Desktop app (Tauri + Rust) - v2.1.0
-│   │   ├── src/        # React frontend
-│   │   ├── src-tauri/  # Rust backend
-│   │   └── e2e/        # E2E tests
-│   ├── mobile/         # 📱 Android app (Voice AI) - v1.2.1
-│   │   └── src/        # Rust core
-│   └── desktop/        # 🗄️ Legacy Electron app (refactored)
-│       └── src/
-│           ├── main/   # Entry points
-│           ├── services/  # Business logic
-│           └── utils/  # Utilities
-├── shared/             # 🔄 Shared configurations
-│   └── config/         # Model configs, defaults
-├── .github/            # 🤖 CI/CD workflows
-├── docker/             # 🐳 Docker configurations
-├── docs/               # 📚 Documentation
-├── scripts/            # 🛠️ Helper scripts
-└── README.md           # This file
+│   ├── desktop/           # 🖥️ Electron desktop app (v3.6.1)
+│   │   ├── src/
+│   │   │   ├── config/   # Configuration management
+│   │   │   ├── core/     # Core services (IPC, models, Python)
+│   │   │   ├── services/ # Business logic services
+│   │   │   └── utils/    # Utilities (logger, secureStorage, validation)
+│   │   └── tests/        # Test suites
+│   │
+│   └── tauri-v2/         # 🦀 Tauri desktop app (v2.1.0)
+│       ├── src/          # React frontend
+│       │   ├── components/
+│       │   ├── hooks/
+│       │   └── lib/
+│       ├── src-tauri/    # Rust backend
+│       │   ├── src/
+│       │   │   ├── commands/    # Tauri commands
+│       │   │   ├── managers/    # Business logic managers
+│       │   │   └── audio_toolkit/
+│       │   └── resources/
+│       └── e2e/          # Playwright tests
+│
+├── docs/                 # 📚 Documentation
+│   ├── reports/          # Audit reports, completions
+│   └── guides/           # Development guides
+│
+└── AGENTS.md            # 🤖 Guidelines for AI coding assistants
+```
+
+### Desktop App Architecture
+
+The desktop app follows a modular architecture:
+
+- **Main Process**: Entry point, window management, system integration
+- **Renderer Process**: UI components, user interactions
+- **Preload Script**: Secure bridge between main and renderer
+- **Python Services**: Whisper transcription, LLM processing
+- **Services Layer**: Business logic (window, recording, typing)
+- **Utils Layer**: Shared utilities (logging, validation, secure storage)
+
+### Security Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Security Layers                          │
+├─────────────────────────────────────────────────────────────┤
+│  1. Input Validation    →  Sanitize all user inputs         │
+│  2. IPC Validation      →  Validate IPC parameters          │
+│  3. Path Sanitization   →  Prevent path traversal           │
+│  4. Secure Storage      →  OS keychain for API keys         │
+│  5. Context Isolation   →  Isolate renderer from main       │
+│  6. CSP Headers         →  Content Security Policy          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📊 Version History
+## 🛡️ Security
 
-### Desktop (Tauri)
+### Implemented Security Measures
 
-| Version | Date | Highlights |
-|---------|------|------------|
-| **2.0.0** | 2026-01-11 | Complete rewrite to Tauri + Rust |
+- ✅ **Input Validation**: All IPC parameters validated against schemas
+- ✅ **Path Sanitization**: Prevents path traversal attacks
+- ✅ **Secure Storage**: API keys stored in OS keychain (keytar)
+- ✅ **Context Isolation**: Renderer isolated from Node.js APIs
+- ✅ **CSP Protection**: Content Security Policy in Tauri app
+- ✅ **No eval()**: ESLint rules prevent dangerous functions
+- ✅ **Model Whitelist**: Only approved model IDs accepted
 
-### Mobile (Voice AI)
+### Security Modules
 
-| Version | Date | Highlights |
-|---------|------|------------|
-| **1.2.1** | 2025-12-XX | Latest Android release |
-
-### Legacy Desktop (Electron)
-
-| Version | Date | Highlights |
-|---------|------|------------|
-| **1.0.0** | 2025-XX-XX | Original Electron + Python |
+- `src/utils/validation.js` - Input validation and sanitization
+- `src/utils/errorHandler.js` - Secure error handling
+- `src/utils/secureStorage.js` - Credential storage
+- `src/services/windowState.js` - State persistence
 
 ---
 
-## 🛠️ Development
+## 🧪 Testing
+
+### Test Structure
+
+```bash
+# Desktop app tests
+cd apps/desktop/tests
+
+# Run all tests
+npm run test:all
+
+# Run specific test suites
+npm run test:unit              # Unit tests
+npm run test:integration       # Integration tests
+npm run test:e2e              # E2E tests
+npm run test:python           # Python service tests
+
+# Tauri app tests
+cd apps/tauri-v2
+
+bun run test                   # Frontend unit tests
+bun run test:rust             # Rust unit tests
+bun run test:e2e              # E2E tests
+```
+
+### Single Test Commands
+
+```bash
+# Desktop - One test file
+npm run test:unit -- tests/unit/logger.test.js
+
+# Desktop - One test by name
+npx jest tests/unit/logger.test.js -t "initializes logger"
+
+# Tauri - One test file
+bun run test -- src/components/ui/__tests__/Button.test.tsx
+
+# Tauri - One Rust test
+cd src-tauri && cargo test test_name
+```
+
+---
+
+## 📋 Development
 
 ### Prerequisites
 
-- **Rust** 1.70+ (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
-- **Node.js** 18+ (for Tauri frontend)
-- **Android NDK** (for mobile builds)
+**Desktop (Electron)**:
+- Node.js 18+
+- Python 3.8+
+- Windows (for full feature support)
 
-### Versioning
+**Desktop v2 (Tauri)**:
+- Node.js 18+
+- Rust 1.70+
+- Bun package manager
 
-We follow [Semantic Versioning](https://semver.org/):
+### Code Style
 
-- **MAJOR** (X.0.0) - Breaking changes, architecture rewrites
-- **MINOR** (0.X.0) - New features, backward compatible
-- **PATCH** (0.0.X) - Bug fixes, performance improvements
+We use ESLint and Prettier for code quality:
+
+```bash
+# Desktop app
+cd apps/desktop
+npm run lint        # Check for issues
+npm run lint:fix    # Fix auto-fixable issues
+
+# Tauri app
+cd apps/tauri-v2
+bun run lint        # ESLint check
+bun run format      # Format code
+bun run typecheck   # TypeScript check
+```
+
+### Pre-commit Hooks
+
+Pre-commit hooks run automatically on commit:
+- ESLint checks (Tauri app)
+- Unit tests (desktop app)
+- Rust formatting and clippy (Tauri backend)
+
+---
+
+## 📚 Documentation
+
+### Project Documentation
+
+- **[AGENTS.md](AGENTS.md)** - Guidelines for AI coding assistants
+- **[docs/guides/DEVELOPMENT_GUIDE.md](docs/guides/DEVELOPMENT_GUIDE.md)** - Development setup
+- **[docs/guides/INSTALL.md](docs/guides/INSTALL.md)** - Installation instructions
+- **[docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md)** - Contribution guidelines
+
+### Reports
+
+- **[docs/reports/COMPREHENSIVE_AUDIT_REPORT.md](docs/reports/COMPREHENSIVE_AUDIT_REPORT.md)** - Security audit
+- **[docs/reports/IMPLEMENTATION_STATUS.md](docs/reports/IMPLEMENTATION_STATUS.md)** - Project status
+
+---
+
+## 🔄 Version History
+
+### Desktop (Electron)
+
+| Version | Date | Highlights |
+|---------|------|------------|
+| **3.6.1** | 2026-02-19 | Security improvements, error handling, code cleanup |
+| **3.6.0** | 2026-01-XX | LLM integration, context awareness |
+| **3.5.0** | 2025-12-XX | Multi-language support, snippets |
+
+### Desktop v2 (Tauri)
+
+| Version | Date | Highlights |
+|---------|------|------------|
+| **2.1.0** | 2026-02-XX | Parakeet engine, offline LLM |
+| **2.0.0** | 2026-01-XX | Complete rewrite to Tauri + Rust |
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see:
+
+1. Read [AGENTS.md](AGENTS.md) for development guidelines
+2. Check [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md)
+3. Follow the code style guidelines
+4. Add tests for new features
+5. Update documentation
+
+### Quick Contribution Workflow
+
+```bash
+# 1. Fork and clone
+git clone https://github.com/YOUR_USERNAME/sonu.git
+cd sonu
+
+# 2. Create branch
+git checkout -b feature/your-feature
+
+# 3. Make changes and test
+cd apps/desktop
+npm run test:all
+
+# 4. Commit with clear message
+git commit -m "feat: add your feature"
+
+# 5. Push and create PR
+git push origin feature/your-feature
+```
+
+---
+
+## 🛣️ Roadmap
+
+### Q1 2026
+
+- [x] Security audit and hardening
+- [x] Error handling improvements
+- [x] Code cleanup and organization
+- [ ] macOS support (Tauri app)
+- [ ] Linux support (Tauri app)
+
+### Q2 2026
+
+- [ ] Real-time transcription streaming
+- [ ] Custom model training
+- [ ] Plugin system
+- [ ] Voice commands
+
+### Future
+
+- [ ] Cloud sync (optional)
+- [ ] Team features
+- [ ] Mobile app expansion
 
 ---
 
@@ -253,12 +361,16 @@ MIT License - See [LICENSE](LICENSE) for details.
 ## 🙏 Acknowledgments
 
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) - Fast Whisper inference
-- [Tauri](https://tauri.app) - Cross-platform desktop framework
+- [Tauri](https://tauri.app) - Secure desktop framework
+- [Electron](https://electronjs.org) - Cross-platform desktop
 - [Handy](https://github.com/cjpais/Handy) - Architecture inspiration
-- [Wispr Flow](https://wispr.ai) - UI/UX inspiration
 
 ---
 
 <p align="center">
-  Made with ❤️ by the SONU team
+  Made with ❤️ for voice typing enthusiasts
+</p>
+
+<p align="center">
+  <a href="https://github.com/muhib-karim/sonu">⭐ Star us on GitHub</a>
 </p>

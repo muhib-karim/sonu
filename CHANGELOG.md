@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.7.0] - 2026-02-19
+
+### Desktop App (Electron) - Security & Maintenance Release
+
+### Security
+- **CRITICAL**: Implemented comprehensive input validation module (`src/utils/validation.js`)
+  - Model ID whitelist validation prevents injection attacks
+  - Path traversal protection blocks `../` and control characters
+  - IPC channel validation ensures only valid channels are used
+  - Settings validation with proper range checks
+  - Dictionary word and snippet sanitization
+- **CRITICAL**: Added structured error handling module (`src/utils/errorHandler.js`)
+  - Safe process spawning with `safeSpawn()` function
+  - User-friendly error dialogs with severity levels
+  - Dependency validation on startup
+  - Graceful error recovery strategies
+- **HIGH**: All IPC parameters now validated before processing
+- **HIGH**: Path sanitization on all file operations
+- **HIGH**: ESLint security rules block dangerous functions (`eval`, `exec`, `new Function`)
+
+### Added
+- ESLint configuration with 100+ rules for code quality and security
+- Window state persistence service (`src/services/windowState.js`)
+  - Saves and restores window position and size
+  - Off-screen detection and correction
+  - Size validation prevents tiny/huge windows
+- Pre-commit hooks now include ESLint checks
+- npm scripts: `lint` and `lint:fix`
+
+### Changed
+- Consolidated to single entry point (removed duplicate `src/main/index.js`)
+- Updated `src/utils/index.js` to export errorHandler and validation modules
+- Extended constants with timeout values for various operations
+- Pre-commit hook now runs linting before tests
+
+### Removed
+- **40+ debug and test files** from repository:
+  - All `test*.js` files
+  - All `debug*.js` files
+  - All `minimal*.js` files
+  - All `*_output.txt` log files
+  - Duplicate `logger.js` at root
+  - Duplicate service directories
+- Personal information from repository (paths, usernames)
+
+### Fixed
+- Python process spawning now has proper try/catch error handling
+- Global shortcut registration checks return values
+- Window manager consolidated (removed duplicate implementations)
+
+---
+
+## [2.2.0] - 2026-02-19
+
+### Tauri App - Testing & Quality Release
+
+### Added
+- Comprehensive Rust unit tests for transcription manager (`transcription_tests.rs`)
+  - Model state tracking tests (8 test cases)
+  - Transcription options validation tests
+  - Timeout configuration tests
+  - Error handling and recovery tests
+  - Model ID validation tests (path traversal protection)
+  - Recording state management tests
+  - Audio device validation tests
+  - Custom words processing tests
+  - Async timeout handling with tokio
+  - Cancellation token tests
+- Total: 500+ lines of test code
+
+### Security
+- Input validation for all model IDs (whitelist approach)
+- Path traversal protection in model loading
+- Settings range validation
+
+---
+
 ## [3.6.1] - 2025-12-27
 
 ### 🔧 Production Release Fixes

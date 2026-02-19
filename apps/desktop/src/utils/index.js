@@ -5,8 +5,12 @@
 
 const secureStorage = require('./secureStorage');
 const logger = require('./logger');
+const errorHandler = require('./errorHandler');
+const validation = require('./validation');
 
 module.exports = {
   secureStorage,
-  logger
+  logger,
+  errorHandler,
+  validation
 };

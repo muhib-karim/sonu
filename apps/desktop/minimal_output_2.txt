@@ -1,3 +1,0 @@
-DEBUG: Minimal main.js starting
-DEBUG: app type: undefined
-CRITICAL: app is undefined!

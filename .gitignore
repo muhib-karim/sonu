@@ -115,3 +115,13 @@ apps/desktop/models/parakeet-v3/parakeet-tdt-0.6b-v3.nemo
 .vscode/
 apps/desktop/data/.env
 config.json
+# Test output files
+**/jest-*.json
+**/filelist.txt
+
+# Build artifacts
+**/target/
+**/target
+**/data/settings_backup.json
+**/history.json
+**/data/*.json.backup

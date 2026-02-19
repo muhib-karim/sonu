@@ -1,6 +1,6 @@
 {
   "name": "sonu",
-  "version": "3.6.1",
+  "version": "3.7.0",
   "description": "Professional offline voice typing application powered by Whisper AI and Local LLM",
   "main": "main.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "test:auto": "node automated_test_and_showcase.js",
     "test:health": "node scripts/check_model_download_health.js",
     "update-readme": "node scripts/update_github_readme.js",
-    "precommit": "cd tests && npm run test:unit",
+    "precommit": "npm run lint && cd tests && npm run test:unit",
     "prepush": "npm run test:all",
     "fetch-icon": "node scripts/fetch-tray-icon.js",
     "preview": "python -m http.server 8000",
@@ -28,7 +28,9 @@
     "release": "node scripts/release.js",
     "release:patch": "node scripts/release.js patch",
     "release:minor": "node scripts/release.js minor",
-    "release:major": "node scripts/release.js major"
+    "release:major": "node scripts/release.js major",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix"
   },
   "author": "muhib-karim",
   "license": "MIT",
@@ -48,6 +50,7 @@
     "@axe-core/playwright": "^4.8.2",
     "electron": "^28.3.3",
     "electron-builder": "^24.9.0",
+    "eslint": "^9.17.0",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.0",
     "playwright": "^1.56.1",

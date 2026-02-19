@@ -1,1 +1,0 @@
-const { app, BrowserWindow } = require("electron"); console.log("app:", app); console.log("BrowserWindow:", BrowserWindow); if (app) { app.whenReady().then(() => { console.log("Electron ready\!"); app.quit(); }); } else { console.log("app is undefined"); process.exit(1); }
