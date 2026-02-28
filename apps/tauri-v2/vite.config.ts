@@ -79,7 +79,7 @@ export default defineConfig(async ({ mode }) => {
               "zustand",
             ],
             // UI components
-            ui: ["lucide-react", "sonner", "@tailwindcss/vite"],
+            ui: ["lucide-react", "sonner"],
             // Tauri plugins
             tauri: ["@tauri-apps/api", "@tauri-apps/plugin-store"],
           },
@@ -105,10 +105,7 @@ export default defineConfig(async ({ mode }) => {
         "i18next",
         "zustand",
         "lucide-react",
-        "@tauri-apps/api",
       ],
-      // Exclude native dependencies
-      exclude: ["@tauri-apps/api"],
     },
 
     // Esbuild optimizations
@@ -164,25 +161,6 @@ export default defineConfig(async ({ mode }) => {
       },
       // Dev sourcemaps
       devSourcemap: true,
-    },
-
-    // Test configuration
-    test: {
-      globals: true,
-      environment: "jsdom",
-      setupFiles: "./src/test/setup.ts",
-      css: true,
-      coverage: {
-        provider: "v8",
-        reporter: ["text", "json", "html"],
-        exclude: [
-          "node_modules/",
-          "src/test/",
-          "**/*.d.ts",
-          "**/*.config.*",
-          "**/bindings.ts",
-        ],
-      },
     },
   };
 });

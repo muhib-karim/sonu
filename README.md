@@ -13,7 +13,7 @@
 [![Stars](https://img.shields.io/github/stars/muhib-karim/sonu?style=for-the-badge&color=f59e0b)](https://github.com/muhib-karim/sonu)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0ea5e9?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases)
 
-[Download](#-download) · [Features](#-features) · [Showcase](#-showcase) · [Compare](#-how-sonu-compares) · [Docs](#-documentation) · [Contribute](#-contributing)
+[Download](#-download) · [Features](#-features) · [Showcase](#-showcase--tauri-v2-app) · [Compare](#-how-sonu-compares) · [Docs](#-documentation) · [Contribute](#-contributing)
 
 </div>
 
@@ -21,9 +21,7 @@
 
 <div align="center">
 
-<img src="assets/showcase/banner.gif" alt="SONU in action" width="720" />
-
-*Dictate anywhere — your words appear instantly in any application.*
+**Built with Tauri v2 (Rust) + React** — *Dictate anywhere, your words appear instantly in any application.*
 
 </div>
 
@@ -92,65 +90,41 @@ Define shorthand codes that expand into full text blocks — perfect for emails,
 
 ---
 
-## 📸 Showcase
+## 📸 Showcase — Tauri v2 App
 
 <div align="center">
 
-### Home & Recording
+> **SONU v2.2.0** — Built with Tauri v2 (Rust + React). Lightweight, native, and fast.
 
-<table>
-<tr>
-<td align="center"><img src="assets/showcase/10-home-dark.png" width="380" alt="Home - Dark Theme" /><br/><sub><b>Home — Dark Theme</b></sub></td>
-<td align="center"><img src="assets/showcase/16_theme-light.png" width="380" alt="Home - Light Theme" /><br/><sub><b>Home — Light Theme</b></sub></td>
-</tr>
-<tr>
-<td align="center"><img src="assets/showcase/02_dictation_start.png" width="380" alt="Dictation Active" /><br/><sub><b>Dictation in Progress</b></sub></td>
-<td align="center"><img src="assets/showcase/03_output_log.png" width="380" alt="Output Log" /><br/><sub><b>Transcription Output</b></sub></td>
-</tr>
-</table>
+### 🏠 Home Dashboard
 
-### Settings & Configuration
+The home screen shows your **dictation stats** (time, word count, WPM, time saved), a **voice activation shortcut recorder**, **privacy status**, and **recent transcription history** — all in a clean dashboard layout with local/cloud mode indicator.
 
-<table>
-<tr>
-<td align="center"><img src="assets/showcase/06-settings-general.png" width="380" alt="General Settings" /><br/><sub><b>General Settings</b></sub></td>
-<td align="center"><img src="assets/showcase/08-settings-model.png" width="380" alt="Model Selection" /><br/><sub><b>Model Selection</b></sub></td>
-</tr>
-<tr>
-<td align="center"><img src="assets/showcase/09-settings-themes.png" width="380" alt="Theme Settings" /><br/><sub><b>Themes & Appearance</b></sub></td>
-<td align="center"><img src="assets/showcase/11_settings-system.png" width="380" alt="System Settings" /><br/><sub><b>System Settings</b></sub></td>
-</tr>
-</table>
+### 📚 Dictionary & ✂️ Snippets
 
-### Productivity Tools
+**Dictionary** lets you add custom word corrections for domain-specific terms the model might mishear. **Snippets** are reusable text blocks you can expand with shorthand codes — perfect for emails, addresses, and common phrases.
 
-<table>
-<tr>
-<td align="center"><img src="assets/showcase/02-dictionary.png" width="380" alt="Dictionary" /><br/><sub><b>Custom Dictionary</b></sub></td>
-<td align="center"><img src="assets/showcase/03-snippets.png" width="380" alt="Snippets" /><br/><sub><b>Text Snippets</b></sub></td>
-</tr>
-<tr>
-<td align="center"><img src="assets/showcase/05-notes.png" width="380" alt="Notes" /><br/><sub><b>Voice Notes</b></sub></td>
-<td align="center"><img src="assets/showcase/04-style.png" width="380" alt="Style Settings" /><br/><sub><b>Style & Formatting</b></sub></td>
-</tr>
-</table>
+### 📝 Notes
 
-### More Screenshots
+Voice-powered sticky notes with **color-coded cards** (6 colors), **search**, **grid/list view toggle**, and per-note **audio playback** — saved/starred transcriptions become visual notes.
 
-<table>
-<tr>
-<td align="center"><img src="assets/showcase/12_model_selector.png" width="250" alt="Model Selector" /><br/><sub><b>Model Selector</b></sub></td>
-<td align="center"><img src="assets/showcase/14_settings-vibe.png" width="250" alt="Vibe Settings" /><br/><sub><b>Vibe Mode</b></sub></td>
-<td align="center"><img src="assets/showcase/15_settings-experimental.png" width="250" alt="Experimental" /><br/><sub><b>Experimental</b></sub></td>
-</tr>
-<tr>
-<td align="center"><img src="assets/showcase/04_help.png" width="250" alt="Keyboard Shortcuts" /><br/><sub><b>Keyboard Shortcuts</b></sub></td>
-<td align="center"><img src="assets/showcase/17_theme-dark.png" width="250" alt="Dark Theme" /><br/><sub><b>Full Dark Theme</b></sub></td>
-<td align="center"><img src="assets/showcase/07_style.png" width="250" alt="Style Options" /><br/><sub><b>Style Options</b></sub></td>
-</tr>
-</table>
+### 🎨 Style
+
+Choose AI dictation style presets organized by category: *Personal*, *Work*, *Email*, *Other*. Each style (Casual, Professional, Technical, Creative, etc.) transforms your raw transcription with LLM post-processing.
+
+### ⚙️ Settings
+
+- **General** — Shortcut binding, language, microphone, audio feedback, push-to-talk
+- **Advanced** — Autostart, overlay, clipboard handling, model unload timeout, AI post-processing toggle
+- **Cloud** — Provider cards for Groq, Deepgram, and custom self-hosted servers with status indicators
+- **Post-Processing** — LLM provider config, model selection, API keys, custom prompts
+- **History** — Full transcription log with audio playback, copy, star/save, and delete
+- **Debug** — Log level, sound themes, thresholds, recording retention, advanced toggles
+- **About** — App version, language, data directory, credits, and links
 
 </div>
+
+> 📷 **Screenshots coming soon** — The Tauri v2 app is built and running. Take screenshots with `bun run tauri dev` in `apps/tauri-v2/`.
 
 ---
 
@@ -266,7 +240,7 @@ SONU/
 
 | Layer | Technology |
 |-------|-----------|
-| **Desktop Framework** | [Tauri v2](https://v2.tauri.app) (Rust) + [Electron](https://electronjs.org) |
+| **Desktop Framework** | [Tauri v2](https://v2.tauri.app) (Rust) |
 | **Frontend** | React 18, TypeScript, TailwindCSS |
 | **Speech Engine** | [whisper.cpp](https://github.com/ggerganov/whisper.cpp), Parakeet TDT |
 | **AI Enhancement** | Local LLM (GGUF) + Cloud providers (OpenAI, Groq, etc.) |
@@ -371,22 +345,6 @@ SONU is designed with security-first principles:
 
 ---
 
-## 💝 Support SONU
-
-SONU is **free, open-source, and community-driven**. If it saves you time, consider supporting its development:
-
-<div align="center">
-
-[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=for-the-badge&logo=github)](https://github.com/sponsors/muhib-karim)
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/sonu)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-%23FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/sonu)
-
-**⭐ Star this repository** — it helps others discover SONU!
-
-</div>
-
----
-
 ## 🤝 Contributing
 
 We welcome contributions! Whether it's bug fixes, features, translations, or docs:
@@ -435,7 +393,7 @@ See [AGENTS.md](AGENTS.md) for development guidelines and coding conventions.
 
 **Made with ❤️ for people who think faster than they type.**
 
-[⭐ Star on GitHub](https://github.com/muhib-karim/sonu) · [💖 Sponsor](https://github.com/sponsors/muhib-karim) · [📦 Download](https://github.com/muhib-karim/sonu/releases/latest)
+[⭐ Star on GitHub](https://github.com/muhib-karim/sonu) · [ Download](https://github.com/muhib-karim/sonu/releases/latest)
 
 <sub>SONU is not affiliated with OpenAI. Whisper is a trademark of OpenAI.</sub>
 
