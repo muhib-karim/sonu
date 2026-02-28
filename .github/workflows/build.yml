@@ -87,10 +87,15 @@ jobs:
         with:
           bun-download-url: "https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64-baseline.zip"
 
-      - name: Install Rust stable
+      - name: Install Rust stable (macOS — use pre-installed rustup)
+        if: contains(inputs.platform, 'macos')
+        run: |
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Install Rust stable (non-macOS)
+        if: "!contains(inputs.platform, 'macos')"
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ contains(inputs.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
