@@ -1,3 +1,0 @@
-taskkill /IM electron.exe /F
-taskkill /IM python.exe /F
-./scripts/kill_processes.bat
