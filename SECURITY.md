@@ -6,7 +6,9 @@ We provide security updates for the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.0.x   | :white_check_mark: |
+| 2.2.x (Tauri) | :white_check_mark: |
+| 2.x.x (Tauri) | :white_check_mark: |
+| 3.x.x (Electron legacy) | :x: |
 | 1.0.x   | :x:                |
 
 ## Reporting a Vulnerability

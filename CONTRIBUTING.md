@@ -1,96 +1,76 @@
 # Contributing to SONU
 
-Thank you for your interest in contributing to SONU! This project was built by a solo developer using TraeAI IDE and AI assistance, and we welcome contributions from the community.
-
-## Code of Conduct
-
-- Be respectful and inclusive
-- Focus on constructive feedback
-- Help maintain a positive environment
+Thank you for your interest in contributing! SONU is built by a solo developer with AI assistance, and community contributions are welcome.
 
 ## Development Setup
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/muhib-karim/sonu.git`
-3. Install dependencies: `npm install`
-4. Install Python dependencies: `pip install faster-whisper pyaudio keyboard`
-5. Create a branch: `git checkout -b feature/your-feature-name`
+### Prerequisites
 
-### Testing Workflow
+- [Bun](https://bun.sh) (package manager)
+- [Rust toolchain](https://rustup.rs) (stable)
+- Platform-specific [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/)
 
-- Run tests from the `tests` workspace:
-  ```bash
-  cd tests
-  npm install
-  npm run test:unit
-  npm run test:integration
-  npm run test:e2e
-  ```
-- From project root, you can also invoke Jest directly:
-  ```bash
-  npx jest tests/unit --runInBand
-  npx jest tests/integration --runInBand
-  npx jest tests/e2e --runInBand
-  ```
-- Renderer unit tests expose `window.__rendererTestHooks` to make UI assertions deterministic.
+### Getting Started
 
-## Development Guidelines
+```bash
+git clone https://github.com/muhib-karim/sonu.git
+cd sonu/apps/tauri-v2
+bun install
+bun run tauri dev
+```
 
-### Code Style
+### Running Tests
 
-- Follow existing code patterns
-- Use meaningful variable names
-- Add comments for complex logic
-- Keep functions focused and small
+```bash
+# Frontend tests (Vitest)
+bun run test
 
-### Commit Messages
+# Single test file
+bun run test -- src/hooks/__tests__/useSettings.test.ts
 
-- Use clear, descriptive commit messages
-- Format: `type: description`
-- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+# Rust tests (from src-tauri/)
+cd src-tauri && cargo test
 
-### Testing
+# Lint & format
+bun run lint
+bun run format:check
+bun run typecheck
+```
 
-- Test all new features thoroughly
-- Test on Windows 10 and 11
-- Verify hotkey functionality
-- Test theme switching
-- Check system-wide typing
-- Ensure unit, integration, and E2E tests pass locally (see the commands above)
+## Code Style
 
-### Documentation Updates
+### TypeScript / React
+- Strict TypeScript (`"strict": true`)
+- Prettier for formatting (run `bun run format` before committing)
+- ESLint enforces `i18next/no-literal-string` — user-facing JSX text must use translation keys
+- Use path aliases: `@/*` maps to `src/`
+- Use typed `commands.*` from `@/bindings` — never raw `invoke()`
 
-- Update `README.md` when adding commands or changing setup.
-- Keep `AUTOMATION_README.md` / `AUTOMATION_SETUP.md` aligned with automation outputs.
-- Document known test issues or environment requirements in `tests/README.md`.
+### Rust
+- `cargo fmt` for formatting
+- `cargo clippy` for linting
+- `snake_case` functions, `PascalCase` types, `SCREAMING_SNAKE_CASE` constants
+- Prefer `Result<T, E>` with `?` propagation over `.unwrap()`
+
+## Commit Convention
+
+```
+type: short description
+
+# Types: feat, fix, docs, style, refactor, test, chore
+```
 
 ## Pull Request Process
 
-1. Update CHANGELOG.md with your changes
-2. Ensure all tests pass
-3. Update documentation if needed
-4. Submit PR with clear description
-5. Wait for review and feedback
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/your-feature`
+3. Make focused, minimal changes
+4. Ensure `bun run lint`, `bun run typecheck`, and `bun run test` pass
+5. Open a PR against `main`
 
-## Feature Requests
+## Code of Conduct
 
-- Open an issue with the `enhancement` label
-- Describe the feature clearly
-- Explain the use case
-- Discuss implementation approach
-
-## Bug Reports
-
-- Use the issue template
-- Include steps to reproduce
-- Provide system information
-- Include error messages/logs
-
-## Questions?
-
-- Open a discussion on GitHub
-- Check existing issues first
-- Be patient for responses
-
-Thank you for contributing to SONU!
+- Be respectful and constructive
+- Focus on the code, not the person
+- Help maintain a welcoming environment
 

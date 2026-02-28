@@ -8,7 +8,8 @@
 
 **Type at the speed of thought. Fully offline. Fully private.**
 
-[![Latest Release](https://img.shields.io/badge/Latest-v2.2.0-6366f1?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases/latest)
+[![Latest Release](https://img.shields.io/badge/Latest-v2.2.1-6366f1?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/muhib-karim/sonu/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/muhib-karim/sonu?style=for-the-badge&color=f59e0b)](https://github.com/muhib-karim/sonu)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0ea5e9?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases)

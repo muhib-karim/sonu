@@ -5,7 +5,7 @@
 | Component | Version | Status |
 |-----------|---------|--------|
 | **Desktop (Electron)** | 3.7.0 | Stable |
-| **Desktop v2 (Tauri)** | 2.2.0 | Stable |
+| **Desktop v2 (Tauri)** | 2.2.1 | Stable |
 
 **Last Updated**: 2026-02-28
 
@@ -13,7 +13,13 @@
 
 ### Desktop v2 (Tauri)
 
-#### Version 2.2.0 (Current)
+#### Version 2.2.1 (Current)
+- Notes mic button: click-to-record with visual recording state
+- GitHub Actions: 3 clean workflows replacing 13 broken ones (CI, Build, Release)
+- Documentation overhaul: 35+ stale files removed, essential docs rewritten for Tauri v2
+- Legacy cleanup: removed Electron-era scripts, runtime artifacts, and stale feature flags
+
+#### Version 2.2.0
 - Cloud transcription feature with OpenAI, Groq, and custom provider support
 - Professional UI redesign (HomeSettings, CloudTranscriptionSettings, RecordingOverlay)
 - Utility class `cn()` for conditional Tailwind CSS merging

@@ -1,38 +1,38 @@
-# SONU Project Development Rules
+# SONU Project Rules
 
 ## Default Development Environment
 
-**By default, work on the DESKTOP app located in `apps/desktop/`**
+**By default, work on the Tauri v2 app in `apps/tauri-v2/`**
 
-- All file operations, code changes, and commands should target `apps/desktop/` unless explicitly told otherwise
-- The desktop app is version 3.x (Electron-based)
-- Working directory: `apps/desktop/`
+- All file operations, code changes, and commands target `apps/tauri-v2/` unless explicitly told otherwise
+- The Tauri app is version 2.x (Rust + React/TypeScript)
+- Working directory: `apps/tauri-v2/`
 
-## Mobile App Development
+## Legacy Electron App
 
-**Only switch to mobile when explicitly requested**
+- `apps/desktop/` is the old Electron v3.x app — maintenance only
+- Only work there when user explicitly says "work on the Electron app"
 
-- When user says "work on mobile app" or "switch to mobile", change context to `apps/mobile/`
-- Mobile app is version 4+ (Android/iOS native)
-- Mobile and desktop are completely separate codebases
+## Tech Stack
 
-## File Organization
+- **Frontend**: React 18 + TypeScript + Vite
+- **Backend**: Rust (Tauri v2)
+- **Package Manager**: Bun (NOT npm)
+- **Tests**: Vitest (frontend), cargo test (Rust)
 
-- **Active Desktop Files**: `apps/desktop/` - Use these for all desktop development
-- **Active Mobile Files**: `apps/mobile/` - Use these only when working on mobile
-- **Root Files**: Legacy/backup - Do NOT use for active development
-- **Versions Folder**: Historical snapshots - Read-only, do not modify
+## Commands
+
+- Dev: `bun run tauri dev`
+- Build: `bun run tauri build`
+- Lint: `bun run lint`
+- Format: `bun run format`
+- Test: `bun run test`
+- Typecheck: `bun run typecheck`
 
 ## Important Rules
 
-1. When editing files, check if they exist in both root and `apps/desktop/` - always use `apps/desktop/` version
-2. When launching the app, always use `cd apps/desktop && npm start`
-3. When searching for files, prioritize `apps/desktop/` over root-level files
-4. If you find duplicate files (root vs apps/desktop), use the `apps/desktop/` version
-
-## Context Awareness
-
-- Default context: Desktop app (`apps/desktop/`)
-- Mobile context: Only when explicitly requested
-- Always verify you're working in the correct directory before making changes
+1. Use typed `commands.*` from `@/bindings` — never raw `invoke()`
+2. Use `bun` not `npm` for all frontend commands
+3. User-facing JSX text must use `t()` translation keys (i18next)
+4. Prefer `Result<T, E>` in Rust — avoid `.unwrap()` in production paths
 

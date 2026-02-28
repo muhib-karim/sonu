@@ -240,9 +240,7 @@ export const NotesSettings: React.FC = () => {
                 : "bg-zinc-700 text-zinc-300 hover:bg-zinc-600 hover:text-white"
             }`}
             title={t(
-              isRecording
-                ? "notes.stopRecording"
-                : "notes.startRecording",
+              isRecording ? "notes.stopRecording" : "notes.startRecording",
               isRecording
                 ? "Click to stop recording"
                 : "Click to start recording",

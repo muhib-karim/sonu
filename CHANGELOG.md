@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.1] - 2026-02-28
+
+### Tauri App - CI/CD & Documentation Cleanup
+
+### Added
+- **Notes mic button**: Click-to-record with visual recording state (red pulse animation), uses typed `commands` API
+- **CI workflow** (`.github/workflows/ci.yml`): Lint, format, typecheck, Vitest, cargo fmt/clippy on push/PR
+- **Build workflow** (`.github/workflows/build.yml`): Reusable multi-platform Tauri build (6 targets, Vulkan SDK, code signing, AppImage patching)
+- **Release workflow** (`.github/workflows/release.yml`): Manual dispatch → draft release → 6-platform build → update manifest → publish
+
+### Removed
+- **13 broken GitHub Actions workflows**: All used non-existent `dtolnay/rust-action`, wrong Tauri v1 libs, dead paths, deprecated actions, invalid CodeQL, or massive redundancy
+- **35+ stale documentation files**: Legacy Electron-era reports, completion docs, strategy docs, implementation guides
+- **Legacy scripts**: `auto_screenshot.js`, `verify_downloader.js`, `model_downloader.py`, `check_llm.py`, `translation_service.py`, `run_sonu.bat`
+- **Runtime artifacts**: `logs/`, `plans/`, `custom_models_test/`, `config.json`, `history.json`
+
+### Changed
+- **ARCHITECTURE.md**: Rewritten for Tauri v2 (Rust + React architecture diagram)
+- **INSTALL.md**: Rewritten with 6-platform download table and build-from-source instructions
+- **CONTRIBUTING.md**: Rewritten with Bun/Vitest/Cargo dev setup
+- **SECURITY.md**: Updated supported versions table (v2.x Tauri supported, Electron legacy deprecated)
+- **CI clippy**: Relaxed from `-D warnings` to allow pre-existing upstream warnings
+
+---
+
 ## [2.2.0] - 2026-02-28
 
 ### Tauri App - Cloud Transcription & UI Polish Release
