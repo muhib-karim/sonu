@@ -12,6 +12,7 @@ import {
   Info,
   Sparkles,
   Sliders,
+  Cloud,
 } from "lucide-react";
 import SonuLogo from "./icons/SonuLogo";
 import { useSettings } from "../hooks/useSettings";
@@ -27,6 +28,7 @@ import {
   SnippetsSettings,
   NotesSettings,
   StyleSettings,
+  CloudTranscriptionSettings,
 } from "./settings";
 
 interface IconProps {
@@ -89,6 +91,12 @@ const SECTIONS_CONFIG: Record<string, SectionConfig> = {
     component: AdvancedSettings,
     enabled: () => true,
   },
+  cloud: {
+    labelKey: "sidebar.cloud",
+    icon: Cloud,
+    component: CloudTranscriptionSettings,
+    enabled: () => true,
+  },
   postprocessing: {
     labelKey: "sidebar.postProcessing",
     icon: Sparkles,
@@ -139,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div className="sidebar flex flex-col w-52 h-full items-center px-3 py-4">
       {/* Logo Section */}
       <div className="w-full mb-4">
-        <SonuLogo width={100} className="mx-auto" />
+        <SonuLogo size="lg" className="mx-auto" />
       </div>
 
       {/* Navigation */}
@@ -152,13 +160,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <React.Fragment key={section.id}>
               <div
-                className={`flex gap-3 items-center px-3 py-2.5 w-full rounded-lg cursor-pointer transition-all duration-200 ${isActive
+                className={`flex gap-3 items-center px-3 py-2.5 w-full rounded-lg cursor-pointer transition-all duration-200 ${
+                  isActive
                     ? "bg-zinc-800 text-zinc-100 border-l-2 border-zinc-400"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
-                  }`}
+                }`}
                 onClick={() => onSectionChange(section.id)}
               >
-                <Icon size={18} className={`shrink-0 ${isActive ? "text-zinc-100" : ""}`} />
+                <Icon
+                  size={18}
+                  className={`shrink-0 ${isActive ? "text-zinc-100" : ""}`}
+                />
                 <p
                   className="text-sm font-medium truncate"
                   title={t(section.labelKey)}

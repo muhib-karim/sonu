@@ -31,9 +31,9 @@ impl<T> MutexExt<T> for Mutex<T> {
     fn safe_lock(&self) -> Result<MutexGuard<T>, MutexError> {
         match self.lock() {
             Ok(guard) => Ok(guard),
-            Err(PoisonError { guard, .. }) => {
+            Err(poisoned) => {
                 error!("Mutex was poisoned, recovering guard");
-                Ok(guard)
+                Ok(poisoned.into_inner())
             }
         }
     }

@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2026-02-28
+
+### Tauri App - Cloud Transcription & UI Polish Release
+
+### Added
+- **Cloud Transcription**: Full cloud transcription feature with provider support
+  - OpenAI Whisper API integration
+  - Groq (Whisper Large v3) integration
+  - Custom API endpoint support for self-hosted services
+  - Provider-specific configuration (API keys, model selection, language)
+  - Connection testing with real-time feedback
+  - Secure API key storage via OS keychain
+- **CloudTranscriptionSettings UI**: Professional settings panel with provider cards, hero toggle, test connection, animated status badges
+- **`cn()` utility**: Conditional Tailwind CSS class merging using `clsx` + `tailwind-merge`
+- **Graceful error handling**: AppDataDirectory and model loading show friendly messages instead of raw errors
+
+### Changed
+- **HomeSettings**: Gradient text hero, animated mode badge with pulse dot, hover lift on stat cards, corner glow effects
+- **RecordingOverlay**: Smooth entrance animation, refined cancel button states, checkmark glow, cloud indicator gradient
+- **Version sync**: All version files (package.json, Cargo.toml, tauri.conf.json) now consistently at 2.2.0
+- **Footer**: Correct fallback version display (2.2.0)
+
+### Fixed
+- **App.tsx blank screen**: Restored missing state declarations (`useState`, `useShortcutsHelp` hook) that were replaced with placeholder comments
+- **`write_settings` signature**: Fixed ownership semantics across 41 call sites (`&mut AppSettings` → `mut settings: AppSettings`)
+- **Test infrastructure**: Updated test mocks to use real Tauri command names (`getAppSettings`, per-key updaters) with proper Result wrappers
+- **All 27 vitest tests passing** (was 22/27)
+- **All 16 Rust tests passing**
+- **0 ESLint errors** in modified files
+- **0 new TypeScript errors**
+
+---
+
 ## [3.7.0] - 2026-02-19
 
 ### Desktop App (Electron) - Security & Maintenance Release
@@ -59,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.2.0] - 2026-02-19
+## [2.1.0] - 2026-02-19
 
 ### Tauri App - Testing & Quality Release
 

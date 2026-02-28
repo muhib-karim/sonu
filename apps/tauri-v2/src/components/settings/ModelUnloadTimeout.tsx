@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettings } from "../../hooks/useSettings";
-import { commands, type ModelUnloadTimeout } from "@/bindings";
+import { type ModelUnloadTimeout } from "@/bindings";
 import { Dropdown } from "../ui/Dropdown";
 import { SettingContainer } from "../ui/SettingContainer";
 
@@ -33,7 +33,8 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
     },
     {
       value: "sec30" as ModelUnloadTimeout,
-      label: t("settings.advanced.modelUnload.options.sec30") || "After 30 seconds",
+      label:
+        t("settings.advanced.modelUnload.options.sec30") || "After 30 seconds",
     },
     {
       value: "min2" as ModelUnloadTimeout,
@@ -61,8 +62,7 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
     const newTimeout = event.target.value as ModelUnloadTimeout;
 
     try {
-      await commands.setModelUnloadTimeout(newTimeout);
-      updateSetting("model_unload_timeout", newTimeout);
+      await updateSetting("model_unload_timeout", newTimeout);
     } catch (error) {
       console.error("Failed to update model unload timeout:", error);
     }

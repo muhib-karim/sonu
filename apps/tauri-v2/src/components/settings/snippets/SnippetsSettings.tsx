@@ -59,8 +59,8 @@ export const SnippetsSettings: React.FC = () => {
           snippets.map((s) =>
             s.id === editingSnippet.id
               ? { ...s, title: title.trim(), text: text.trim() }
-              : s
-          )
+              : s,
+          ),
         );
       } else {
         const snippet: Snippet = {
@@ -198,7 +198,10 @@ export const SnippetsSettings: React.FC = () => {
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <p className="text-sm text-mid-gray">
-            {t("snippets.empty", "No snippets yet. Click \"New snippet\" to add one.")}
+            {t(
+              "snippets.empty",
+              'No snippets yet. Click "New snippet" to add one.',
+            )}
           </p>
         </div>
       )}

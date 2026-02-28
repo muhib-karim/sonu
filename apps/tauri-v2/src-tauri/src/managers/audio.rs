@@ -2,7 +2,7 @@ use crate::audio_toolkit::{list_input_devices, vad::SmoothedVad, AudioRecorder, 
 use crate::helpers::clamshell;
 use crate::settings::{get_settings, AppSettings};
 use crate::utils;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Instant;
 use tauri::Manager;
@@ -213,8 +213,9 @@ impl AudioRecordingManager {
 
     /// Safely lock a mutex, converting poison errors to AudioError
     fn safe_lock<'a, T>(&self, mutex: &'a Mutex<T>) -> AudioResult<std::sync::MutexGuard<'a, T>> {
-        mutex.lock().map_err(|_e| {
-            error!("Mutex poison error");
+        mutex.lock().map_err(|e| {
+            // Log at warn level since we recover from poisoned locks
+            warn!("Mutex poison error: {}", e);
             AudioError::LockPoisoned("Mutex lock poisoned".to_string())
         })
     }
@@ -228,7 +229,7 @@ impl AudioRecordingManager {
         };
 
         let device_name = if use_clamshell_mic {
-            settings.clamshell_microphone.as_ref()?  // Safe: checked is_some() above
+            settings.clamshell_microphone.as_ref()? // Safe: checked is_some() above
         } else {
             settings.selected_microphone.as_ref()?
         };
@@ -274,7 +275,8 @@ impl AudioRecordingManager {
     }
 
     pub fn start_microphone_stream(&self) -> Result<(), anyhow::Error> {
-        let mut open_flag = self.safe_lock(&self.is_open)
+        let mut open_flag = self
+            .safe_lock(&self.is_open)
             .map_err(|e| anyhow::anyhow!("Failed to lock is_open: {}", e))?;
         if *open_flag {
             debug!("Microphone stream already active");
@@ -284,7 +286,8 @@ impl AudioRecordingManager {
         let start_time = Instant::now();
 
         // Don't mute immediately - caller will handle muting after audio feedback
-        let mut did_mute_guard = self.safe_lock(&self.did_mute)
+        let mut did_mute_guard = self
+            .safe_lock(&self.did_mute)
             .map_err(|e| anyhow::anyhow!("Failed to lock did_mute: {}", e))?;
         *did_mute_guard = false;
 
@@ -296,11 +299,13 @@ impl AudioRecordingManager {
                 tauri::path::BaseDirectory::Resource,
             )
             .map_err(|e| anyhow::anyhow!("Failed to resolve VAD path: {}", e))?;
-        let mut recorder_opt = self.safe_lock(&self.recorder)
+        let mut recorder_opt = self
+            .safe_lock(&self.recorder)
             .map_err(|e| anyhow::anyhow!("Failed to lock recorder: {}", e))?;
 
         if recorder_opt.is_none() {
-            let vad_path_str = vad_path.to_str()
+            let vad_path_str = vad_path
+                .to_str()
                 .ok_or_else(|| anyhow::anyhow!("VAD path contains invalid UTF-8"))?;
             *recorder_opt = Some(create_audio_recorder(vad_path_str, &self.app_handle)?);
         }
@@ -331,7 +336,7 @@ impl AudioRecordingManager {
                 return;
             }
         };
-        
+
         if !*open_flag {
             return;
         }
@@ -343,7 +348,7 @@ impl AudioRecordingManager {
                 return;
             }
         };
-        
+
         if *did_mute_guard {
             set_mute(false);
         }
@@ -367,7 +372,7 @@ impl AudioRecordingManager {
                     false
                 }
             };
-            
+
             if is_recording {
                 let _ = rec.stop();
                 if let Ok(mut guard) = self.safe_lock(&self.is_recording) {
@@ -384,7 +389,8 @@ impl AudioRecordingManager {
     /* ---------- mode switching --------------------------------------------- */
 
     pub fn update_mode(&self, new_mode: MicrophoneMode) -> Result<(), anyhow::Error> {
-        let mode_guard = self.safe_lock(&self.mode)
+        let mode_guard = self
+            .safe_lock(&self.mode)
             .map_err(|e| anyhow::anyhow!("Failed to lock mode: {}", e))?;
         let cur_mode = mode_guard.clone();
 
@@ -412,7 +418,7 @@ impl AudioRecordingManager {
         if let Ok(mut guard) = self.safe_lock(&self.mode) {
             *guard = new_mode;
         } else {
-            error!("Failed to lock mode for update");
+            return Err(anyhow::anyhow!("Failed to lock mode for update"));
         }
         Ok(())
     }
@@ -420,26 +426,51 @@ impl AudioRecordingManager {
     /* ---------- recording --------------------------------------------------- */
 
     pub fn try_start_recording(&self, binding_id: &str) -> bool {
-        let mut state = self.state.lock().unwrap();
+        let mut state = match self.safe_lock(&self.state) {
+            Ok(guard) => guard,
+            Err(e) => {
+                error!("Failed to lock state in try_start_recording: {}", e);
+                return false;
+            }
+        };
 
         if let RecordingState::Idle = *state {
             // Ensure microphone is open in on-demand mode
-            if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
+            let is_on_demand = match self.safe_lock(&self.mode) {
+                Ok(guard) => matches!(*guard, MicrophoneMode::OnDemand),
+                Err(e) => {
+                    error!("Failed to lock mode: {}", e);
+                    false
+                }
+            };
+
+            if is_on_demand {
                 if let Err(e) = self.start_microphone_stream() {
                     error!("Failed to open microphone stream: {e}");
                     return false;
                 }
             }
 
-            if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
-                if rec.start().is_ok() {
-                    *self.is_recording.lock().unwrap() = true;
-                    *state = RecordingState::Recording {
-                        binding_id: binding_id.to_string(),
-                    };
-                    debug!("Recording started for binding {binding_id}");
-                    return true;
+            let recorder_available = match self.safe_lock(&self.recorder) {
+                Ok(guard) => guard
+                    .as_ref()
+                    .map(|rec| rec.start().is_ok())
+                    .unwrap_or(false),
+                Err(e) => {
+                    error!("Failed to lock recorder: {}", e);
+                    false
                 }
+            };
+
+            if recorder_available {
+                if let Ok(mut guard) = self.safe_lock(&self.is_recording) {
+                    *guard = true;
+                }
+                *state = RecordingState::Recording {
+                    binding_id: binding_id.to_string(),
+                };
+                debug!("Recording started for binding {binding_id}");
+                return true;
             }
             error!("Recorder not available");
             false
@@ -450,7 +481,15 @@ impl AudioRecordingManager {
 
     pub fn update_selected_device(&self) -> Result<(), anyhow::Error> {
         // If currently open, restart the microphone stream to use the new device
-        if *self.is_open.lock().unwrap() {
+        let is_open = match self.safe_lock(&self.is_open) {
+            Ok(guard) => *guard,
+            Err(e) => {
+                error!("Failed to lock is_open: {}", e);
+                return Ok(());
+            }
+        };
+
+        if is_open {
             self.stop_microphone_stream();
             self.start_microphone_stream()?;
         }
@@ -458,7 +497,13 @@ impl AudioRecordingManager {
     }
 
     pub fn stop_recording(&self, binding_id: &str) -> Option<Vec<f32>> {
-        let mut state = self.state.lock().unwrap();
+        let mut state = match self.safe_lock(&self.state) {
+            Ok(guard) => guard,
+            Err(e) => {
+                error!("Failed to lock state in stop_recording: {}", e);
+                return None;
+            }
+        };
 
         match *state {
             RecordingState::Recording {
@@ -467,29 +512,46 @@ impl AudioRecordingManager {
                 *state = RecordingState::Idle;
                 drop(state);
 
-                let samples = if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
-                    match rec.stop() {
-                        Ok(buf) => buf,
-                        Err(e) => {
-                            error!("stop() failed: {e}");
+                let samples = match self.safe_lock(&self.recorder) {
+                    Ok(guard) => {
+                        if let Some(rec) = guard.as_ref() {
+                            match rec.stop() {
+                                Ok(buf) => buf,
+                                Err(e) => {
+                                    error!("stop() failed: {e}");
+                                    Vec::new()
+                                }
+                            }
+                        } else {
+                            error!("Recorder not available");
                             Vec::new()
                         }
                     }
-                } else {
-                    error!("Recorder not available");
-                    Vec::new()
+                    Err(e) => {
+                        error!("Failed to lock recorder: {}", e);
+                        Vec::new()
+                    }
                 };
 
-                *self.is_recording.lock().unwrap() = false;
+                if let Ok(mut guard) = self.safe_lock(&self.is_recording) {
+                    *guard = false;
+                }
 
                 // In on-demand mode turn the mic off again
-                if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
+                let is_on_demand = match self.safe_lock(&self.mode) {
+                    Ok(guard) => matches!(*guard, MicrophoneMode::OnDemand),
+                    Err(e) => {
+                        error!("Failed to lock mode: {}", e);
+                        false
+                    }
+                };
+
+                if is_on_demand {
                     self.stop_microphone_stream();
                 }
 
                 // Pad if very short
                 let s_len = samples.len();
-                // debug!("Got {} samples", s_len);
                 if s_len < WHISPER_SAMPLE_RATE && s_len > 0 {
                     let mut padded = samples;
                     padded.resize(WHISPER_SAMPLE_RATE * 5 / 4, 0.0);
@@ -501,29 +563,51 @@ impl AudioRecordingManager {
             _ => None,
         }
     }
+
     pub fn is_recording(&self) -> bool {
-        matches!(
-            *self.state.lock().unwrap(),
-            RecordingState::Recording { .. }
-        )
+        match self.safe_lock(&self.state) {
+            Ok(guard) => matches!(*guard, RecordingState::Recording { .. }),
+            Err(e) => {
+                error!("Failed to lock state in is_recording: {}", e);
+                false
+            }
+        }
     }
 
     /// Cancel any ongoing recording without returning audio samples
     pub fn cancel_recording(&self) {
-        let mut state = self.state.lock().unwrap();
+        let mut state = match self.safe_lock(&self.state) {
+            Ok(guard) => guard,
+            Err(e) => {
+                error!("Failed to lock state in cancel_recording: {}", e);
+                return;
+            }
+        };
 
         if let RecordingState::Recording { .. } = *state {
             *state = RecordingState::Idle;
             drop(state);
 
-            if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
-                let _ = rec.stop(); // Discard the result
+            if let Ok(guard) = self.safe_lock(&self.recorder) {
+                if let Some(rec) = guard.as_ref() {
+                    let _ = rec.stop(); // Discard the result
+                }
             }
 
-            *self.is_recording.lock().unwrap() = false;
+            if let Ok(mut guard) = self.safe_lock(&self.is_recording) {
+                *guard = false;
+            }
 
             // In on-demand mode turn the mic off again
-            if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
+            let is_on_demand = match self.safe_lock(&self.mode) {
+                Ok(guard) => matches!(*guard, MicrophoneMode::OnDemand),
+                Err(e) => {
+                    error!("Failed to lock mode: {}", e);
+                    false
+                }
+            };
+
+            if is_on_demand {
                 self.stop_microphone_stream();
             }
         }

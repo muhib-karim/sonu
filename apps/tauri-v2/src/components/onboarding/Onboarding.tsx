@@ -61,7 +61,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   return (
     <div className="dark h-screen w-screen flex flex-col p-6 gap-4 inset-0 bg-background">
       <div className="flex flex-col items-center gap-2 shrink-0">
-        <SonuLogo width={200} />
+        <SonuLogo size="xl" />
         <p className="text-text/70 max-w-md font-medium mx-auto">
           {t("onboarding.subtitle")}
         </p>

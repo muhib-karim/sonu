@@ -44,14 +44,7 @@ export const SonuLogo: React.FC<SonuLogoProps> = ({
           className="text-brand-400"
         >
           {/* Microphone Body */}
-          <rect
-            x="8"
-            y="4"
-            width="8"
-            height="12"
-            rx="4"
-            fill="currentColor"
-          />
+          <rect x="8" y="4" width="8" height="12" rx="4" fill="currentColor" />
           {/* Microphone Stand */}
           <path
             d="M6 12C6 15.3137 8.68629 18 12 18C15.3137 18 18 15.3137 18 12"
@@ -98,4 +91,3 @@ export const SonuLogo: React.FC<SonuLogoProps> = ({
 };
 
 export default SonuLogo;
-

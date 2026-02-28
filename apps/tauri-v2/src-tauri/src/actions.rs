@@ -2,6 +2,7 @@
 use crate::apple_intelligence;
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::managers::audio::AudioRecordingManager;
+use crate::managers::cloud_transcription::CloudTranscriptionManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
 use crate::settings::{get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID};
@@ -213,9 +214,14 @@ impl ShortcutAction for TranscribeAction {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
 
-        // Load model in the background
-        let tm = app.state::<Arc<TranscriptionManager>>();
-        tm.initiate_model_load();
+        // Only load model in background if cloud transcription is NOT enabled
+        let settings = get_settings(app);
+        if !settings.cloud_transcription.enabled {
+            let tm = app.state::<Arc<TranscriptionManager>>();
+            tm.initiate_model_load();
+        } else {
+            debug!("Cloud transcription enabled, skipping local model load");
+        }
 
         let binding_id = binding_id.to_string();
         change_tray_icon(app, TrayIconState::Recording);
@@ -289,6 +295,7 @@ impl ShortcutAction for TranscribeAction {
         let rm = Arc::clone(&app.state::<Arc<AudioRecordingManager>>());
         let tm = Arc::clone(&app.state::<Arc<TranscriptionManager>>());
         let hm = Arc::clone(&app.state::<Arc<HistoryManager>>());
+        let ctm = Arc::clone(&app.state::<Arc<CloudTranscriptionManager>>());
 
         change_tray_icon(app, TrayIconState::Transcribing);
         show_transcribing_overlay(app);
@@ -318,7 +325,28 @@ impl ShortcutAction for TranscribeAction {
 
                 let transcription_time = Instant::now();
                 let samples_clone = samples.clone(); // Clone for history saving
-                match tm.transcribe(samples) {
+
+                // Check if cloud transcription is enabled
+                let cloud_settings = get_settings(&ah);
+                let use_cloud = cloud_settings.cloud_transcription.enabled;
+
+                let transcription_result: Result<String, String> = if use_cloud {
+                    debug!("Using cloud transcription");
+                    match ctm.transcribe(samples).await {
+                        Ok(text) => Ok(text),
+                        Err(e) => {
+                            error!("Cloud transcription failed: {}. Falling back to local.", e);
+                            // Fallback to local transcription
+                            tm.transcribe(samples_clone.clone())
+                                .map_err(|e| e.to_string())
+                        }
+                    }
+                } else {
+                    debug!("Using local transcription");
+                    tm.transcribe(samples).map_err(|e| e.to_string())
+                };
+
+                match transcription_result {
                     Ok(transcription) => {
                         debug!(
                             "Transcription completed in {:?}: '{}'",

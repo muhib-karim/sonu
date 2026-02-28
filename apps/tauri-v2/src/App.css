@@ -6,7 +6,7 @@
 
 @theme {
   /* SONU Design System - Professional Zinc Theme */
-  
+
   /* Brand Colors */
   --color-brand-50: #fafafa;
   --color-brand-100: #f4f4f5;
@@ -24,16 +24,16 @@
   --color-text: var(--color-brand-50);
   --color-text-muted: var(--color-brand-400);
   --color-text-disabled: var(--color-brand-600);
-  
+
   --color-background: var(--color-brand-950);
   --color-background-elevated: var(--color-brand-900);
   --color-background-pressed: var(--color-brand-800);
-  
+
   --color-foreground: var(--color-brand-50);
   --color-primary: var(--color-brand-400);
   --color-primary-hover: var(--color-brand-300);
   --color-primary-pressed: var(--color-brand-500);
-  
+
   --color-secondary: var(--color-brand-700);
   --color-secondary-hover: var(--color-brand-600);
   --color-secondary-pressed: var(--color-brand-800);
@@ -87,7 +87,9 @@
 
   /* Typography */
   --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-mono:
+    "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
 
   /* Spacing */
   --spacing-1: 0.25rem;
@@ -166,51 +168,64 @@
 
 /* Animation keyframes */
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes slide-in {
-  from { 
+  from {
     opacity: 0;
     transform: translateY(-10px);
   }
-  to { 
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
 @keyframes slide-out {
-  from { 
+  from {
     opacity: 1;
     transform: translateY(0);
   }
-  to { 
+  to {
     opacity: 0;
     transform: translateY(-10px);
   }
 }
 
 @keyframes scale-in {
-  from { 
+  from {
     opacity: 0;
     transform: scale(0.95);
   }
-  to { 
+  to {
     opacity: 1;
     transform: scale(1);
   }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Reduced motion */

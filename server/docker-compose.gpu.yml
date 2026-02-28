@@ -1,0 +1,35 @@
+# GPU-accelerated version (requires NVIDIA Container Toolkit)
+services:
+  sonu-transcription:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+      args:
+        WHISPER_MODEL: large-v3
+    container_name: sonu-transcription-server-gpu
+    ports:
+      - "8000:8000"
+    environment:
+      - WHISPER_MODEL=large-v3
+      - DEVICE=cuda
+      - COMPUTE_TYPE=float16
+      - API_KEY=
+    volumes:
+      - whisper-models:/root/.cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+
+volumes:
+  whisper-models:

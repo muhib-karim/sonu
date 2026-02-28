@@ -23,6 +23,7 @@ use tauri_specta::{collect_commands, Builder};
 
 use env_filter::Builder as EnvFilterBuilder;
 use managers::audio::AudioRecordingManager;
+use managers::cloud_transcription::CloudTranscriptionManager;
 use managers::history::HistoryManager;
 use managers::model::ModelManager;
 use managers::offline_llm::OfflineLLMManager;
@@ -129,8 +130,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
-    let offline_llm_manager =
-        Arc::new(OfflineLLMManager::new(app_handle).expect("Failed to initialize offline LLM manager"));
+    let offline_llm_manager = Arc::new(
+        OfflineLLMManager::new(app_handle).expect("Failed to initialize offline LLM manager"),
+    );
+    let cloud_transcription_manager = Arc::new(
+        CloudTranscriptionManager::new(app_handle)
+            .expect("Failed to initialize cloud transcription manager"),
+    );
 
     // Add managers to Tauri's managed state
     app_handle.manage(recording_manager.clone());
@@ -138,6 +144,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
     app_handle.manage(offline_llm_manager.clone());
+    app_handle.manage(cloud_transcription_manager.clone());
 
     // Initialize the shortcuts
     shortcut::init_shortcuts(app_handle);
@@ -312,8 +319,6 @@ pub fn run() {
         commands::audio::set_clamshell_microphone,
         commands::audio::get_clamshell_microphone,
         commands::audio::is_recording,
-        commands::transcription::set_model_unload_timeout,
-        commands::transcription::get_model_load_status,
         commands::transcription::unload_model_manually,
         commands::transcription::start_note_recording,
         commands::transcription::finish_note_recording,
@@ -333,6 +338,15 @@ pub fn run() {
         commands::offline_llm::set_offline_post_process_enabled,
         commands::offline_llm::get_offline_post_process_enabled,
         commands::offline_llm::has_any_offline_llm_models,
+        commands::cloud_transcription::get_cloud_transcription_status,
+        commands::cloud_transcription::get_cloud_providers,
+        commands::cloud_transcription::set_cloud_transcription_enabled,
+        commands::cloud_transcription::set_cloud_provider,
+        commands::cloud_transcription::set_cloud_api_key,
+        commands::cloud_transcription::set_cloud_endpoint,
+        commands::cloud_transcription::set_cloud_language,
+        commands::cloud_transcription::set_cloud_translate_to_english,
+        commands::cloud_transcription::test_cloud_connection,
         helpers::clamshell::is_laptop,
     ]);
 

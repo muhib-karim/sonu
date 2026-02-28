@@ -65,7 +65,13 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
 
   // Use settings directly as single source of truth
   const baseUrl = selectedProvider?.base_url ?? "";
-  const apiKey = settings?.post_process_api_keys?.[selectedProviderId] ?? "";
+  // API keys are managed per-provider through Tauri commands, not exposed in AppSettings type
+  const apiKey =
+    (
+      (settings as Record<string, unknown>)?.["post_process_api_keys"] as
+        | Record<string, string>
+        | undefined
+    )?.[selectedProviderId] ?? "";
   const model = settings?.post_process_models?.[selectedProviderId] ?? "";
 
   const providerOptions = useMemo<DropdownOption[]>(() => {

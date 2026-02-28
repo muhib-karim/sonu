@@ -1,5 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   children: ReactNode;
@@ -15,11 +15,11 @@ interface State {
 
 /**
  * Error Boundary Component
- * 
+ *
  * Catches JavaScript errors anywhere in the child component tree,
  * logs those errors, and displays a fallback UI instead of the
  * component tree that crashed.
- * 
+ *
  * Usage:
  * ```tsx
  * <ErrorBoundary>
@@ -38,22 +38,22 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+
     // Log to error reporting service
     this.logError(error, errorInfo);
-    
+
     // Call optional error handler
     this.props.onError?.(error, errorInfo);
-    
+
     this.setState({ errorInfo });
   }
 
   private logError(error: Error, errorInfo: ErrorInfo) {
     // In production, send to error tracking service
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       // Example: Sentry.captureException(error);
-      console.error('Production error logged:', {
+      console.error("Production error logged:", {
         error: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack,
@@ -130,17 +130,20 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
           </div>
           <div>
             <h2 className="text-xl font-semibold text-text">
-              {t('errors.boundary_title', 'Something went wrong')}
+              {t("errors.boundary_title", "Something went wrong")}
             </h2>
             <p className="text-sm text-text-secondary">
-              {t('errors.boundary_subtitle', 'The application encountered an unexpected error')}
+              {t(
+                "errors.boundary_subtitle",
+                "The application encountered an unexpected error",
+              )}
             </p>
           </div>
         </div>
 
         <div className="bg-error/5 rounded-md p-3 mb-4 font-mono text-sm text-error overflow-auto max-h-32">
-          <p className="font-semibold">{error?.message || 'Unknown error'}</p>
-          {process.env.NODE_ENV === 'development' && errorInfo && (
+          <p className="font-semibold">{error?.message || "Unknown error"}</p>
+          {process.env.NODE_ENV === "development" && errorInfo && (
             <pre className="mt-2 text-xs opacity-80 whitespace-pre-wrap">
               {errorInfo.componentStack}
             </pre>
@@ -152,18 +155,21 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
             onClick={onReset}
             className="flex-1 px-4 py-2 bg-surface border border-border rounded-md text-text hover:bg-background transition-colors"
           >
-            {t('buttons.try_again', 'Try Again')}
+            {t("buttons.try_again", "Try Again")}
           </button>
           <button
             onClick={onReload}
             className="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
           >
-            {t('buttons.reload_app', 'Reload App')}
+            {t("buttons.reload_app", "Reload App")}
           </button>
         </div>
 
         <p className="mt-4 text-xs text-text-secondary text-center">
-          {t('errors.report_prompt', 'If this problem persists, please report it to the development team')}
+          {t(
+            "errors.report_prompt",
+            "If this problem persists, please report it to the development team",
+          )}
         </p>
       </div>
     </div>
@@ -185,7 +191,7 @@ export class SettingsErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('SettingsErrorBoundary caught an error:', error, errorInfo);
+    console.error("SettingsErrorBoundary caught an error:", error, errorInfo);
     this.setState({ errorInfo });
   }
 
@@ -195,11 +201,22 @@ export class SettingsErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      /* eslint-disable i18next/no-literal-string */
       return (
         <div className="p-4 bg-error/5 border border-error/20 rounded-lg">
           <div className="flex items-center gap-2 text-error mb-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <span className="font-medium">Failed to load settings section</span>
           </div>
@@ -211,6 +228,7 @@ export class SettingsErrorBoundary extends Component<Props, State> {
           </button>
         </div>
       );
+      /* eslint-enable i18next/no-literal-string */
     }
 
     return this.props.children;
@@ -222,7 +240,7 @@ export class SettingsErrorBoundary extends Component<Props, State> {
  */
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  options?: Omit<Props, 'children'>
+  options?: Omit<Props, "children">,
 ): React.FC<P> {
   return function WrappedComponent(props: P) {
     return (

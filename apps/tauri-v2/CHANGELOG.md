@@ -3,6 +3,7 @@
 ## [2.1.0] - 2026-01-13 (SONU Release)
 
 ### Added
+
 - **SONU Branding**: Complete rebrand from Handy to SONU - Offline Voice Typing
 - **Wispr Flow-Inspired UI**: Dark graphite theme with glassmorphism effects
 - **Floating Overlay Widget**: Beautiful recording indicator with waveform visualization
@@ -11,6 +12,7 @@
 - **Ko-fi Support**: Added support link for the project
 
 ### Changed
+
 - Version bump to 2.1.0
 - Updated all icons (taskbar, system tray, app icon) to SONU branding
 - Tray menu now shows "SONU v2.1.0" instead of "Handy"
@@ -20,12 +22,14 @@
 - Updated updater endpoint to SONU GitHub releases
 
 ### Fixed
+
 - CSS import error with tw-animate-css
 - Font issues (removed Architects Daughter, using system fonts)
 - Dark theme now properly enforced throughout the app
 - Sidebar and footer styling consistency
 
 ### Technical
+
 - Simplified App.css with clean Wispr Flow color palette
 - Updated index.html with dark class and SONU title
 - Proper system font stack for cross-platform consistency

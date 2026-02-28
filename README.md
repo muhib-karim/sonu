@@ -32,6 +32,18 @@
 
 ---
 
+## 📸 Screenshot
+
+<p align="center">
+  <img src="assets/showcase/01_home.png" alt="SONU Home Screen" width="680" />
+</p>
+
+<p align="center">
+  <em>SONU v2.2.0 — Clean, modern interface for offline voice typing</em>
+</p>
+
+---
+
 ## 💝 Support SONU
 
 **SONU is completely free and open source.** Your support helps us:

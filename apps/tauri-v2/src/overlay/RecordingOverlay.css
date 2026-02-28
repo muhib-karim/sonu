@@ -21,9 +21,15 @@
     0 0 80px rgba(99, 102, 241, 0.08);
 
   opacity: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(4px) scale(0.98);
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.4s ease;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui,
+    sans-serif;
 }
 
 .recording-overlay:hover {
@@ -36,6 +42,7 @@
 
 .recording-overlay.fade-in {
   opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 /* Left section - Cancel button */
@@ -76,7 +83,10 @@
   min-height: 4px;
   max-height: 20px;
   opacity: 0.8;
-  transition: height 60ms ease-out, opacity 120ms ease-out;
+  transition:
+    height 80ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 120ms ease-out;
+  will-change: height;
 }
 
 /* Processing state - purple pulse */
@@ -86,8 +96,15 @@
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scaleY(0.6); opacity: 0.7; }
-  50% { transform: scaleY(1); opacity: 1; }
+  0%,
+  100% {
+    transform: scaleY(0.6);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
 }
 
 /* Status Text */
@@ -109,8 +126,13 @@
 }
 
 @keyframes transcribing-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Cancel Button */
@@ -123,20 +145,21 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.6);
 }
 
 .cancel-button:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.9);
+  background: rgba(239, 68, 68, 0.15);
+  color: rgba(239, 68, 68, 0.9);
   transform: scale(1.1);
 }
 
 .cancel-button:active {
   transform: scale(0.9);
+  background: rgba(239, 68, 68, 0.25);
 }
 
 .cancel-button svg {
@@ -179,11 +202,22 @@
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.4));
 }
 
 @keyframes popIn {
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 
 /* Done state styling */
@@ -201,6 +235,116 @@
 
 /* Wave animation keyframes */
 @keyframes wave {
-  0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
-  50% { transform: scaleY(1); opacity: 1; }
+  0%,
+  100% {
+    transform: scaleY(0.4);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* ─── Cloud Mode Styling ─────────────────────────────────────────────── */
+.recording-overlay.cloud-mode {
+  border-color: rgba(99, 102, 241, 0.15);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(99, 102, 241, 0.06) inset,
+    0 0 80px rgba(99, 102, 241, 0.14);
+}
+
+.recording-overlay.cloud-mode .bar {
+  background: linear-gradient(180deg, #a5b4fc 0%, #6366f1 100%);
+}
+
+.recording-overlay.cloud-mode.processing {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(99, 102, 241, 0.08) inset,
+    0 0 60px rgba(99, 102, 241, 0.22);
+}
+
+/* Cloud indicator dot */
+.cloud-indicator {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.95),
+    rgba(129, 140, 248, 0.95)
+  );
+  border-radius: 50%;
+  border: 2px solid rgba(15, 15, 20, 0.6);
+  color: white;
+  animation: cloudPulse 2s infinite ease-in-out;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+
+@keyframes cloudPulse {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* ─── Transcribing Dots Indicator ────────────────────────────────────── */
+.transcribing-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.transcribing-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.transcribing-dots .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #a78bfa;
+  animation: dotBounce 1.2s infinite ease-in-out;
+}
+
+.transcribing-dots .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+.transcribing-dots .dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.transcribing-dots .dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.recording-overlay.cloud-mode .transcribing-dots .dot {
+  background: #a5b4fc;
+}
+
+@keyframes dotBounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
 }

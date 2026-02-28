@@ -26,8 +26,8 @@ pub struct OfflineLLMModelInfo {
     pub is_downloading: bool,
     pub partial_size: u64,
     pub is_directory: bool,
-    pub speed_score: f32,    // 0.0 to 1.0, higher is faster
-    pub quality_score: f32,  // 0.0 to 1.0, higher is better quality
+    pub speed_score: f32,   // 0.0 to 1.0, higher is faster
+    pub quality_score: f32, // 0.0 to 1.0, higher is better quality
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -197,7 +197,10 @@ impl OfflineLLMManager {
                 updated_settings.offline_llm_model = available_model.id.clone();
                 write_settings(&self.app_handle, updated_settings);
 
-                info!("Successfully auto-selected offline LLM model: {}", available_model.id);
+                info!(
+                    "Successfully auto-selected offline LLM model: {}",
+                    available_model.id
+                );
             }
         }
 
@@ -210,8 +213,8 @@ impl OfflineLLMManager {
             models.get(model_id).cloned()
         };
 
-        let model_info =
-            model_info.ok_or_else(|| anyhow::anyhow!("Offline LLM model not found: {}", model_id))?;
+        let model_info = model_info
+            .ok_or_else(|| anyhow::anyhow!("Offline LLM model not found: {}", model_id))?;
 
         let url = model_info
             .url
@@ -233,10 +236,16 @@ impl OfflineLLMManager {
         // Check if we have a partial download to resume
         let mut resume_from = if partial_path.exists() {
             let size = partial_path.metadata()?.len();
-            info!("Resuming download of offline LLM model {} from byte {}", model_id, size);
+            info!(
+                "Resuming download of offline LLM model {} from byte {}",
+                model_id, size
+            );
             size
         } else {
-            info!("Starting fresh download of offline LLM model {} from {}", model_id, url);
+            info!(
+                "Starting fresh download of offline LLM model {} from {}",
+                model_id, url
+            );
             0
         };
 
@@ -346,7 +355,9 @@ impl OfflineLLMManager {
                 percentage,
             };
 
-            let _ = self.app_handle.emit("offline-llm-download-progress", &progress);
+            let _ = self
+                .app_handle
+                .emit("offline-llm-download-progress", &progress);
         }
 
         file.flush()?;
@@ -385,7 +396,9 @@ impl OfflineLLMManager {
         }
 
         // Emit completion event
-        let _ = self.app_handle.emit("offline-llm-download-complete", model_id);
+        let _ = self
+            .app_handle
+            .emit("offline-llm-download-complete", model_id);
 
         info!(
             "Successfully downloaded offline LLM model {} to {:?}",
@@ -403,8 +416,8 @@ impl OfflineLLMManager {
             models.get(model_id).cloned()
         };
 
-        let model_info =
-            model_info.ok_or_else(|| anyhow::anyhow!("Offline LLM model not found: {}", model_id))?;
+        let model_info = model_info
+            .ok_or_else(|| anyhow::anyhow!("Offline LLM model not found: {}", model_id))?;
 
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
@@ -428,7 +441,9 @@ impl OfflineLLMManager {
         }
 
         if !deleted_something {
-            return Err(anyhow::anyhow!("No offline LLM model files found to delete"));
+            return Err(anyhow::anyhow!(
+                "No offline LLM model files found to delete"
+            ));
         }
 
         self.update_download_status()?;
@@ -442,7 +457,10 @@ impl OfflineLLMManager {
             .ok_or_else(|| anyhow::anyhow!("Offline LLM model not found: {}", model_id))?;
 
         if !model_info.is_downloaded {
-            return Err(anyhow::anyhow!("Offline LLM model not available: {}", model_id));
+            return Err(anyhow::anyhow!(
+                "Offline LLM model not available: {}",
+                model_id
+            ));
         }
 
         if model_info.is_downloading {
@@ -468,15 +486,18 @@ impl OfflineLLMManager {
     }
 
     pub fn cancel_download(&self, model_id: &str) -> Result<()> {
-        debug!("OfflineLLMManager: cancel_download called for: {}", model_id);
+        debug!(
+            "OfflineLLMManager: cancel_download called for: {}",
+            model_id
+        );
 
         let _model_info = {
             let models = self.available_models.lock().unwrap();
             models.get(model_id).cloned()
         };
 
-        let _model_info =
-            _model_info.ok_or_else(|| anyhow::anyhow!("Offline LLM model not found: {}", model_id))?;
+        let _model_info = _model_info
+            .ok_or_else(|| anyhow::anyhow!("Offline LLM model not found: {}", model_id))?;
 
         {
             let mut models = self.available_models.lock().unwrap();
@@ -525,6 +546,8 @@ impl OfflineLLMManager {
 
         // Placeholder: Return the original text for now
         // This will be replaced with actual llama.cpp inference
-        Err(anyhow::anyhow!("Offline LLM inference not yet implemented - requires llama-cpp integration"))
+        Err(anyhow::anyhow!(
+            "Offline LLM inference not yet implemented - requires llama-cpp integration"
+        ))
     }
 }

@@ -1,5 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CancelIcon } from "../components/icons";
@@ -15,10 +16,21 @@ const RecordingOverlay: React.FC = () => {
   const [state, setState] = useState<OverlayState>("recording");
   const [levels, setLevels] = useState<number[]>(Array(9).fill(0));
   const [previewText, setPreviewText] = useState<string>("");
+  const [isCloudMode, setIsCloudMode] = useState(false);
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
 
   useEffect(() => {
     const setupEventListeners = async () => {
+      // Check cloud transcription status
+      try {
+        const status = await invoke<{ enabled: boolean }>(
+          "get_cloud_transcription_status",
+        );
+        setIsCloudMode(status.enabled);
+      } catch {
+        // Local mode by default
+      }
+
       // Listen for show-overlay event from Rust
       const unlistenShow = await listen("show-overlay", async (event) => {
         await syncLanguageFromSettings();
@@ -26,6 +38,16 @@ const RecordingOverlay: React.FC = () => {
         setState(overlayState);
         setIsVisible(true);
         setPreviewText("");
+
+        // Re-check cloud status on each show
+        try {
+          const status = await invoke<{ enabled: boolean }>(
+            "get_cloud_transcription_status",
+          );
+          setIsCloudMode(status.enabled);
+        } catch {
+          // Keep previous state
+        }
       });
 
       // Listen for hide-overlay event from Rust
@@ -92,7 +114,7 @@ const RecordingOverlay: React.FC = () => {
 
   return (
     <div
-      className={`recording-overlay ${isVisible ? "fade-in" : ""} ${getStateClass()}`}
+      className={`recording-overlay ${isVisible ? "fade-in" : ""} ${getStateClass()} ${isCloudMode ? "cloud-mode" : ""}`}
     >
       {/* Cancel button on left */}
       {state === "recording" && (
@@ -120,9 +142,13 @@ const RecordingOverlay: React.FC = () => {
           </div>
         )}
         {state === "transcribing" && (
-          <span className="transcribing-text">
-            {t("overlay.transcribing", "Processing...")}
-          </span>
+          <div className="transcribing-indicator">
+            <div className="transcribing-dots">
+              <span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
+            </div>
+          </div>
         )}
         {state === "done" && (
           <div className="done-checkmark">
@@ -145,7 +171,32 @@ const RecordingOverlay: React.FC = () => {
             <span className="preview-text">{previewText}</span>
           </div>
         )}
+        {state === "transcribing" && (
+          <span className="status-text transcribing-text">
+            {isCloudMode
+              ? t("overlay.cloudProcessing", "Cloud...")
+              : t("overlay.transcribing", "Processing...")}
+          </span>
+        )}
       </div>
+
+      {/* Cloud mode indicator dot */}
+      {isCloudMode && state === "recording" && (
+        <div className="cloud-indicator" title="Cloud transcription">
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 };

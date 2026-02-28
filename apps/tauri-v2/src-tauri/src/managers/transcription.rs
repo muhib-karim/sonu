@@ -142,7 +142,7 @@ impl TranscriptionManager {
                 }
                 debug!("Idle watcher thread shutting down gracefully");
             });
-            
+
             if let Ok(mut guard) = manager.watcher_handle.lock() {
                 *guard = Some(handle);
             } else {
@@ -154,7 +154,10 @@ impl TranscriptionManager {
     }
 
     /// Safely lock a mutex, converting poison errors to TranscriptionError
-    fn safe_lock<'a, T>(&self, mutex: &'a Mutex<T>) -> TranscriptionResult<std::sync::MutexGuard<'a, T>> {
+    fn safe_lock<'a, T>(
+        &self,
+        mutex: &'a Mutex<T>,
+    ) -> TranscriptionResult<std::sync::MutexGuard<'a, T>> {
         mutex.lock().map_err(|_e| {
             error!("Mutex poison error");
             TranscriptionError::LockPoisoned("Mutex lock poisoned".to_string())
@@ -176,7 +179,8 @@ impl TranscriptionManager {
         debug!("Starting to unload model");
 
         {
-            let mut engine = self.safe_lock(&self.engine)
+            let mut engine = self
+                .safe_lock(&self.engine)
                 .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
             if let Some(ref mut loaded_engine) = *engine {
                 match loaded_engine {
@@ -186,7 +190,8 @@ impl TranscriptionManager {
             *engine = None; // Drop the engine to free memory
         }
         {
-            let mut current_model = self.safe_lock(&self.current_model_id)
+            let mut current_model = self
+                .safe_lock(&self.current_model_id)
                 .map_err(|e| anyhow::anyhow!("Failed to lock current_model_id: {}", e))?;
             *current_model = None;
         }
@@ -298,12 +303,14 @@ impl TranscriptionManager {
 
         // Update the current engine and model ID
         {
-            let mut engine = self.safe_lock(&self.engine)
+            let mut engine = self
+                .safe_lock(&self.engine)
                 .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
             *engine = Some(loaded_engine);
         }
         {
-            let mut current_model = self.safe_lock(&self.current_model_id)
+            let mut current_model = self
+                .safe_lock(&self.current_model_id)
                 .map_err(|e| anyhow::anyhow!("Failed to lock current_model_id: {}", e))?;
             *current_model = Some(model_id.to_string());
         }
@@ -337,7 +344,7 @@ impl TranscriptionManager {
                 return;
             }
         };
-        
+
         if *is_loading || self.is_model_loaded() {
             return;
         }
@@ -392,17 +399,21 @@ impl TranscriptionManager {
         // Check if model is loaded, if not try to load it
         {
             // If the model is loading, wait for it to complete.
-            let mut is_loading = self.safe_lock(&self.is_loading)
+            let mut is_loading = self
+                .safe_lock(&self.is_loading)
                 .map_err(|e| anyhow::anyhow!("Failed to lock is_loading: {}", e))?;
-            
+
             while *is_loading {
-                is_loading = self.loading_condvar.wait(is_loading)
+                is_loading = self
+                    .loading_condvar
+                    .wait(is_loading)
                     .map_err(|e| anyhow::anyhow!("Condvar wait failed: {}", e))?;
             }
 
-            let engine_guard = self.safe_lock(&self.engine)
+            let engine_guard = self
+                .safe_lock(&self.engine)
                 .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
-            
+
             if engine_guard.is_none() {
                 return Err(anyhow::anyhow!("Model is not loaded for transcription."));
             }
@@ -413,7 +424,8 @@ impl TranscriptionManager {
 
         // Perform transcription with the appropriate engine
         let result = {
-            let mut engine_guard = self.safe_lock(&self.engine)
+            let mut engine_guard = self
+                .safe_lock(&self.engine)
                 .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
             let engine = engine_guard.as_mut().ok_or_else(|| {
                 anyhow::anyhow!(

@@ -27,10 +27,12 @@ export default defineConfig(async ({ mode }) => {
           gzipSize: true,
           brotliSize: true,
           filename: "dist/stats.html",
-        })
+        }),
       );
     } catch {
-      console.warn("rollup-plugin-visualizer not installed. Skipping bundle analysis.");
+      console.warn(
+        "rollup-plugin-visualizer not installed. Skipping bundle analysis.",
+      );
     }
   }
 
@@ -69,7 +71,13 @@ export default defineConfig(async ({ mode }) => {
           // Manual chunk splitting for better caching
           manualChunks: {
             // Vendor libraries that change infrequently
-            vendor: ["react", "react-dom", "react-i18next", "i18next", "zustand"],
+            vendor: [
+              "react",
+              "react-dom",
+              "react-i18next",
+              "i18next",
+              "zustand",
+            ],
             // UI components
             ui: ["lucide-react", "sonner", "@tailwindcss/vite"],
             // Tauri plugins
@@ -115,7 +123,7 @@ export default defineConfig(async ({ mode }) => {
 
     // Vite options tailored for Tauri development
     clearScreen: false,
-    
+
     server: {
       port: 1420,
       strictPort: true,

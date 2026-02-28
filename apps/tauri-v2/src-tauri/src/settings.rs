@@ -10,6 +10,30 @@ use tauri_plugin_store::StoreExt;
 pub const APPLE_INTELLIGENCE_PROVIDER_ID: &str = "apple_intelligence";
 pub const APPLE_INTELLIGENCE_DEFAULT_MODEL_ID: &str = "Apple Intelligence";
 
+// Cloud transcription provider IDs
+pub const CLOUD_PROVIDER_GROQ: &str = "groq_cloud";
+pub const CLOUD_PROVIDER_DEEPGRAM: &str = "deepgram_cloud";
+pub const CLOUD_PROVIDER_CUSTOM_CLOUD: &str = "custom_cloud";
+
+#[derive(Serialize, Deserialize, Debug, Clone, Type)]
+pub struct CloudTranscriptionProvider {
+    pub id: String,
+    pub label: String,
+    pub api_endpoint: String,
+    pub allow_endpoint_edit: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Type)]
+pub struct CloudTranscriptionSettings {
+    pub enabled: bool,
+    pub provider_id: String,
+    pub providers: Vec<CloudTranscriptionProvider>,
+    #[serde(skip)]
+    pub api_keys: HashMap<String, String>,
+    pub selected_language: String,
+    pub translate_to_english: bool,
+}
+
 #[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
@@ -301,10 +325,52 @@ pub struct AppSettings {
     pub offline_post_process_enabled: bool,
     #[serde(default)]
     pub offline_llm_model: String,
+    // Cloud transcription settings
+    #[serde(default = "default_cloud_transcription_settings")]
+    pub cloud_transcription: CloudTranscriptionSettings,
 }
 
 fn default_show_waveform() -> bool {
     true
+}
+
+fn default_cloud_transcription_providers() -> Vec<CloudTranscriptionProvider> {
+    vec![
+        CloudTranscriptionProvider {
+            id: CLOUD_PROVIDER_GROQ.to_string(),
+            label: "Groq (Free)".to_string(),
+            api_endpoint: "https://api.groq.com/openai/v1/audio/transcriptions".to_string(),
+            allow_endpoint_edit: false,
+        },
+        CloudTranscriptionProvider {
+            id: CLOUD_PROVIDER_DEEPGRAM.to_string(),
+            label: "Deepgram".to_string(),
+            api_endpoint: "https://api.deepgram.com/v1/listen".to_string(),
+            allow_endpoint_edit: false,
+        },
+        CloudTranscriptionProvider {
+            id: CLOUD_PROVIDER_CUSTOM_CLOUD.to_string(),
+            label: "Custom / Self-Hosted".to_string(),
+            api_endpoint: "http://localhost:8000/v1/audio/transcriptions".to_string(),
+            allow_endpoint_edit: true,
+        },
+    ]
+}
+
+fn default_cloud_transcription_settings() -> CloudTranscriptionSettings {
+    let providers = default_cloud_transcription_providers();
+    let mut api_keys = HashMap::new();
+    for provider in &providers {
+        api_keys.insert(provider.id.clone(), String::new());
+    }
+    CloudTranscriptionSettings {
+        enabled: false,
+        provider_id: CLOUD_PROVIDER_GROQ.to_string(),
+        providers,
+        api_keys,
+        selected_language: "auto".to_string(),
+        translate_to_english: false,
+    }
 }
 
 fn default_model() -> String {
@@ -596,6 +662,7 @@ pub fn get_default_settings() -> AppSettings {
         show_waveform: default_show_waveform(),
         offline_post_process_enabled: false,
         offline_llm_model: String::new(),
+        cloud_transcription: default_cloud_transcription_settings(),
     }
 }
 
@@ -703,15 +770,31 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
     settings
 }
 
-pub fn write_settings(app: &AppHandle, settings: &AppSettings) {
+pub fn write_settings(app: &AppHandle, mut settings: AppSettings) {
     let store = app
         .store(SETTINGS_STORE_PATH)
         .expect("Failed to initialize store");
 
     // Save API keys to keychain before removing them from the settings object
-    save_api_keys_to_keychain(settings);
+    save_api_keys_to_keychain(&settings);
 
-    store.set("settings", serde_json::to_value(&settings).unwrap());
+    // Clear API keys from memory after saving to keychain
+    // This prevents keys from lingering in the managed state
+    // Note: For production security, consider using the `secrecy` crate for true zeroization
+    for (_, api_key) in settings.cloud_transcription.api_keys.iter_mut() {
+        api_key.clear();
+    }
+    for (_, api_key) in settings.post_process_api_keys.iter_mut() {
+        api_key.clear();
+    }
+
+    match serde_json::to_value(&settings) {
+        Ok(value) => store.set("settings", value),
+        Err(e) => {
+            log::error!("Failed to serialize settings: {}", e);
+            return;
+        }
+    }
 }
 
 /// Load API keys from the OS keychain into settings
@@ -740,6 +823,35 @@ fn load_api_keys_from_keychain(settings: &mut AppSettings) {
             }
         }
     }
+
+    // Load cloud transcription API keys
+    for provider in &settings.cloud_transcription.providers {
+        let account = format!("cloud_api_key_{}", provider.id);
+        match keychain.get_password(&account) {
+            Ok(Some(api_key)) => {
+                settings
+                    .cloud_transcription
+                    .api_keys
+                    .insert(provider.id.clone(), api_key);
+            }
+            Ok(None) => {
+                settings
+                    .cloud_transcription
+                    .api_keys
+                    .insert(provider.id.clone(), String::new());
+            }
+            Err(e) => {
+                warn!(
+                    "Failed to load cloud API key for provider {}: {}",
+                    provider.id, e
+                );
+                settings
+                    .cloud_transcription
+                    .api_keys
+                    .insert(provider.id.clone(), String::new());
+            }
+        }
+    }
 }
 
 /// Save API keys from settings to the OS keychain
@@ -751,6 +863,19 @@ fn save_api_keys_to_keychain(settings: &AppSettings) {
             let account = format!("api_key_{}", provider_id);
             if let Err(e) = keychain.set_password(&account, api_key) {
                 warn!("Failed to save API key for provider {}: {}", provider_id, e);
+            }
+        }
+    }
+
+    // Save cloud transcription API keys
+    for (provider_id, api_key) in &settings.cloud_transcription.api_keys {
+        if !api_key.is_empty() {
+            let account = format!("cloud_api_key_{}", provider_id);
+            if let Err(e) = keychain.set_password(&account, api_key) {
+                warn!(
+                    "Failed to save cloud API key for provider {}: {}",
+                    provider_id, e
+                );
             }
         }
     }

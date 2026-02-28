@@ -95,11 +95,13 @@ bun test                      # Run frontend tests (when implemented)
 ### Troubleshooting
 
 **macOS CMake Error:**
+
 ```bash
 CMAKE_POLICY_VERSION_MINIMUM=3.5 bun run tauri dev
 ```
 
 **Linux Dependencies:**
+
 ```bash
 sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
   libayatana-appindicator3-dev librsvg2-dev libasound2-dev
@@ -109,13 +111,13 @@ sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
 
 ### Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
+| Layer    | Technology                               |
+| -------- | ---------------------------------------- |
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS |
-| Backend | Rust, Tauri v2 |
-| Audio | CPAL, Whisper-rs, Silero VAD |
-| State | Zustand |
-| I18n | i18next |
+| Backend  | Rust, Tauri v2                           |
+| Audio    | CPAL, Whisper-rs, Silero VAD             |
+| State    | Zustand                                  |
+| I18n     | i18next                                  |
 
 ### Key Improvements
 

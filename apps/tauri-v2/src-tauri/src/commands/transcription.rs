@@ -1,5 +1,7 @@
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::apple_intelligence;
 use crate::managers::audio::AudioRecordingManager;
+use crate::managers::cloud_transcription::CloudTranscriptionManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
 use crate::settings::{
@@ -31,7 +33,7 @@ pub fn unload_model_manually(
 #[tauri::command]
 #[specta::specta]
 pub async fn start_note_recording(
-    app: AppHandle,
+    _app: AppHandle,
     state: State<'_, Arc<AudioRecordingManager>>,
 ) -> Result<(), String> {
     let binding_id = "note_recording";
@@ -105,6 +107,7 @@ pub async fn finish_note_recording(
     app: AppHandle,
     audio_manager: State<'_, Arc<AudioRecordingManager>>,
     transcription_manager: State<'_, Arc<TranscriptionManager>>,
+    cloud_transcription_manager: State<'_, Arc<CloudTranscriptionManager>>,
     history_manager: State<'_, Arc<HistoryManager>>,
 ) -> Result<String, String> {
     let binding_id = "note_recording";
@@ -119,10 +122,18 @@ pub async fn finish_note_recording(
 
     let samples_clone = samples.clone();
 
-    // Transcribe
-    let transcription = transcription_manager
-        .transcribe(samples)
-        .map_err(|e| format!("Transcription failed: {}", e))?;
+    // Check if cloud transcription is enabled
+    let settings = get_settings(&app);
+    let transcription = if settings.cloud_transcription.enabled {
+        cloud_transcription_manager
+            .transcribe(samples)
+            .await
+            .map_err(|e| format!("Cloud transcription failed: {}", e))?
+    } else {
+        transcription_manager
+            .transcribe(samples)
+            .map_err(|e| format!("Transcription failed: {}", e))?
+    };
 
     if transcription.is_empty() {
         return Ok("".to_string());
@@ -171,16 +182,16 @@ pub async fn finish_note_recording(
 
     // Slight race condition potential but acceptable for now:
     let entries = history_manager
-        .get_history()
+        .get_history_entries()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e: anyhow::Error| e.to_string())?;
     if let Some(latest) = entries.first() {
-        if latest.transcription_text == final_text || latest.transcription_text == final_text {
+        if latest.transcription_text == final_text {
             // simple check
             history_manager
-                .set_saved(latest.id, true)
+                .toggle_saved_status(latest.id)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e: anyhow::Error| e.to_string())?;
         }
     }
 

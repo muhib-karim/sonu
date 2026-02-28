@@ -157,5 +157,20 @@
     "faq": "Frequently Asked Questions",
     "contact": "Contact Support",
     "documentation": "Documentation"
+  },
+  "cloud_transcription": {
+    "key_set": "Key Set",
+    "testing": "Testing...",
+    "test_connection": "Test Connection",
+    "how_it_works_title": "How it works",
+    "how_it_works_description": "When cloud transcription is enabled, your audio is sent to the selected provider's API for processing. This is faster and more accurate than local models, especially on machines without powerful hardware. Audio is sent over HTTPS and is not stored by the provider.",
+    "groq_title": "Getting a free Groq API key",
+    "groq_step_1_prefix": "1. Go to",
+    "groq_url": "console.groq.com",
+    "groq_step_1_suffix": "and sign up for free",
+    "groq_step_2": "2. Create an API key in your dashboard",
+    "groq_step_3": "3. Paste it above — Groq offers generous free usage limits",
+    "self_hosted_title": "Self-Hosted Server",
+    "self_hosted_description": "Run your own transcription server for complete privacy. The server accepts OpenAI Whisper-compatible API requests. Check the project docs for Docker deployment instructions."
   }
 }

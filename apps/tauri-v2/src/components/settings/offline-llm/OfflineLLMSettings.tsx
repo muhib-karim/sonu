@@ -112,7 +112,9 @@ const OfflineLLMModelCard: React.FC<{
               <span className="text-xs text-mid-gray mt-1 block">
                 {percentage}%
                 {downloadStats && downloadStats.speed > 0 && (
-                  <span className="ml-1">({formatSpeed(downloadStats.speed)})</span>
+                  <span className="ml-1">
+                    ({formatSpeed(downloadStats.speed)})
+                  </span>
                 )}
               </span>
             </div>
@@ -151,7 +153,9 @@ const OfflineLLMToggle: React.FC = () => {
   return (
     <ToggleSwitch
       checked={enabled}
-      onChange={(enabled) => updateSetting("offline_post_process_enabled", enabled)}
+      onChange={(enabled) =>
+        updateSetting("offline_post_process_enabled", enabled)
+      }
       isUpdating={isUpdating("offline_post_process_enabled")}
       label={t("settings.offlineLLM.toggle.label")}
       description={t("settings.offlineLLM.toggle.description")}
@@ -165,10 +169,12 @@ const OfflineLLMModelSelector: React.FC = () => {
   const { t } = useTranslation();
   const [models, setModels] = useState<OfflineLLMModelInfo[]>([]);
   const [currentModelId, setCurrentModelId] = useState<string>("");
-  const [downloadProgress, setDownloadProgress] = useState<Map<string, DownloadProgress>>(
-    new Map()
-  );
-  const [downloadStats, setDownloadStats] = useState<Map<string, DownloadStats>>(new Map());
+  const [downloadProgress, setDownloadProgress] = useState<
+    Map<string, DownloadProgress>
+  >(new Map());
+  const [downloadStats, setDownloadStats] = useState<
+    Map<string, DownloadStats>
+  >(new Map());
   const { getSetting } = useSettings();
 
   const enabled = getSetting("offline_post_process_enabled") || false;
@@ -223,7 +229,7 @@ const OfflineLLMModelSelector: React.FC = () => {
 
           return newStats;
         });
-      }
+      },
     );
 
     const downloadCompleteUnlisten = listen<string>(
@@ -246,7 +252,7 @@ const OfflineLLMModelSelector: React.FC = () => {
         setTimeout(() => {
           handleModelSelect(modelId);
         }, 500);
-      }
+      },
     );
 
     return () => {

@@ -20,7 +20,7 @@ export const AdvancedSettings: React.FC = () => {
   useEffect(() => {
     commands.getAppSettings().then((settings) => {
       if (settings.status === "ok") {
-        setLlmEnabled(settings.data.post_process_enabled);
+        setLlmEnabled(settings.data.post_process_enabled ?? false);
       }
     });
   }, []);
@@ -63,7 +63,10 @@ export const AdvancedSettings: React.FC = () => {
               {t("style.llmToggle", "Enable LLM Post-Processing")}
             </h3>
             <p className="text-xs text-mid-gray mt-1">
-              {t("style.llmDescription", "Use AI model for advanced text transformation. Requires API key.")}
+              {t(
+                "style.llmDescription",
+                "Use AI model for advanced text transformation. Requires API key.",
+              )}
             </p>
           </div>
           <label className="inline-flex items-center cursor-pointer">

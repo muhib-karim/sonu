@@ -59,11 +59,19 @@ export const AppDataDirectory: React.FC<AppDataDirectoryProps> = ({
 
   if (error) {
     return (
-      <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-        <p className="text-red-400 text-sm">
-          {t("errors.loadDirectory", { error })}
-        </p>
-      </div>
+      <SettingContainer
+        title={t("settings.about.appDataDirectory.title")}
+        description={t("settings.about.appDataDirectory.description")}
+        descriptionMode={descriptionMode}
+        grouped={grouped}
+        layout="stacked"
+      >
+        <div className="text-xs text-mid-gray/60 italic">
+          {t("settings.about.appDataDirectory.unavailable", {
+            defaultValue: "Directory info available in the desktop app",
+          })}
+        </div>
+      </SettingContainer>
     );
   }
 

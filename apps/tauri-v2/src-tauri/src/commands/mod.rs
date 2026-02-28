@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod cloud_transcription;
 pub mod history;
 pub mod models;
 pub mod offline_llm;
@@ -62,7 +63,7 @@ pub fn set_log_level(app: AppHandle, level: LogLevel) -> Result<(), String> {
 
     let mut settings = get_settings(&app);
     settings.log_level = level;
-    write_settings(&app, &settings);
+    write_settings(&app, settings);
 
     Ok(())
 }

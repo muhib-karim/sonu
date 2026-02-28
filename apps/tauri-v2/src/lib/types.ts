@@ -1,6 +1,6 @@
 /**
  * Core TypeScript type definitions for SONU Tauri v2 Application
- * 
+ *
  * This file contains all shared interfaces and types used across the frontend
  * to ensure type safety when communicating with the Rust backend.
  */
@@ -17,23 +17,23 @@ export interface AppSettings {
   audio_feedback_volume: number;
   sound_theme: string;
   mute_while_recording: boolean;
-  
+
   // Transcription Settings
   selected_language: string;
   translate_to_english: boolean;
   model_unload_timeout: number;
-  
+
   // Shortcut Settings
   shortcuts: ShortcutBinding[];
   push_to_talk: boolean;
-  
+
   // UI Settings
   start_hidden: boolean;
   show_overlay: boolean;
   overlay_position: OverlayPosition;
   theme: string;
   app_language: string;
-  
+
   // Post-Processing
   post_process_enabled: boolean;
   post_process_provider: string;
@@ -42,22 +42,22 @@ export interface AppSettings {
   post_process_model: string | null;
   post_process_prompts: PostProcessPrompt[];
   post_process_selected_prompt: string | null;
-  
+
   // System Settings
   autostart_enabled: boolean;
   update_checks_enabled: boolean;
   debug_mode: boolean;
   log_level: LogLevel;
-  
+
   // Clipboard & Output
   paste_method: PasteMethod;
   clipboard_handling: ClipboardHandling;
   append_trailing_space: boolean;
-  
+
   // History Settings
   history_limit: number;
   recording_retention_period: number;
-  
+
   // Custom Words
   custom_words: string[];
   word_correction_threshold: number;
@@ -71,23 +71,28 @@ export interface ShortcutBinding {
   hold_mode: boolean;
 }
 
-export type ShortcutAction = 
-  | 'start_recording'
-  | 'stop_recording'
-  | 'toggle_recording'
-  | 'cancel_transcription'
-  | 'show_settings'
-  | 'paste_last_transcription';
+export type ShortcutAction =
+  | "start_recording"
+  | "stop_recording"
+  | "toggle_recording"
+  | "cancel_transcription"
+  | "show_settings"
+  | "paste_last_transcription";
 
-export type MicrophoneMode = 'auto' | 'manual';
+export type MicrophoneMode = "auto" | "manual";
 
-export type OverlayPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+export type OverlayPosition =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right"
+  | "center";
 
-export type PasteMethod = 'clipboard' | 'direct_input' | 'keystrokes';
+export type PasteMethod = "clipboard" | "direct_input" | "keystrokes";
 
-export type ClipboardHandling = 'restore' | 'clear' | 'keep';
+export type ClipboardHandling = "restore" | "clear" | "keep";
 
-export type LogLevel = 'off' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+export type LogLevel = "off" | "error" | "warn" | "info" | "debug" | "trace";
 
 // ==================== MODEL TYPES ====================
 
@@ -120,13 +125,13 @@ export interface ModelDownloadProgress {
   eta_seconds: number;
 }
 
-export type DownloadStatus = 
-  | 'not_downloaded'
-  | 'downloading'
-  | 'verifying'
-  | 'ready'
-  | 'failed'
-  | 'cancelled';
+export type DownloadStatus =
+  | "not_downloaded"
+  | "downloading"
+  | "verifying"
+  | "ready"
+  | "failed"
+  | "cancelled";
 
 export interface ModelStatus {
   current_model: string | null;
@@ -278,16 +283,16 @@ export interface ApiError {
 }
 
 export type ErrorCode =
-  | 'NETWORK_ERROR'
-  | 'MICROPHONE_ERROR'
-  | 'MODEL_LOAD_ERROR'
-  | 'AUDIO_DEVICE_ERROR'
-  | 'INVALID_SETTINGS'
-  | 'DOWNLOAD_ERROR'
-  | 'PERMISSION_DENIED'
-  | 'INSUFFICIENT_STORAGE'
-  | 'TRANSCRIPTION_ERROR'
-  | 'UNKNOWN_ERROR';
+  | "NETWORK_ERROR"
+  | "MICROPHONE_ERROR"
+  | "MODEL_LOAD_ERROR"
+  | "AUDIO_DEVICE_ERROR"
+  | "INVALID_SETTINGS"
+  | "DOWNLOAD_ERROR"
+  | "PERMISSION_DENIED"
+  | "INSUFFICIENT_STORAGE"
+  | "TRANSCRIPTION_ERROR"
+  | "UNKNOWN_ERROR";
 
 // ==================== EVENT TYPES ====================
 
@@ -306,7 +311,7 @@ export interface TranscriptionProgressEvent {
   transcription_id: string;
   progress: number;
   partial_text?: string;
-  status: 'processing' | 'completed' | 'failed';
+  status: "processing" | "completed" | "failed";
 }
 
 export interface DownloadProgressEvent {
@@ -321,7 +326,7 @@ export interface SettingsChangedEvent {
 
 // ==================== THEME TYPES ====================
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = "light" | "dark" | "system";
 
 export interface ThemeColors {
   primary: string;
@@ -346,7 +351,7 @@ export interface NotificationOptions {
   actions?: NotificationAction[];
 }
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+export type NotificationType = "info" | "success" | "warning" | "error";
 
 export interface NotificationAction {
   label: string;
@@ -401,4 +406,4 @@ export interface DictionaryEntry {
 }
 
 // Re-export all types
-export * from './types';
+export * from "./types";

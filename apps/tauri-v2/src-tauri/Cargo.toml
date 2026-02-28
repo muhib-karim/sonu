@@ -1,6 +1,6 @@
 [package]
 name = "sonu-desktop"
-version = "2.1.0"
+version = "2.2.0"
 description = "SONU - Offline Voice Typing"
 authors = ["cjpais"]
 edition = "2021"
@@ -58,7 +58,7 @@ tokio = "1.43.0"
 vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
 enigo = "0.6.1"
 rodio = { git = "https://github.com/cjpais/rodio.git" }
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
 futures-util = "0.3"
 rustfft = "6.4.0"
 strsim = "0.11.0"
@@ -75,6 +75,7 @@ keyring = { version = "3", features = ["linux-native", "windows-native", "apple-
 specta = "=2.0.0-rc.22"
 specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
+regex = "1.10"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"

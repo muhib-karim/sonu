@@ -61,8 +61,8 @@ export const DictionarySettings: React.FC = () => {
     if (editingId && editValue.trim()) {
       setWords(
         words.map((w) =>
-          w.id === editingId ? { ...w, word: editValue.trim() } : w
-        )
+          w.id === editingId ? { ...w, word: editValue.trim() } : w,
+        ),
       );
       setEditingId(null);
       setEditValue("");
@@ -173,7 +173,10 @@ export const DictionarySettings: React.FC = () => {
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <p className="text-sm text-mid-gray">
-            {t("dictionary.empty", "No words in your dictionary yet. Click \"New word\" to add one.")}
+            {t(
+              "dictionary.empty",
+              'No words in your dictionary yet. Click "New word" to add one.',
+            )}
           </p>
         </div>
       )}

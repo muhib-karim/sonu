@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
-import { toast } from 'sonner';
-import { type ModelDownloadProgress } from '@/lib/types';
+import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { toast } from "sonner";
+import { type ModelDownloadProgress } from "@/lib/types";
 
-interface ModelUpdateInfo {
+export interface ModelUpdateInfo {
   model_id: string;
   current_version: string;
   latest_version: string;
@@ -20,16 +20,22 @@ interface ModelUpdaterProps {
 
 /**
  * Model Update Checker Component
- * 
+ *
  * Checks for available model updates and manages the update process.
  * Can be used as a standalone component or integrated into the settings page.
  */
-export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable }) => {
+export const ModelUpdater: React.FC<ModelUpdaterProps> = ({
+  onUpdateAvailable,
+}) => {
   const { t } = useTranslation();
-  const [availableUpdates, setAvailableUpdates] = useState<ModelUpdateInfo[]>([]);
+  const [availableUpdates, setAvailableUpdates] = useState<ModelUpdateInfo[]>(
+    [],
+  );
   const [isChecking, setIsChecking] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
+  const [downloadProgress, setDownloadProgress] = useState<
+    Record<string, number>
+  >({});
 
   /**
    * Check for available model updates
@@ -37,27 +43,31 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
   const checkForUpdates = useCallback(async () => {
     setIsChecking(true);
     try {
-      const updates = await invoke<ModelUpdateInfo[]>('check_model_updates');
+      const updates = await invoke<ModelUpdateInfo[]>("check_model_updates");
       setAvailableUpdates(updates);
-      
+
       if (updates.length > 0) {
         onUpdateAvailable?.(updates);
         toast.info(
-          t('model.updates_available', '{{count}} model update(s) available', { count: updates.length }),
+          t("model.updates_available", "{{count}} model update(s) available", {
+            count: updates.length,
+          }),
           {
             duration: 5000,
             action: {
-              label: t('buttons.view', 'View'),
+              label: t("buttons.view", "View"),
               onClick: () => showUpdateDialog(updates),
             },
-          }
+          },
         );
       } else {
-        toast.success(t('model.all_up_to_date', 'All models are up to date'));
+        toast.success(t("model.all_up_to_date", "All models are up to date"));
       }
     } catch (error) {
-      console.error('Failed to check for model updates:', error);
-      toast.error(t('errors.update_check_failed', 'Failed to check for updates'));
+      console.error("Failed to check for model updates:", error);
+      toast.error(
+        t("errors.update_check_failed", "Failed to check for updates"),
+      );
     } finally {
       setIsChecking(false);
     }
@@ -66,31 +76,40 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
   /**
    * Download and install model updates
    */
-  const installUpdate = useCallback(async (modelId: string) => {
-    setIsUpdating(true);
-    setDownloadProgress(prev => ({ ...prev, [modelId]: 0 }));
-    
-    try {
-      await invoke('download_model_update', { modelId });
-      
-      toast.success(
-        t('model.update_installed', 'Model {{model}} updated successfully', { model: modelId })
-      );
-      
-      // Remove from available updates
-      setAvailableUpdates(prev => prev.filter(u => u.model_id !== modelId));
-    } catch (error) {
-      console.error('Failed to install model update:', error);
-      toast.error(t('errors.update_install_failed', 'Failed to install update'));
-    } finally {
-      setIsUpdating(false);
-      setDownloadProgress(prev => {
-        const newProgress = { ...prev };
-        delete newProgress[modelId];
-        return newProgress;
-      });
-    }
-  }, [t]);
+  const installUpdate = useCallback(
+    async (modelId: string) => {
+      setIsUpdating(true);
+      setDownloadProgress((prev) => ({ ...prev, [modelId]: 0 }));
+
+      try {
+        await invoke("download_model_update", { modelId });
+
+        toast.success(
+          t("model.update_installed", "Model {{model}} updated successfully", {
+            model: modelId,
+          }),
+        );
+
+        // Remove from available updates
+        setAvailableUpdates((prev) =>
+          prev.filter((u) => u.model_id !== modelId),
+        );
+      } catch (error) {
+        console.error("Failed to install model update:", error);
+        toast.error(
+          t("errors.update_install_failed", "Failed to install update"),
+        );
+      } finally {
+        setIsUpdating(false);
+        setDownloadProgress((prev) => {
+          const newProgress = { ...prev };
+          delete newProgress[modelId];
+          return newProgress;
+        });
+      }
+    },
+    [t],
+  );
 
   /**
    * Install all available updates
@@ -107,7 +126,7 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
   const showUpdateDialog = (updates: ModelUpdateInfo[]) => {
     // This would typically open a modal dialog
     // For now, we'll just log to console
-    console.log('Model updates available:', updates);
+    console.log("Model updates available:", updates);
   };
 
   /**
@@ -117,12 +136,15 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
     let unlisten: (() => void) | undefined;
 
     const setupListener = async () => {
-      unlisten = await listen<ModelDownloadProgress>('model-download-progress', (event) => {
-        setDownloadProgress(prev => ({
-          ...prev,
-          [event.payload.model_id]: event.payload.progress_percentage,
-        }));
-      });
+      unlisten = await listen<ModelDownloadProgress>(
+        "model-download-progress",
+        (event) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            [event.payload.model_id]: event.payload.progress_percentage,
+          }));
+        },
+      );
     };
 
     setupListener();
@@ -157,12 +179,12 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
         {isChecking ? (
           <>
             <LoadingSpinner />
-            {t('model.checking', 'Checking...')}
+            {t("model.checking", "Checking...")}
           </>
         ) : (
           <>
             <RefreshIcon />
-            {t('model.check_updates', 'Check for Updates')}
+            {t("model.check_updates", "Check for Updates")}
           </>
         )}
       </button>
@@ -173,7 +195,7 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-text">
-          {t('model.updates_available_title', 'Model Updates Available')}
+          {t("model.updates_available_title", "Model Updates Available")}
         </h3>
         <div className="flex gap-2">
           <button
@@ -182,7 +204,7 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
             className="px-3 py-1.5 text-sm bg-background border border-border rounded-md hover:bg-surface disabled:opacity-50 transition-colors flex items-center gap-1"
           >
             <RefreshIcon className="w-4 h-4" />
-            {t('buttons.refresh', 'Refresh')}
+            {t("buttons.refresh", "Refresh")}
           </button>
           <button
             onClick={installAllUpdates}
@@ -192,10 +214,10 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
             {isUpdating ? (
               <>
                 <LoadingSpinner />
-                {t('model.updating', 'Updating...')}
+                {t("model.updating", "Updating...")}
               </>
             ) : (
-              t('model.update_all', 'Update All')
+              t("model.update_all", "Update All")
             )}
           </button>
         </div>
@@ -211,7 +233,7 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
               <div>
                 <h4 className="font-medium text-text">{update.model_id}</h4>
                 <p className="text-sm text-text-secondary">
-                  {t('model.version_info', '{{current}} → {{latest}}', {
+                  {t("model.version_info", "{{current}} → {{latest}}", {
                     current: update.current_version,
                     latest: update.latest_version,
                   })}
@@ -219,7 +241,7 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
               </div>
               {update.is_required && (
                 <span className="px-2 py-1 text-xs bg-warning/10 text-warning rounded-full">
-                  {t('model.required', 'Required')}
+                  {t("model.required", "Required")}
                 </span>
               )}
             </div>
@@ -248,12 +270,14 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
               )}
               <button
                 onClick={() => installUpdate(update.model_id)}
-                disabled={isUpdating || downloadProgress[update.model_id] !== undefined}
+                disabled={
+                  isUpdating || downloadProgress[update.model_id] !== undefined
+                }
                 className="px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 {downloadProgress[update.model_id] !== undefined
-                  ? t('model.downloading', 'Downloading...')
-                  : t('buttons.update', 'Update')}
+                  ? t("model.downloading", "Downloading...")
+                  : t("buttons.update", "Update")}
               </button>
             </div>
           </div>
@@ -266,7 +290,9 @@ export const ModelUpdater: React.FC<ModelUpdaterProps> = ({ onUpdateAvailable })
 /**
  * Loading spinner component
  */
-const LoadingSpinner: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+const LoadingSpinner: React.FC<{ className?: string }> = ({
+  className = "w-4 h-4",
+}) => (
   <svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
     <circle
       className="opacity-25"
@@ -287,8 +313,15 @@ const LoadingSpinner: React.FC<{ className?: string }> = ({ className = "w-4 h-4
 /**
  * Refresh icon component
  */
-const RefreshIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+const RefreshIcon: React.FC<{ className?: string }> = ({
+  className = "w-4 h-4",
+}) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -308,11 +341,11 @@ export const useModelUpdater = () => {
   const checkUpdates = useCallback(async () => {
     setIsChecking(true);
     try {
-      const result = await invoke<ModelUpdateInfo[]>('check_model_updates');
+      const result = await invoke<ModelUpdateInfo[]>("check_model_updates");
       setUpdates(result);
       return result;
     } catch (error) {
-      console.error('Failed to check for updates:', error);
+      console.error("Failed to check for updates:", error);
       return [];
     } finally {
       setIsChecking(false);

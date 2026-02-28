@@ -7,7 +7,20 @@
         "description": "Fastest, lowest accuracy",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
         "multilingual": true,
-        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+        "languages": [
+          "en",
+          "de",
+          "es",
+          "fr",
+          "it",
+          "ja",
+          "pl",
+          "pt",
+          "ru",
+          "uk",
+          "vi",
+          "zh"
+        ]
       },
       "base": {
         "name": "base",
@@ -15,7 +28,20 @@
         "description": "Fast, decent accuracy",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
         "multilingual": true,
-        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+        "languages": [
+          "en",
+          "de",
+          "es",
+          "fr",
+          "it",
+          "ja",
+          "pl",
+          "pt",
+          "ru",
+          "uk",
+          "vi",
+          "zh"
+        ]
       },
       "small": {
         "name": "small",
@@ -23,7 +49,20 @@
         "description": "Balanced speed/accuracy",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
         "multilingual": true,
-        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+        "languages": [
+          "en",
+          "de",
+          "es",
+          "fr",
+          "it",
+          "ja",
+          "pl",
+          "pt",
+          "ru",
+          "uk",
+          "vi",
+          "zh"
+        ]
       },
       "medium": {
         "name": "medium",
@@ -31,7 +70,20 @@
         "description": "High accuracy, slower",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
         "multilingual": true,
-        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+        "languages": [
+          "en",
+          "de",
+          "es",
+          "fr",
+          "it",
+          "ja",
+          "pl",
+          "pt",
+          "ru",
+          "uk",
+          "vi",
+          "zh"
+        ]
       },
       "large-v1": {
         "name": "large-v1",
@@ -39,7 +91,20 @@
         "description": "Highest accuracy, slowest",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v1.bin",
         "multilingual": true,
-        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+        "languages": [
+          "en",
+          "de",
+          "es",
+          "fr",
+          "it",
+          "ja",
+          "pl",
+          "pt",
+          "ru",
+          "uk",
+          "vi",
+          "zh"
+        ]
       },
       "large-v2": {
         "name": "large-v2",
@@ -47,7 +112,20 @@
         "description": "Latest large model",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2.bin",
         "multilingual": true,
-        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+        "languages": [
+          "en",
+          "de",
+          "es",
+          "fr",
+          "it",
+          "ja",
+          "pl",
+          "pt",
+          "ru",
+          "uk",
+          "vi",
+          "zh"
+        ]
       },
       "large-v3": {
         "name": "large-v3",
@@ -55,7 +133,20 @@
         "description": "Latest large model (v3)",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
         "multilingual": true,
-        "languages": ["en", "de", "es", "fr", "it", "ja", "pl", "pt", "ru", "uk", "vi", "zh"]
+        "languages": [
+          "en",
+          "de",
+          "es",
+          "fr",
+          "it",
+          "ja",
+          "pl",
+          "pt",
+          "ru",
+          "uk",
+          "vi",
+          "zh"
+        ]
       }
     },
     "parakeet": {
@@ -103,7 +194,12 @@
         "repo": "Qwen/Qwen2.5-1.5B-Instruct",
         "quantization": "Q4_K_M",
         "context_length": 32768,
-        "recommended_for": ["text_cleanup", "formatting", "summarization", "expansion"]
+        "recommended_for": [
+          "text_cleanup",
+          "formatting",
+          "summarization",
+          "expansion"
+        ]
       },
       "qwen2.5-3b-instruct": {
         "name": "Qwen2.5 3B Instruct",
@@ -112,7 +208,13 @@
         "repo": "Qwen/Qwen2.5-3B-Instruct",
         "quantization": "Q4_K_M",
         "context_length": 32768,
-        "recommended_for": ["text_cleanup", "formatting", "summarization", "expansion", "complex_tasks"]
+        "recommended_for": [
+          "text_cleanup",
+          "formatting",
+          "summarization",
+          "expansion",
+          "complex_tasks"
+        ]
       }
     }
   },

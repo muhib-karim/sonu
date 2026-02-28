@@ -6,6 +6,7 @@ export { HistorySettings } from "./history/HistorySettings";
 export { AboutSettings } from "./about/AboutSettings";
 export { PostProcessingSettings } from "./post-processing/PostProcessingSettings";
 export { OfflineLLMSettings } from "./offline-llm/OfflineLLMSettings";
+export { CloudTranscriptionSettings } from "./cloud-transcription/CloudTranscriptionSettings";
 
 // SONU custom pages
 export { HomeSettings } from "./home/HomeSettings";

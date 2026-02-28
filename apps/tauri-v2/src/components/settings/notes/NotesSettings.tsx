@@ -1,9 +1,20 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Mic, Search, Grid, List, RefreshCw, Trash2, Copy, Check, Play, Pause } from "lucide-react";
+import {
+  Mic,
+  Search,
+  Grid,
+  List,
+  RefreshCw,
+  Trash2,
+  Copy,
+  Check,
+  Play,
+  Pause,
+} from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { commands, type HistoryEntry } from "@/bindings";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 
 type ViewMode = "list" | "grid";
 
@@ -27,7 +38,9 @@ export const NotesSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [playingId, setPlayingId] = useState<number | null>(null);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
+    null,
+  );
 
   // Load notes from history (saved entries are treated as notes)
   const loadNotes = useCallback(async () => {
@@ -79,7 +92,9 @@ export const NotesSettings: React.FC = () => {
     // Sync recording state on mount
     invoke<boolean>("is_recording")
       .then(setIsRecording)
-      .catch((err) => console.error("Failed to check recording status:", err));
+      .catch((err: unknown) =>
+        console.error("Failed to check recording status:", err),
+      );
   }, []);
 
   const toggleRecording = async () => {
@@ -163,9 +178,12 @@ export const NotesSettings: React.FC = () => {
     const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return t("time.justNow", "Just now");
-    if (diffMins < 60) return t("time.minsAgo", "{{count}} min ago", { count: diffMins });
-    if (diffHours < 24) return t("time.hoursAgo", "{{count}}h ago", { count: diffHours });
-    if (diffDays < 7) return t("time.daysAgo", "{{count}}d ago", { count: diffDays });
+    if (diffMins < 60)
+      return t("time.minsAgo", "{{count}} min ago", { count: diffMins });
+    if (diffHours < 24)
+      return t("time.hoursAgo", "{{count}}h ago", { count: diffHours });
+    if (diffDays < 7)
+      return t("time.daysAgo", "{{count}}d ago", { count: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -174,7 +192,7 @@ export const NotesSettings: React.FC = () => {
   };
 
   const filteredNotes = notes.filter((note) =>
-    note.transcription_text.toLowerCase().includes(searchQuery.toLowerCase())
+    note.transcription_text.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -185,7 +203,10 @@ export const NotesSettings: React.FC = () => {
           {t("notes.title", "For quick thoughts you want to come back to")}
         </h1>
         <p className="text-sm text-mid-gray">
-          {t("notes.subtitle", "Save transcriptions as notes by clicking the star icon in History")}
+          {t(
+            "notes.subtitle",
+            "Save transcriptions as notes by clicking the star icon in History",
+          )}
         </p>
       </div>
 
@@ -195,12 +216,18 @@ export const NotesSettings: React.FC = () => {
         <div className="relative min-h-[80px] flex items-center">
           <div className="flex-1 text-sm text-zinc-400">
             <span className="text-zinc-100/70">
-              {t("notes.placeholder", "Use your global shortcut (Alt) to dictate, then star it in History")}
+              {t(
+                "notes.placeholder",
+                "Use your global shortcut (Alt) to dictate, then star it in History",
+              )}
             </span>
           </div>
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center bg-zinc-700 text-zinc-300 cursor-default"
-            title={t("notes.useShortcut", "Use Alt (or your configured hotkey) to start dictation")}
+            title={t(
+              "notes.useShortcut",
+              "Use Alt (or your configured hotkey) to start dictation",
+            )}
           >
             <Mic size={24} />
           </div>
@@ -211,13 +238,17 @@ export const NotesSettings: React.FC = () => {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-            {t("notes.recents", "Recents")} {filteredNotes.length > 0 && `(${filteredNotes.length})`}
+            {t("notes.recents", "Recents")}{" "}
+            {filteredNotes.length > 0 && `(${filteredNotes.length})`}
           </h2>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className={`p-2 rounded-lg transition-colors ${showSearch ? "bg-zinc-700 text-zinc-200" : "hover:bg-zinc-700/50 text-zinc-500"
-                }`}
+              className={`p-2 rounded-lg transition-colors ${
+                showSearch
+                  ? "bg-zinc-700 text-zinc-200"
+                  : "hover:bg-zinc-700/50 text-zinc-500"
+              }`}
               title={t("notes.search", "Search")}
             >
               <Search size={16} />
@@ -242,7 +273,10 @@ export const NotesSettings: React.FC = () => {
         {/* Search Input */}
         {showSearch && (
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+            />
             <input
               type="text"
               value={searchQuery}
@@ -261,33 +295,47 @@ export const NotesSettings: React.FC = () => {
           </div>
         ) : filteredNotes.length > 0 ? (
           /* Notes Grid/List */
-          <div className={viewMode === "grid"
-            ? "grid grid-cols-2 md:grid-cols-3 gap-4"
-            : "flex flex-col gap-3"
-          }>
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-2 md:grid-cols-3 gap-4"
+                : "flex flex-col gap-3"
+            }
+          >
             {filteredNotes.map((note) => (
               <div
                 key={note.id}
-                className={`group relative rounded-xl border-2 transition-all hover:shadow-lg ${viewMode === "grid"
-                  ? `${getNoteColor(note.id)} p-4 min-h-[140px] flex flex-col`
-                  : "bg-background border-zinc-700 p-4 hover:border-zinc-500"
-                  }`}
+                className={`group relative rounded-xl border-2 transition-all hover:shadow-lg ${
+                  viewMode === "grid"
+                    ? `${getNoteColor(note.id)} p-4 min-h-[140px] flex flex-col`
+                    : "bg-background border-zinc-700 p-4 hover:border-zinc-500"
+                }`}
               >
                 {/* Note Content */}
-                <p className={`text-sm flex-1 ${viewMode === "grid" ? "line-clamp-4" : ""}`}>
+                <p
+                  className={`text-sm flex-1 ${viewMode === "grid" ? "line-clamp-4" : ""}`}
+                >
                   {note.transcription_text}
                 </p>
 
                 {/* Footer */}
-                <div className={`flex items-center justify-between mt-3 pt-2 ${viewMode === "grid" ? "border-t border-current/10" : ""
-                  }`}>
+                <div
+                  className={`flex items-center justify-between mt-3 pt-2 ${
+                    viewMode === "grid" ? "border-t border-current/10" : ""
+                  }`}
+                >
                   <span className="text-xs text-zinc-500">
                     {formatDate(note.timestamp)}
                   </span>
 
                   {/* Actions */}
-                  <div className={`flex items-center gap-1 ${viewMode === "grid" ? "opacity-0 group-hover:opacity-100" : ""
-                    } transition-opacity`}>
+                  <div
+                    className={`flex items-center gap-1 ${
+                      viewMode === "grid"
+                        ? "opacity-0 group-hover:opacity-100"
+                        : ""
+                    } transition-opacity`}
+                  >
                     <button
                       onClick={() => toggleAudio(note)}
                       className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors"
@@ -300,7 +348,9 @@ export const NotesSettings: React.FC = () => {
                       )}
                     </button>
                     <button
-                      onClick={() => copyToClipboard(note.transcription_text, note.id)}
+                      onClick={() =>
+                        copyToClipboard(note.transcription_text, note.id)
+                      }
                       className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-colors"
                       title={t("common.copy", "Copy")}
                     >
@@ -331,7 +381,10 @@ export const NotesSettings: React.FC = () => {
             <p className="text-sm text-zinc-500 max-w-xs">
               {searchQuery
                 ? t("notes.noResults", "No notes found")
-                : t("notes.empty", "No notes yet. Star a transcription in History to save it as a note.")}
+                : t(
+                    "notes.empty",
+                    "No notes yet. Star a transcription in History to save it as a note.",
+                  )}
             </p>
           </div>
         )}

@@ -77,7 +77,7 @@ pub async fn set_active_offline_llm_model(
     // Update settings
     let mut settings = get_settings(&app);
     settings.offline_llm_model = model_id;
-    write_settings(&app, &settings);
+    write_settings(&app, settings);
 
     Ok(())
 }
@@ -95,7 +95,7 @@ pub async fn set_offline_post_process_enabled(enabled: bool, app: AppHandle) -> 
     debug!("Setting offline post-processing enabled: {}", enabled);
     let mut settings = get_settings(&app);
     settings.offline_post_process_enabled = enabled;
-    write_settings(&app, &settings);
+    write_settings(&app, settings);
     Ok(())
 }
 
