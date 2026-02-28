@@ -86,9 +86,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJBQjcyMDk1MjA2NjAxRjkKUldUNUFXWWdsU0MzdXRRZi8zYzhqV2FaNUVDbDd2Rk5VM1IvWWowVXdmRFNKQ1BrMXF5RFFsLy8K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY0Rjg3RERCNEQxRDYxQ0IKUldUTFlSMU4yMzM0Wkx4cXJNK2V1ejRiWmxrcWVCUVh6UnhJemVLSldzb1A1Z2ZVb1NDN045aWYK",
       "endpoints": [
-        "https://github.com/muhib-karim/SONU/releases/latest/download/latest.json"
+        "https://github.com/muhib-karim/sonu/releases/latest/download/latest.json"
       ]
     }
   }
