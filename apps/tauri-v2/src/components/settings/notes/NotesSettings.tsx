@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { commands, type HistoryEntry } from "@/bindings";
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 type ViewMode = "list" | "grid";
 
@@ -90,7 +90,8 @@ export const NotesSettings: React.FC = () => {
 
   useEffect(() => {
     // Sync recording state on mount
-    invoke<boolean>("is_recording")
+    commands
+      .isRecording()
       .then(setIsRecording)
       .catch((err: unknown) =>
         console.error("Failed to check recording status:", err),
@@ -101,13 +102,20 @@ export const NotesSettings: React.FC = () => {
     try {
       if (isRecording) {
         // Stop recording
-        const text = await invoke<string>("finish_note_recording");
+        const result = await commands.finishNoteRecording();
         setIsRecording(false);
+        if (result.status === "error") {
+          console.error("Failed to finish recording:", result.error);
+        }
         // Notes will reload automatically via the history-updated event
       } else {
         // Start recording
-        await invoke("start_note_recording");
-        setIsRecording(true);
+        const result = await commands.startNoteRecording();
+        if (result.status === "ok") {
+          setIsRecording(true);
+        } else {
+          console.error("Failed to start recording:", result.error);
+        }
       }
     } catch (error) {
       console.error("Recording error:", error);
@@ -216,21 +224,32 @@ export const NotesSettings: React.FC = () => {
         <div className="relative min-h-[80px] flex items-center">
           <div className="flex-1 text-sm text-zinc-400">
             <span className="text-zinc-100/70">
-              {t(
-                "notes.placeholder",
-                "Use your global shortcut (Alt) to dictate, then star it in History",
-              )}
+              {isRecording
+                ? t("notes.recording", "Recording... Click the mic to stop")
+                : t(
+                    "notes.placeholder",
+                    "Click the mic or use your global shortcut (Alt) to start dictation",
+                  )}
             </span>
           </div>
-          <div
-            className="w-14 h-14 rounded-full flex items-center justify-center bg-zinc-700 text-zinc-300 cursor-default"
+          <button
+            onClick={toggleRecording}
+            className={`w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 ${
+              isRecording
+                ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30 hover:bg-red-600"
+                : "bg-zinc-700 text-zinc-300 hover:bg-zinc-600 hover:text-white"
+            }`}
             title={t(
-              "notes.useShortcut",
-              "Use Alt (or your configured hotkey) to start dictation",
+              isRecording
+                ? "notes.stopRecording"
+                : "notes.startRecording",
+              isRecording
+                ? "Click to stop recording"
+                : "Click to start recording",
             )}
           >
             <Mic size={24} />
-          </div>
+          </button>
         </div>
       </div>
 

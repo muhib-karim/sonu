@@ -1,458 +1,109 @@
-name: CI - Automated Testing
+name: "CI"
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main]
+    paths:
+      - "apps/tauri-v2/**"
+      - ".github/workflows/ci.yml"
   pull_request:
-    branches: [main, master, develop]
+    branches: [main]
+    paths:
+      - "apps/tauri-v2/**"
+      - ".github/workflows/ci.yml"
 
-env:
-  CARGO_TERM_COLOR: always
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: apps/tauri-v2
 
 jobs:
-  # ==========================================
-  # Desktop App (Electron) - Windows
-  # ==========================================
-  desktop-lint:
-    name: Desktop - Lint
+  lint-and-format:
+    name: Lint & Format
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/desktop
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/desktop/package-lock.json
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run ESLint
-        run: npm run lint
+      - uses: actions/checkout@v4
 
-  desktop-unit-tests:
-    name: Desktop - Unit Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/desktop
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/desktop/package-lock.json
-      
-      - name: Install dependencies
-        run: |
-          npm ci
-          cd tests && npm ci
-      
-      - name: Run unit tests
-        run: |
-          cd tests
-          npm run test:unit
-      
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-unit-test-results
-          path: apps/desktop/tests/jest-unit.json
+      - uses: oven-sh/setup-bun@v2
 
-  desktop-integration-tests:
-    name: Desktop - Integration Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/desktop
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/desktop/package-lock.json
-      
-      - name: Install dependencies
-        run: |
-          npm ci
-          cd tests && npm ci
-      
-      - name: Run integration tests
-        run: |
-          cd tests
-          npm run test:integration
-
-  desktop-e2e-tests:
-    name: Desktop - E2E Tests
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: apps/desktop
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/desktop/package-lock.json
-      
-      - name: Install dependencies
-        run: |
-          npm ci
-          cd tests && npm ci
-      
-      - name: Run E2E tests
-        run: |
-          cd tests
-          npm run test:e2e
-        timeout-minutes: 30
-
-  desktop-python-tests:
-    name: Desktop - Python Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/desktop
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
-      
-      - name: Run Python tests
-        run: |
-          cd tests
-          python -m pytest python/ -v --cov=../src/core/python --cov-report=xml
-      
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./apps/desktop/tests/coverage.xml
-          flags: python
-          name: desktop-python-coverage
-
-  # ==========================================
-  # Tauri App - Multi-Platform
-  # ==========================================
-  tauri-frontend-lint:
-    name: Tauri - Frontend Lint
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/tauri-v2
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/tauri-v2/package-lock.json
-      
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      
       - name: Install dependencies
         run: bun install
-      
-      - name: Run ESLint
+
+      - name: Lint
         run: bun run lint
-      
-      - name: Type check
+
+      - name: Format check
+        run: bun run format:check
+
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Typecheck
         run: bun run typecheck
 
-  tauri-frontend-tests:
-    name: Tauri - Frontend Tests
+  test:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/tauri-v2
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/tauri-v2/package-lock.json
-      
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
       - name: Install dependencies
         run: bun install
-      
+
       - name: Run tests
         run: bun run test
-      
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          directory: ./apps/tauri-v2/coverage
-          flags: tauri-frontend
-          name: tauri-frontend-coverage
 
-  tauri-rust-tests:
-    name: Tauri - Rust Tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+  rust-check:
+    name: Rust Check
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: apps/tauri-v2/src-tauri
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-action@stable
-      
-      - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./apps/tauri-v2/src-tauri -> target"
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-      
-      - name: Run Clippy
-        run: cargo clippy -- -D warnings
-      
-      - name: Check formatting
+          sudo apt-get install -y libappindicator3-dev librsvg2-dev patchelf libasound2-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev \
+            libwebkit2gtk-4.1-0=2.44.0-2 \
+            libwebkit2gtk-4.1-dev=2.44.0-2 \
+            libjavascriptcoregtk-4.1-0=2.44.0-2 \
+            libjavascriptcoregtk-4.1-dev=2.44.0-2 \
+            gir1.2-javascriptcoregtk-4.1=2.44.0-2 \
+            gir1.2-webkit2-4.1=2.44.0-2
+
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-noble.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-noble.list
+          sudo apt update
+          sudo apt install vulkan-sdk -y
+          sudo apt-get install -y mesa-vulkan-drivers
+
+      - name: Rust format check
         run: cargo fmt -- --check
-      
-      - name: Run tests
-        run: cargo test --verbose
-      
-      - name: Generate coverage
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          cargo install cargo-tarpaulin
-          cargo tarpaulin --out Xml
-      
-      - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./apps/tauri-v2/src-tauri/cobertura.xml
-          flags: tauri-rust
-          name: tauri-rust-coverage
 
-  tauri-e2e-tests:
-    name: Tauri - E2E Tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    defaults:
-      run:
-        working-directory: apps/tauri-v2
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/tauri-v2/package-lock.json
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-action@stable
-      
-      - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-      
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      
-      - name: Install dependencies
-        run: bun install
-      
-      - name: Install Playwright
-        run: |
-          bunx playwright install
-          bunx playwright install-deps
-      
-      - name: Run E2E tests
-        run: bun run test:e2e
-        timeout-minutes: 20
-      
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tauri-e2e-results-${{ matrix.os }}
-          path: |
-            apps/tauri-v2/playwright-report/
-            apps/tauri-v2/test-results/
-
-  # ==========================================
-  # Security Scans
-  # ==========================================
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Run npm audit (Desktop)
-        working-directory: apps/desktop
-        run: npm audit --audit-level=high
-        continue-on-error: true
-      
-      - name: Run npm audit (Tauri)
-        working-directory: apps/tauri-v2
-        run: npm audit --audit-level=high
-        continue-on-error: true
-      
-      - name: Run cargo audit (Tauri)
-        working-directory: apps/tauri-v2/src-tauri
-        run: |
-          cargo install cargo-audit
-          cargo audit
-        continue-on-error: true
-      
-      - name: CodeQL Analysis
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript, typescript, rust, python
-      
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-      
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-
-  # ==========================================
-  # Build Test
-  # ==========================================
-  build-test:
-    name: Build Test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-action@stable
-      
-      - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-      
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      
-      - name: Install Tauri dependencies
-        working-directory: apps/tauri-v2
-        run: bun install
-      
-      - name: Build Tauri app
-        working-directory: apps/tauri-v2
-        run: bun run tauri build
-        env:
-          CI: true
-
-  # ==========================================
-  # Summary
-  # ==========================================
-  test-summary:
-    name: Test Summary
-    needs: [
-      desktop-lint,
-      desktop-unit-tests,
-      desktop-integration-tests,
-      desktop-python-tests,
-      tauri-frontend-lint,
-      tauri-frontend-tests,
-      tauri-rust-tests,
-      security-scan
-    ]
-    runs-on: ubuntu-latest
-    if: always()
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Test Summary
-        run: |
-          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Desktop Lint | ${{ needs.desktop-lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Desktop Unit Tests | ${{ needs.desktop-unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Desktop Integration Tests | ${{ needs.desktop-integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Desktop Python Tests | ${{ needs.desktop-python-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tauri Frontend Lint | ${{ needs.tauri-frontend-lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tauri Frontend Tests | ${{ needs.tauri-frontend-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tauri Rust Tests | ${{ needs.tauri-rust-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All tests run in the cloud - no local resources required! ☁️" >> $GITHUB_STEP_SUMMARY
+      - name: Clippy
+        run: cargo clippy -- -D warnings

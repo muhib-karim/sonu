@@ -1,159 +1,190 @@
-name: Release
+name: "Release"
 
-on:
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - 'v*'
-  pull_request:
-    branches:
-      - main
-      - master
-
-env:
-  CARGO_TERM_COLOR: always
+on: workflow_dispatch
 
 jobs:
-  build-desktop:
-    name: Build Desktop (Windows)
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: apps/desktop
-    
+  create-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      release-id: ${{ steps.create-release.outputs.result }}
+      version: ${{ steps.get-version.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/desktop/package-lock.json
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
-        run: |
-          npm ci
-          pip install -r requirements.txt
-      
-      - name: Run linting
-        run: npm run lint
-      
-      - name: Run unit tests
-        run: npm run test
-        continue-on-error: true
-      
-      - name: Build application
-        run: npm run build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-windows
-          path: |
-            apps/desktop/dist/*.exe
-            apps/desktop/dist/*.zip
-          if-no-files-found: warn
 
-  build-tauri:
-    name: Build Tauri (${{ matrix.platform }})
-    runs-on: ${{ matrix.platform }}
+      - name: Get version from tauri.conf.json
+        id: get-version
+        shell: bash
+        run: |
+          VERSION=$(grep -o '"version": "[^"]*"' apps/tauri-v2/src-tauri/tauri.conf.json | cut -d'"' -f4)
+          echo "Application version from tauri.conf.json: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create Draft Release
+        id: create-release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${{ steps.get-version.outputs.version }}`,
+              name: `SONU v${{ steps.get-version.outputs.version }}`,
+              draft: true,
+              prerelease: false,
+              generate_release_notes: true
+            })
+            return data.id
+
+  publish-tauri:
+    permissions:
+      contents: write
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, windows-latest, macos-latest]
-    
-    defaults:
-      run:
-        working-directory: apps/tauri-v2
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/tauri-v2/package-lock.json
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-action@stable
-      
-      - name: Install dependencies (Ubuntu only)
-        if: matrix.platform == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-      
-      - name: Install bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      
-      - name: Install frontend dependencies
-        run: bun install
-      
-      - name: Run linting
-        run: bun run lint
-      
-      - name: Type check
-        run: bun run typecheck
-      
-      - name: Run Rust tests
-        run: |
-          cd src-tauri
-          cargo test
-      
-      - name: Build Tauri app
-        run: bun run tauri build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: tauri-${{ matrix.platform }}
-          path: |
-            apps/tauri-v2/src-tauri/target/release/bundle/**/*.msi
-            apps/tauri-v2/src-tauri/target/release/bundle/**/*.exe
-            apps/tauri-v2/src-tauri/target/release/bundle/**/*.dmg
-            apps/tauri-v2/src-tauri/target/release/bundle/**/*.AppImage
-            apps/tauri-v2/src-tauri/target/release/bundle/**/*.deb
-          if-no-files-found: warn
+        include:
+          - platform: "macos-26"
+            args: "--target aarch64-apple-darwin"
+            target: "aarch64-apple-darwin"
+          - platform: "macos-latest"
+            args: "--target x86_64-apple-darwin"
+            target: "x86_64-apple-darwin"
+          - platform: "ubuntu-22.04"
+            args: "--bundles deb"
+            target: "x86_64-unknown-linux-gnu"
+          - platform: "ubuntu-24.04"
+            args: "--bundles appimage,rpm"
+            target: "x86_64-unknown-linux-gnu"
+          - platform: "windows-latest"
+            args: ""
+            target: "x86_64-pc-windows-msvc"
+          - platform: "windows-11-arm"
+            args: "--target aarch64-pc-windows-msvc"
+            target: "aarch64-pc-windows-msvc"
 
-  release:
-    name: Create Release
-    needs: [build-desktop, build-tauri]
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: ${{ matrix.platform }}
+      target: ${{ matrix.target }}
+      build-args: ${{ matrix.args }}
+      sign-binaries: true
+      asset-prefix: "sonu"
+      upload-artifacts: false
+      release-id: ${{ needs.create-release.outputs.release-id }}
+    secrets: inherit
+
+  generate-update-manifest:
+    permissions:
+      contents: write
+    needs: [create-release, publish-tauri]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: artifacts/**/*
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+
+      - name: Get version from tauri.conf.json
+        id: get-version
+        shell: bash
+        run: |
+          VERSION=$(grep -o '"version": "[^"]*"' apps/tauri-v2/src-tauri/tauri.conf.json | cut -d'"' -f4)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate latest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.create-release.outputs.version }}
+          RELEASE_ID: ${{ needs.create-release.outputs.release-id }}
+        run: |
+          # Fetch release assets
+          RELEASE_DATA=$(gh api repos/${{ github.repository }}/releases/$RELEASE_ID)
+
+          # Get the tag name
+          TAG_NAME="v${VERSION}"
+
+          # Base URL for release assets
+          BASE_URL="https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}"
+
+          echo "Generating latest.json for version ${VERSION}..."
+
+          # Function to get signature content
+          get_signature() {
+            local sig_file="$1"
+            gh api "repos/${{ github.repository }}/releases/$RELEASE_ID/assets" --jq ".[] | select(.name == \"${sig_file}\") | .url" | while read url; do
+              if [ -n "$url" ]; then
+                curl -sL -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/octet-stream" "$url" 2>/dev/null || echo ""
+              fi
+            done
+          }
+
+          # Get signatures from uploaded .sig files
+          DARWIN_ARM_SIG=$(get_signature "sonu_aarch64-apple-darwin.app.tar.gz.sig" || echo "")
+          DARWIN_X64_SIG=$(get_signature "sonu_x86_64-apple-darwin.app.tar.gz.sig" || echo "")
+          LINUX_SIG=$(get_signature "sonu_ubuntu-24.04_x86_64-unknown-linux-gnu.AppImage.sig" || echo "")
+          WINDOWS_X64_SIG=$(get_signature "sonu_x86_64-pc-windows-msvc.nsis.exe.sig" || echo "")
+          WINDOWS_ARM_SIG=$(get_signature "sonu_aarch64-pc-windows-msvc.nsis.exe.sig" || echo "")
+
+          # Create latest.json with signatures
+          cat > latest.json << EOF
+          {
+            "version": "${VERSION}",
+            "notes": "See the release notes at https://github.com/${{ github.repository }}/releases/tag/${TAG_NAME}",
+            "pub_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "${DARWIN_ARM_SIG}",
+                "url": "${BASE_URL}/sonu_aarch64-apple-darwin.app.tar.gz"
+              },
+              "darwin-x86_64": {
+                "signature": "${DARWIN_X64_SIG}",
+                "url": "${BASE_URL}/sonu_x86_64-apple-darwin.app.tar.gz"
+              },
+              "linux-x86_64": {
+                "signature": "${LINUX_SIG}",
+                "url": "${BASE_URL}/sonu_ubuntu-24.04_x86_64-unknown-linux-gnu.AppImage"
+              },
+              "windows-x86_64": {
+                "signature": "${WINDOWS_X64_SIG}",
+                "url": "${BASE_URL}/sonu_x86_64-pc-windows-msvc.nsis.exe"
+              },
+              "windows-aarch64": {
+                "signature": "${WINDOWS_ARM_SIG}",
+                "url": "${BASE_URL}/sonu_aarch64-pc-windows-msvc.nsis.exe"
+              }
+            }
+          }
+          EOF
+
+          echo "Generated latest.json:"
+          cat latest.json
+
+      - name: Upload latest.json to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.create-release.outputs.release-id }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=latest.json" \
+            --input latest.json
+
+  publish-release:
+    permissions:
+      contents: write
+    needs: [create-release, publish-tauri, generate-update-manifest]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release-id }},
+              draft: false
+            })
+            console.log('Release published successfully!')
