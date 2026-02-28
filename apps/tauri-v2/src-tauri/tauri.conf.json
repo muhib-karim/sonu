@@ -86,7 +86,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY0Rjg3RERCNEQxRDYxQ0IKUldUTFlSMU4yMzM0Wkx4cXJNK2V1ejRiWmxrcWVCUVh6UnhJemVLSldzb1A1Z2ZVb1NDN045aWYK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ5Rjk0MUQ0MkQ4QjM1MkUKUldRdU5Zc3QxRUg1U1JLbVdKWU1wRldIU2xaeko1ZzJ3RFNMYkhTN0VXR3lYRFpURkt0eCt2UFAK",
       "endpoints": [
         "https://github.com/muhib-karim/sonu/releases/latest/download/latest.json"
       ]
