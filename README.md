@@ -1,152 +1,295 @@
-# SONU - Professional Offline Voice Typing
+<div align="center">
 
-<p align="center">
-  <img src="assets/icon.png" alt="SONU Logo" width="128" />
-</p>
+<img src="apps/tauri-v2/src-tauri/icons/icon.png" alt="SONU" width="120" />
 
-<h1 align="center">SONU</h1>
+# SONU
 
-<p align="center">
-  <strong>🎤 Professional Offline Voice Typing Platform</strong>
-</p>
+### The Open-Source Voice Typing Platform
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Desktop-v3.7.0-blue?style=for-the-badge" alt="Desktop Version" />
-  <img src="https://img.shields.io/badge/Tauri-v2.2.0-6366f1?style=for-the-badge" alt="Tauri Version" />
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
-  <img src="https://img.shields.io/badge/Tests-Automated-success?style=for-the-badge" alt="Tests" />
-</p>
+**Type at the speed of thought. Fully offline. Fully private.**
 
-<p align="center">
-  A complete offline voice typing solution for desktop.<br/>
-  No cloud. No subscriptions. 100% private.
-</p>
+[![Latest Release](https://img.shields.io/badge/Latest-v2.2.0-6366f1?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases/latest)
+[![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/muhib-karim/sonu?style=for-the-badge&color=f59e0b)](https://github.com/muhib-karim/sonu)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0ea5e9?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases)
 
-<p align="center">
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-features">Features</a> •
-  <a href="#-download">Download</a> •
-  <a href="#-support">Support</a> •
-  <a href="#-security">Security</a>
-</p>
+[Download](#-download) · [Features](#-features) · [Showcase](#-showcase) · [Compare](#-how-sonu-compares) · [Docs](#-documentation) · [Contribute](#-contributing)
+
+</div>
 
 ---
 
-## 📸 Screenshot
+<div align="center">
 
-<p align="center">
-  <img src="assets/showcase/01_home.png" alt="SONU Home Screen" width="680" />
-</p>
+<img src="assets/showcase/banner.gif" alt="SONU in action" width="720" />
 
-<p align="center">
-  <em>SONU v2.2.0 — Clean, modern interface for offline voice typing</em>
-</p>
+*Dictate anywhere — your words appear instantly in any application.*
+
+</div>
 
 ---
 
-## 💝 Support SONU
+## ✨ Features
 
-**SONU is completely free and open source.** Your support helps us:
-- 🚀 Maintain and improve the software
-- 🐛 Fix bugs and security issues quickly
-- ✨ Add new features and models
-- 🌍 Support more languages and platforms
+<table>
+<tr>
+<td width="50%">
 
-<p align="center">
-  <a href="https://github.com/sponsors/muhib-karim">
-    <img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=for-the-badge&logo=github" alt="Sponsor on GitHub" />
-  </a>
-  <a href="https://www.buymeacoffee.com/sonu">
-    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?style=for-the-badge&logo=buy-me-a-coffee" alt="Buy Me a Coffee" />
-  </a>
-  <a href="https://ko-fi.com/sonu">
-    <img src="https://img.shields.io/badge/Ko--fi-Support-%23FF5E5B?style=for-the-badge&logo=kofi" alt="Ko-fi" />
-  </a>
-  <a href="https://paypal.me/sonuvoice">
-    <img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal" alt="PayPal" />
-  </a>
-</p>
+### 🔒 100% Offline & Private
+All transcription runs **locally on your device**. No audio ever leaves your machine. No accounts, no cloud, no subscriptions. Your voice stays yours.
 
-<p align="center">
-  <strong>⭐ Star this repository</strong> to show your support!
-</p>
+</td>
+<td width="50%">
+
+### ⚡ Real-Time Transcription
+Powered by optimized **whisper.cpp** and **Parakeet** engines for blazing-fast, real-time voice-to-text. Start speaking and see words appear instantly.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🤖 AI Text Enhancement
+Optional **LLM post-processing** cleans up filler words, fixes grammar, and formats your text — all locally with offline models, or via cloud providers.
+
+</td>
+<td width="50%">
+
+### 🌍 50+ Languages
+Transcribe in over 50 languages with automatic language detection. Switch languages on the fly or lock to a specific one.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### ⌨️ Universal Auto-Type
+SONU types directly into **any application** — your browser, IDE, email client, Slack, Discord, Word — anywhere you can type.
+
+</td>
+<td width="50%">
+
+### ☁️ Cloud Transcription (Optional)
+Connect to **Groq**, **Deepgram**, or your own **self-hosted server** for cloud-powered transcription when you want maximum accuracy.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 📚 Smart Dictionary
+Custom word corrections automatically fix domain-specific terms, names, and jargon that the model might mishear.
+
+</td>
+<td width="50%">
+
+### 📝 Snippets & Text Expansion
+Define shorthand codes that expand into full text blocks — perfect for emails, code comments, addresses, and common phrases.
+
+</td>
+</tr>
+</table>
+
+---
+
+## 📸 Showcase
+
+<div align="center">
+
+### Home & Recording
+
+<table>
+<tr>
+<td align="center"><img src="assets/showcase/10-home-dark.png" width="380" alt="Home - Dark Theme" /><br/><sub><b>Home — Dark Theme</b></sub></td>
+<td align="center"><img src="assets/showcase/16_theme-light.png" width="380" alt="Home - Light Theme" /><br/><sub><b>Home — Light Theme</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="assets/showcase/02_dictation_start.png" width="380" alt="Dictation Active" /><br/><sub><b>Dictation in Progress</b></sub></td>
+<td align="center"><img src="assets/showcase/03_output_log.png" width="380" alt="Output Log" /><br/><sub><b>Transcription Output</b></sub></td>
+</tr>
+</table>
+
+### Settings & Configuration
+
+<table>
+<tr>
+<td align="center"><img src="assets/showcase/06-settings-general.png" width="380" alt="General Settings" /><br/><sub><b>General Settings</b></sub></td>
+<td align="center"><img src="assets/showcase/08-settings-model.png" width="380" alt="Model Selection" /><br/><sub><b>Model Selection</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="assets/showcase/09-settings-themes.png" width="380" alt="Theme Settings" /><br/><sub><b>Themes & Appearance</b></sub></td>
+<td align="center"><img src="assets/showcase/11_settings-system.png" width="380" alt="System Settings" /><br/><sub><b>System Settings</b></sub></td>
+</tr>
+</table>
+
+### Productivity Tools
+
+<table>
+<tr>
+<td align="center"><img src="assets/showcase/02-dictionary.png" width="380" alt="Dictionary" /><br/><sub><b>Custom Dictionary</b></sub></td>
+<td align="center"><img src="assets/showcase/03-snippets.png" width="380" alt="Snippets" /><br/><sub><b>Text Snippets</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="assets/showcase/05-notes.png" width="380" alt="Notes" /><br/><sub><b>Voice Notes</b></sub></td>
+<td align="center"><img src="assets/showcase/04-style.png" width="380" alt="Style Settings" /><br/><sub><b>Style & Formatting</b></sub></td>
+</tr>
+</table>
+
+### More Screenshots
+
+<table>
+<tr>
+<td align="center"><img src="assets/showcase/12_model_selector.png" width="250" alt="Model Selector" /><br/><sub><b>Model Selector</b></sub></td>
+<td align="center"><img src="assets/showcase/14_settings-vibe.png" width="250" alt="Vibe Settings" /><br/><sub><b>Vibe Mode</b></sub></td>
+<td align="center"><img src="assets/showcase/15_settings-experimental.png" width="250" alt="Experimental" /><br/><sub><b>Experimental</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="assets/showcase/04_help.png" width="250" alt="Keyboard Shortcuts" /><br/><sub><b>Keyboard Shortcuts</b></sub></td>
+<td align="center"><img src="assets/showcase/17_theme-dark.png" width="250" alt="Dark Theme" /><br/><sub><b>Full Dark Theme</b></sub></td>
+<td align="center"><img src="assets/showcase/07_style.png" width="250" alt="Style Options" /><br/><sub><b>Style Options</b></sub></td>
+</tr>
+</table>
+
+</div>
+
+---
+
+## 🏆 How SONU Compares
+
+| Feature | SONU | Wispr Flow | Superwhisper | macOS Dictation |
+|---------|:----:|:----------:|:------------:|:---------------:|
+| **Fully offline** | ✅ | ❌ | ✅ | Partial |
+| **Open source** | ✅ | ❌ | ❌ | ❌ |
+| **Free forever** | ✅ | ❌ ($10/mo) | ❌ ($8/mo) | ✅ |
+| **Windows + macOS + Linux** | ✅ | macOS only | macOS only | macOS only |
+| **50+ languages** | ✅ | ✅ | ✅ | ✅ |
+| **Custom dictionary** | ✅ | ❌ | ❌ | ❌ |
+| **Text snippets** | ✅ | ❌ | ❌ | ❌ |
+| **AI text enhancement** | ✅ | ✅ | ✅ | ❌ |
+| **Offline LLM support** | ✅ | ❌ | ❌ | ❌ |
+| **Cloud transcription option** | ✅ | ✅ | ❌ | ✅ |
+| **Self-hosted server** | ✅ | ❌ | ❌ | ❌ |
+| **Voice notes** | ✅ | ❌ | ✅ | ❌ |
+| **Push-to-talk + toggle** | ✅ | ✅ | ✅ | ✅ |
+| **Auto-type into any app** | ✅ | ✅ | ✅ | ✅ |
+| **Multiple Whisper models** | ✅ (tiny → large-v3) | ❌ | ✅ | ❌ |
+| **Themes & customization** | ✅ | Limited | Limited | ❌ |
 
 ---
 
 ## ⬇️ Download
 
-### Latest Releases
+<div align="center">
 
-| Platform | Download | Version |
-|----------|----------|---------|
-| **Windows** | [Download Installer](https://github.com/muhib-karim/sonu/releases/latest) | v3.7.0 |
-| **macOS** | [Download DMG](https://github.com/muhib-karim/sonu/releases/latest) | v2.2.0 |
-| **Linux** | [Download AppImage](https://github.com/muhib-karim/sonu/releases/latest) | v2.2.0 |
+### Get SONU for your platform
 
-<p align="center">
-  <a href="https://github.com/muhib-karim/sonu/releases/latest">
-    <img src="https://img.shields.io/github/v/release/muhib-karim/sonu?style=for-the-badge&color=blue" alt="Latest Release" />
-  </a>
-</p>
+| Platform | Download | Architecture |
+|:--------:|:--------:|:------------:|
+| <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" /> | **[Download Installer (.exe)](https://github.com/muhib-karim/sonu/releases/latest)** | x64 |
+| <img src="https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white" /> | **[Download DMG](https://github.com/muhib-karim/sonu/releases/latest)** | Universal (Intel + Apple Silicon) |
+| <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" /> | **[Download AppImage / .deb](https://github.com/muhib-karim/sonu/releases/latest)** | x64 |
 
-### Installation
+[![Download Latest](https://img.shields.io/github/v/release/muhib-karim/sonu?style=for-the-badge&label=Download%20Latest&color=6366f1)](https://github.com/muhib-karim/sonu/releases/latest)
+[![Total Downloads](https://img.shields.io/github/downloads/muhib-karim/sonu/total?style=for-the-badge&label=Downloads&color=22c55e)](https://github.com/muhib-karim/sonu/releases)
 
-**Windows:**
-1. Download the `.exe` installer
+</div>
+
+### Quick Install
+
+<details>
+<summary><strong>Windows</strong></summary>
+
+1. Download the `.exe` installer from [Releases](https://github.com/muhib-karim/sonu/releases/latest)
 2. Run the installer and follow the prompts
-3. Launch SONU from the Start Menu
+3. Launch SONU from the Start Menu or system tray
+4. Press your hotkey (default: `Ctrl+Shift+Space`) and start speaking
 
-**macOS:**
-1. Download the `.dmg` file
+</details>
+
+<details>
+<summary><strong>macOS</strong></summary>
+
+1. Download the `.dmg` from [Releases](https://github.com/muhib-karim/sonu/releases/latest)
 2. Open the DMG and drag SONU to Applications
-3. Launch from Applications folder
+3. Grant Accessibility permissions when prompted
+4. Press your hotkey and start speaking
 
-**Linux:**
-1. Download the `.AppImage` (portable) or `.deb` (Debian/Ubuntu)
-2. Make executable: `chmod +x SONU-*.AppImage`
-3. Run: `./SONU-*.AppImage`
+</details>
 
----
+<details>
+<summary><strong>Linux</strong></summary>
 
-## ✨ Key Features
+1. Download `.AppImage` (portable) or `.deb` (Debian/Ubuntu) from [Releases](https://github.com/muhib-karim/sonu/releases/latest)
+2. For AppImage: `chmod +x SONU-*.AppImage && ./SONU-*.AppImage`
+3. For .deb: `sudo dpkg -i sonu_*.deb`
+4. Press your hotkey and start speaking
 
-| Feature | Description |
-|---------|-------------|
-| 🔒 **100% Offline** | All processing stays on your device |
-| 🚀 **Fast** | Optimized whisper.cpp for real-time transcription |
-| 🎯 **Accurate** | OpenAI Whisper models (tiny to large-v3) |
-| 🤖 **AI Enhancement** | Optional LLM post-processing for better text |
-| 🔇 **Smart VAD** | Filters silence automatically |
-| ⌨️ **Auto-Type** | Pastes text into any application |
-| 🌍 **Multi-Language** | 50+ languages supported |
-| 📚 **Dictionary** | Custom word corrections |
-| 📝 **Snippets** | Text expansion shortcuts |
+</details>
 
 ---
 
-## 🚀 Quick Start
+## 🧠 Supported Models
 
-### Desktop (Windows)
+SONU supports multiple speech recognition engines and models:
 
-```bash
-# Navigate to desktop app
-cd apps/desktop
+| Model | Size | Speed | Accuracy | Best For |
+|-------|------|-------|----------|----------|
+| **tiny** | 75 MB | ⚡⚡⚡⚡⚡ | ★★☆☆☆ | Quick notes, low-resource machines |
+| **base** | 142 MB | ⚡⚡⚡⚡ | ★★★☆☆ | Everyday dictation |
+| **small** | 466 MB | ⚡⚡⚡ | ★★★★☆ | Professional use |
+| **medium** | 1.5 GB | ⚡⚡ | ★★★★☆ | High-accuracy work |
+| **large-v3** | 3.1 GB | ⚡ | ★★★★★ | Maximum accuracy |
+| **Parakeet 0.6B** | 600 MB | ⚡⚡⚡⚡ | ★★★★★ | English — best speed/accuracy ratio |
 
-# Install dependencies
-npm install
+Models download automatically on first use. All processing stays local.
 
-# Run in development
-npm start
+---
 
-# Build for production
-npm run build
+## 🏗️ Architecture
+
+```
+SONU/
+├── apps/
+│   ├── tauri-v2/          🦀 Tauri v2 desktop app (Rust + React)
+│   │   ├── src/           React/TypeScript frontend
+│   │   └── src-tauri/     Rust backend (whisper.cpp, audio, models)
+│   │
+│   └── desktop/           🖥️ Electron desktop app (Node.js + Python)
+│       └── src/           Main process, services, IPC
+│
+├── server/                🌐 Self-hosted transcription server (FastAPI + Docker)
+├── docs/                  📚 Documentation & guides
+└── plans/                 📋 Roadmap & improvement plans
 ```
 
-### Desktop v2 (Tauri - All Platforms)
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Desktop Framework** | [Tauri v2](https://v2.tauri.app) (Rust) + [Electron](https://electronjs.org) |
+| **Frontend** | React 18, TypeScript, TailwindCSS |
+| **Speech Engine** | [whisper.cpp](https://github.com/ggerganov/whisper.cpp), Parakeet TDT |
+| **AI Enhancement** | Local LLM (GGUF) + Cloud providers (OpenAI, Groq, etc.) |
+| **Cloud Transcription** | Groq, Deepgram, Custom server (FastAPI) |
+| **Security** | OS Keychain, Context Isolation, CSP, Input Validation |
+| **Testing** | Vitest, Playwright, Rust tests, GitHub Actions CI |
+
+---
+
+## 🚀 Development
+
+### Prerequisites
+
+- **Bun** (package manager) — [bun.sh](https://bun.sh)
+- **Rust** toolchain — [rustup.rs](https://rustup.rs)
+- **Tauri prerequisites** — [tauri.app/start/prerequisites](https://v2.tauri.app/start/prerequisites/)
+
+### Quick Start
 
 ```bash
-# Navigate to Tauri app
-cd apps/tauri-v2
+# Clone the repository
+git clone https://github.com/muhib-karim/sonu.git
+cd sonu/apps/tauri-v2
 
 # Install dependencies
 bun install
@@ -158,351 +301,142 @@ bun run tauri dev
 bun run tauri build
 ```
 
----
+### Commands
 
-## 🏗️ Architecture
-
-### Project Structure
-
-```
-SONU/
-├── apps/
-│   ├── desktop/           # 🖥️ Electron desktop app (v3.7.0)
-│   │   ├── src/
-│   │   │   ├── config/   # Configuration management
-│   │   │   ├── core/     # Core services (IPC, models, Python)
-│   │   │   ├── services/ # Business logic services
-│   │   │   └── utils/    # Utilities (logger, secureStorage, validation)
-│   │   └── tests/        # Test suites
-│   │
-│   └── tauri-v2/         # 🦀 Tauri desktop app (v2.2.0)
-│       ├── src/          # React frontend
-│       │   ├── components/
-│       │   ├── hooks/
-│       │   └── lib/
-│       ├── src-tauri/    # Rust backend
-│       │   ├── src/
-│       │   │   ├── commands/    # Tauri commands
-│       │   │   ├── managers/    # Business logic managers
-│       │   │   └── audio_toolkit/
-│       │   └── resources/
-│       └── e2e/          # Playwright tests
-│
-├── docs/                 # 📚 Documentation
-│   ├── reports/          # Audit reports, completions
-│   └── guides/           # Development guides
-│
-└── AGENTS.md            # 🤖 Guidelines for AI coding assistants
+```bash
+bun run dev           # Start Vite dev server
+bun run tauri dev     # Start full Tauri dev environment
+bun run build         # Build frontend
+bun run tauri build   # Build production binary
+bun run test          # Run Vitest unit tests
+bun run test:e2e      # Run Playwright E2E tests
+bun run lint          # ESLint check
+bun run format        # Prettier format
+bun run typecheck     # TypeScript check
 ```
 
-### Desktop App Architecture
+### Self-Hosted Server
 
-The desktop app follows a modular architecture:
+Run your own transcription server with Docker:
 
-- **Main Process**: Entry point, window management, system integration
-- **Renderer Process**: UI components, user interactions
-- **Preload Script**: Secure bridge between main and renderer
-- **Python Services**: Whisper transcription, LLM processing
-- **Services Layer**: Business logic (window, recording, typing)
-- **Utils Layer**: Shared utilities (logging, validation, secure storage)
-
-### Security Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Security Layers                          │
-├─────────────────────────────────────────────────────────────┤
-│  1. Input Validation    →  Sanitize all user inputs         │
-│  2. IPC Validation      →  Validate IPC parameters          │
-│  3. Path Sanitization   →  Prevent path traversal           │
-│  4. Secure Storage      →  OS keychain for API keys         │
-│  5. Context Isolation   →  Isolate renderer from main       │
-│  6. CSP Headers         →  Content Security Policy          │
-└─────────────────────────────────────────────────────────────┘
+```bash
+cd server
+docker compose up -d
 ```
 
----
-
-## 🧪 Automated Testing
-
-**All testing is done in the cloud via GitHub Actions.** No local testing required!
-
-<p align="center">
-  <a href="https://github.com/muhib-karim/sonu/actions">
-    <img src="https://img.shields.io/github/workflow/status/muhib-karim/sonu/CI?style=for-the-badge" alt="CI Status" />
-  </a>
-</p>
-
-### Test Coverage
-
-| Test Type | Status | Platform |
-|-----------|--------|----------|
-| **Unit Tests** | ✅ Automated | Ubuntu, Windows, macOS |
-| **Integration Tests** | ✅ Automated | Ubuntu, Windows, macOS |
-| **E2E Tests** | ✅ Automated | Ubuntu, Windows, macOS |
-| **Security Tests** | ✅ Automated | All platforms |
-| **Linting** | ✅ Automated | All platforms |
-
-### Test Workflows
-
-- **On every PR**: Linting, unit tests, type checking
-- **On every push to main**: Full test suite + security scans
-- **On version tags**: Complete build + release pipeline
+See [server/README.md](server/README.md) for full setup instructions.
 
 ---
 
 ## 🛡️ Security
 
-### Implemented Security Measures
+SONU is designed with security-first principles:
 
-- ✅ **Input Validation**: All IPC parameters validated against schemas
-- ✅ **Path Sanitization**: Prevents path traversal attacks
-- ✅ **Secure Storage**: API keys stored in OS keychain (keytar)
-- ✅ **Context Isolation**: Renderer isolated from Node.js APIs
-- ✅ **CSP Protection**: Content Security Policy in Tauri app
-- ✅ **No eval()**: ESLint rules prevent dangerous functions
-- ✅ **Model Whitelist**: Only approved model IDs accepted
-
-### Security Modules
-
-- `src/utils/validation.js` - Input validation and sanitization
-- `src/utils/errorHandler.js` - Secure error handling
-- `src/utils/secureStorage.js` - Credential storage
-- `src/services/windowState.js` - State persistence
-
----
-
-## 📋 Development
-
-### Prerequisites
-
-**Desktop (Electron)**:
-- Node.js 18+
-- Python 3.8+
-- Windows (for full feature support)
-
-**Desktop v2 (Tauri)**:
-- Node.js 18+
-- Rust 1.70+
-- Bun package manager
-
-### Code Style
-
-We use ESLint and Prettier for code quality:
-
-```bash
-# Desktop app
-cd apps/desktop
-npm run lint        # Check for issues
-npm run lint:fix    # Fix auto-fixable issues
-
-# Tauri app
-cd apps/tauri-v2
-bun run lint        # ESLint check
-bun run format      # Format code
-bun run typecheck   # TypeScript check
-```
-
-### Pre-commit Hooks
-
-Pre-commit hooks run automatically on commit:
-- ESLint checks (Tauri app)
-- Unit tests (desktop app)
-- Rust formatting and clippy (Tauri backend)
-
----
-
-## 💝 Support the Project
-
-SONU is developed and maintained with ❤️ by a small team. Your support makes a huge difference!
-
-### Ways to Support
-
-<p align="center">
-  <a href="https://github.com/sponsors/muhib-karim">
-    <img src="https://img.shields.io/badge/GitHub%20Sponsors-%E2%9D%A4-ff69b4?style=for-the-badge&logo=github" alt="GitHub Sponsors" />
-  </a>
-</p>
-
-**Monthly Sponsorship Tiers:**
-- ☕ **$5/month** - Coffee supporter
-- 🚀 **$10/month** - Early access to new features
-- 💎 **$25/month** - Priority support + name in credits
-- 🌟 **$50/month** - All above + custom feature requests
-
-<p align="center">
-  <a href="https://www.buymeacoffee.com/sonu">
-    <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?style=for-the-badge&logo=buy-me-a-coffee" alt="Buy Me a Coffee" />
-  </a>
-</p>
-
-**One-time Donations:**
-- [Buy Me a Coffee](https://www.buymeacoffee.com/sonu) - ☕ Support with a coffee
-- [Ko-fi](https://ko-fi.com/sonu) - ☕ Quick donations
-- [PayPal](https://paypal.me/sonuvoice) - 💳 Secure PayPal donation
-
-<p align="center">
-  <a href="https://ko-fi.com/sonu">
-    <img src="https://img.shields.io/badge/Ko--fi-Support-%23FF5E5B?style=for-the-badge&logo=kofi" alt="Ko-fi" />
-  </a>
-  <a href="https://paypal.me/sonuvoice">
-    <img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal" alt="PayPal" />
-  </a>
-</p>
-
-### Non-Monetary Support
-
-- ⭐ **Star this repository** - It helps others discover SONU
-- 🐛 **Report bugs** - Help us improve quality
-- 💡 **Suggest features** - Shape the roadmap
-- 📝 **Write documentation** - Help others get started
-- 🌐 **Translate** - Make SONU accessible globally
-
----
-
-## 🏆 Sponsors
-
-A huge thank you to our sponsors who make SONU possible!
-
-### Diamond Sponsors 💎
-
-*Become our first Diamond Sponsor!*
-
-### Gold Sponsors 🥇
-
-*Become our first Gold Sponsor!*
-
-### Silver Sponsors 🥈
-
-*Become our first Silver Sponsor!*
-
-### Bronze Sponsors 🥉
-
-*Become our first Bronze Sponsor!*
-
----
-
-## 🔄 Version History
-
-### Desktop (Electron)
-
-| Version | Date | Highlights |
-|---------|------|------------|
-| **3.7.0** | 2026-02-19 | Security improvements, error handling, code cleanup |
-| **3.6.1** | 2025-12-27 | Production fixes, instant text output |
-| **3.6.0** | 2025-12-05 | LLM integration, context awareness |
-| **3.5.0** | 2025-11-XX | Multi-language support, snippets |
-
-### Desktop v2 (Tauri)
-
-| Version | Date | Highlights |
-|---------|------|------------|
-| **2.2.0** | 2026-02-19 | Comprehensive testing infrastructure |
-| **2.1.0** | 2026-01-XX | Parakeet engine, offline LLM |
-| **2.0.0** | 2026-01-XX | Complete rewrite to Tauri + Rust |
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see:
-
-1. Read [AGENTS.md](AGENTS.md) for development guidelines
-2. Check [docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md)
-3. Follow the code style guidelines
-4. Add tests for new features
-5. Update documentation
-
-### Quick Contribution Workflow
-
-```bash
-# 1. Fork and clone
-git clone https://github.com/YOUR_USERNAME/sonu.git
-cd sonu
-
-# 2. Create branch
-git checkout -b feature/your-feature
-
-# 3. Make changes and test
-cd apps/desktop
-npm run test:all
-
-# 4. Commit with clear message
-git commit -m "feat: add your feature"
-
-# 5. Push and create PR
-git push origin feature/your-feature
-```
+- **🔒 No telemetry** — Zero data collection, no analytics, no phone-home
+- **🔐 OS Keychain** — API keys stored in your OS's secure credential store
+- **🧱 Context Isolation** — Renderer process fully sandboxed
+- **🛡️ CSP Headers** — Content Security Policy prevents injection attacks
+- **✅ Input Validation** — All IPC parameters validated against schemas
+- **📁 Path Sanitization** — Prevents path traversal attacks
+- **🚫 No eval()** — ESLint enforces no dynamic code execution
 
 ---
 
 ## 🛣️ Roadmap
 
-### Q1 2026
+### ✅ Shipped
 
-- [x] Security audit and hardening
-- [x] Error handling improvements
-- [x] Code cleanup and organization
-- [x] Automated cloud testing
-- [ ] macOS support (Tauri app)
-- [ ] Linux support (Tauri app)
+- [x] Offline voice-to-text with Whisper & Parakeet
+- [x] AI text enhancement (local + cloud LLMs)
+- [x] Cloud transcription (Groq, Deepgram, custom server)
+- [x] Custom dictionary & text snippets
+- [x] Voice notes with search & playback
+- [x] Multi-theme support (dark, light, custom)
+- [x] 50+ language support with auto-detection
+- [x] Cross-platform support (Windows, macOS, Linux)
 
-### Q2 2026
+### 🚧 In Progress
 
-- [ ] Real-time transcription streaming
-- [ ] Custom model training
-- [ ] Plugin system
-- [ ] Voice commands
+- [ ] Real-time streaming transcription
+- [ ] Custom model fine-tuning
+- [ ] Plugin / extension system
+- [ ] Voice commands & macros
 
-### Future
+### 🔮 Future
 
-- [ ] Cloud sync (optional)
-- [ ] Team features
-- [ ] Mobile app expansion
+- [ ] Team collaboration features
+- [ ] Mobile companion app
+- [ ] Browser extension
+- [ ] Cloud sync (optional, encrypted)
+
+---
+
+## 💝 Support SONU
+
+SONU is **free, open-source, and community-driven**. If it saves you time, consider supporting its development:
+
+<div align="center">
+
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ff69b4?style=for-the-badge&logo=github)](https://github.com/sponsors/muhib-karim)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/sonu)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-%23FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/sonu)
+
+**⭐ Star this repository** — it helps others discover SONU!
+
+</div>
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Whether it's bug fixes, features, translations, or docs:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Run checks: `bun run lint && bun run test && bun run typecheck`
+5. Commit: `git commit -m "feat: add amazing feature"`
+6. Push and open a Pull Request
+
+See [AGENTS.md](AGENTS.md) for development guidelines and coding conventions.
 
 ---
 
 ## 📚 Documentation
 
-### Project Documentation
-
-- **[AGENTS.md](AGENTS.md)** - Guidelines for AI coding assistants
-- **[docs/guides/DEVELOPMENT_GUIDE.md](docs/guides/DEVELOPMENT_GUIDE.md)** - Development setup
-- **[docs/guides/INSTALL.md](docs/guides/INSTALL.md)** - Installation instructions
-- **[docs/guides/CONTRIBUTING.md](docs/guides/CONTRIBUTING.md)** - Contribution guidelines
-
-### Reports
-
-- **[docs/reports/COMPREHENSIVE_AUDIT_REPORT.md](docs/reports/COMPREHENSIVE_AUDIT_REPORT.md)** - Security audit
-- **[docs/reports/IMPLEMENTATION_STATUS.md](docs/reports/IMPLEMENTATION_STATUS.md)** - Project status
+| Document | Description |
+|----------|-------------|
+| [AGENTS.md](AGENTS.md) | AI assistant guidelines & build commands |
+| [CHANGELOG.md](CHANGELOG.md) | Version history & release notes |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development setup guide |
+| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Contribution guidelines |
+| [docs/TAURI_V2_MIGRATION_GUIDE.md](docs/TAURI_V2_MIGRATION_GUIDE.md) | Tauri v2 migration guide |
+| [server/README.md](server/README.md) | Self-hosted server setup |
+| [plans/CODEBASE_IMPROVEMENT_PLAN.md](plans/CODEBASE_IMPROVEMENT_PLAN.md) | Future improvement roadmap |
 
 ---
 
 ## 📝 License
 
-MIT License - See [LICENSE](LICENSE) for details.
+[MIT License](LICENSE) — free for personal and commercial use.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- [whisper.cpp](https://github.com/ggerganov/whisper.cpp) - Fast Whisper inference
-- [Tauri](https://tauri.app) - Secure desktop framework
-- [Electron](https://electronjs.org) - Cross-platform desktop
-- [Handy](https://github.com/cjpais/Handy) - Architecture inspiration
+- [whisper.cpp](https://github.com/ggerganov/whisper.cpp) — Fast C++ Whisper inference
+- [Tauri](https://tauri.app) — Secure, lightweight desktop framework
+- [NVIDIA Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) — High-accuracy English ASR
+- [Electron](https://electronjs.org) — Cross-platform desktop apps
 
 ---
 
-<p align="center">
-  <strong>Made with ❤️ for voice typing enthusiasts</strong>
-</p>
+<div align="center">
 
-<p align="center">
-  <a href="https://github.com/muhib-karim/sonu">⭐ Star us on GitHub</a> •
-  <a href="https://github.com/sponsors/muhib-karim">💖 Sponsor</a> •
-  <a href="https://twitter.com/sonuvoice">🐦 Twitter</a>
-</p>
+**Made with ❤️ for people who think faster than they type.**
 
-<p align="center">
-  <sub>SONU is not affiliated with OpenAI. Whisper is a trademark of OpenAI.</sub>
-</p>
+[⭐ Star on GitHub](https://github.com/muhib-karim/sonu) · [💖 Sponsor](https://github.com/sponsors/muhib-karim) · [📦 Download](https://github.com/muhib-karim/sonu/releases/latest)
+
+<sub>SONU is not affiliated with OpenAI. Whisper is a trademark of OpenAI.</sub>
+
+</div>
