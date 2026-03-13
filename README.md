@@ -14,6 +14,7 @@
 [![Stars](https://img.shields.io/github/stars/muhib-karim/sonu?style=for-the-badge&color=f59e0b)](https://github.com/muhib-karim/sonu)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-0ea5e9?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases)
 [![ZAI Community](https://img.shields.io/badge/Part%20of-ZAI%20Start--up%20Community-8b5cf6?style=for-the-badge)](https://startup.z.ai/)
+[![Ko-fi](https://img.shields.io/badge/☕_Support_on_Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/ai_dev_2024)
 
 [Download](#-download) · [Features](#-features) · [Showcase](#-showcase--tauri-v2-app) · [Compare](#-how-sonu-compares) · [Docs](#-documentation) · [Contribute](#-contributing)
 
