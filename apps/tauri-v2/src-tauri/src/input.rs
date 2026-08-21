@@ -34,20 +34,24 @@ pub fn send_paste_ctrl_v(enigo: &mut Enigo) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     let (modifier_key, v_key_code) = (Key::Control, Key::Unicode('v'));
 
-    // Press modifier + V
-    enigo
-        .key(modifier_key, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press modifier key: {}", e))?;
-    enigo
-        .key(v_key_code, enigo::Direction::Click)
-        .map_err(|e| format!("Failed to click V key: {}", e))?;
+    let sequence_result = (|| -> Result<(), String> {
+        // Press modifier + V
+        enigo
+            .key(modifier_key, enigo::Direction::Press)
+            .map_err(|e| format!("Failed to press modifier key: {}", e))?;
+        enigo
+            .key(v_key_code, enigo::Direction::Click)
+            .map_err(|e| format!("Failed to click V key: {}", e))?;
+        Ok(())
+    })();
 
     std::thread::sleep(std::time::Duration::from_millis(100));
-
-    enigo
+    let release_result = enigo
         .key(modifier_key, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release modifier key: {}", e))?;
+        .map_err(|e| format!("Failed to release modifier key: {}", e));
 
+    sequence_result?;
+    release_result?;
     Ok(())
 }
 
@@ -63,26 +67,31 @@ pub fn send_paste_ctrl_shift_v(enigo: &mut Enigo) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     let (modifier_key, v_key_code) = (Key::Control, Key::Unicode('v'));
 
-    // Press Ctrl/Cmd + Shift + V
-    enigo
-        .key(modifier_key, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press modifier key: {}", e))?;
-    enigo
-        .key(Key::Shift, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press Shift key: {}", e))?;
-    enigo
-        .key(v_key_code, enigo::Direction::Click)
-        .map_err(|e| format!("Failed to click V key: {}", e))?;
+    let sequence_result = (|| -> Result<(), String> {
+        // Press Ctrl/Cmd + Shift + V
+        enigo
+            .key(modifier_key, enigo::Direction::Press)
+            .map_err(|e| format!("Failed to press modifier key: {}", e))?;
+        enigo
+            .key(Key::Shift, enigo::Direction::Press)
+            .map_err(|e| format!("Failed to press Shift key: {}", e))?;
+        enigo
+            .key(v_key_code, enigo::Direction::Click)
+            .map_err(|e| format!("Failed to click V key: {}", e))?;
+        Ok(())
+    })();
 
     std::thread::sleep(std::time::Duration::from_millis(100));
-
-    enigo
+    let release_shift_result = enigo
         .key(Key::Shift, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release Shift key: {}", e))?;
-    enigo
+        .map_err(|e| format!("Failed to release Shift key: {}", e));
+    let release_modifier_result = enigo
         .key(modifier_key, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release modifier key: {}", e))?;
+        .map_err(|e| format!("Failed to release modifier key: {}", e));
 
+    sequence_result?;
+    release_shift_result?;
+    release_modifier_result?;
     Ok(())
 }
 
@@ -95,20 +104,24 @@ pub fn send_paste_shift_insert(enigo: &mut Enigo) -> Result<(), String> {
     #[cfg(not(target_os = "windows"))]
     let insert_key_code = Key::Other(0x76); // XK_Insert (keycode 118 / 0x76, also used as fallback)
 
-    // Press Shift + Insert
-    enigo
-        .key(Key::Shift, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press Shift key: {}", e))?;
-    enigo
-        .key(insert_key_code, enigo::Direction::Click)
-        .map_err(|e| format!("Failed to click Insert key: {}", e))?;
+    let sequence_result = (|| -> Result<(), String> {
+        // Press Shift + Insert
+        enigo
+            .key(Key::Shift, enigo::Direction::Press)
+            .map_err(|e| format!("Failed to press Shift key: {}", e))?;
+        enigo
+            .key(insert_key_code, enigo::Direction::Click)
+            .map_err(|e| format!("Failed to click Insert key: {}", e))?;
+        Ok(())
+    })();
 
     std::thread::sleep(std::time::Duration::from_millis(100));
-
-    enigo
+    let release_result = enigo
         .key(Key::Shift, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release Shift key: {}", e))?;
+        .map_err(|e| format!("Failed to release Shift key: {}", e));
 
+    sequence_result?;
+    release_result?;
     Ok(())
 }
 

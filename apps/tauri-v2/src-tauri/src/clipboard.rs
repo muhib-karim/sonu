@@ -18,7 +18,7 @@ fn paste_via_clipboard(
     paste_method: &PasteMethod,
 ) -> Result<(), String> {
     let clipboard = app_handle.clipboard();
-    let clipboard_content = clipboard.read_text().unwrap_or_default();
+    let clipboard_content = clipboard.read_text().ok();
 
     // Write text to clipboard first
     clipboard
@@ -45,9 +45,14 @@ fn paste_via_clipboard(
     std::thread::sleep(std::time::Duration::from_millis(50));
 
     // Restore original clipboard content regardless of paste success/failure.
-    let restore_result = clipboard
-        .write_text(&clipboard_content)
-        .map_err(|e| format!("Failed to restore clipboard: {}", e));
+    let restore_result = if let Some(original_content) = clipboard_content.as_ref() {
+        clipboard
+            .write_text(original_content)
+            .map_err(|e| format!("Failed to restore clipboard: {}", e))
+    } else {
+        warn!("Skipping clipboard restore because original clipboard text could not be read");
+        Ok(())
+    };
 
     match (paste_error, restore_result) {
         (None, Ok(())) => Ok(()),
