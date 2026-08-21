@@ -1,7 +1,7 @@
 use crate::input::{self, EnigoState};
 use crate::settings::{get_settings, ClipboardHandling, PasteMethod};
 use enigo::Enigo;
-use log::info;
+use log::{info, warn};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
@@ -27,6 +27,54 @@ fn paste_via_clipboard(
 
     std::thread::sleep(std::time::Duration::from_millis(50));
 
+    let mut paste_error: Option<String> = None;
+
+    for method in paste_method_fallbacks(*paste_method) {
+        match send_paste_shortcut(enigo, &method) {
+            Ok(()) => {
+                paste_error = None;
+                break;
+            }
+            Err(err) => {
+                warn!("Paste method {:?} failed: {}", method, err);
+                paste_error = Some(err);
+            }
+        }
+    }
+
+    std::thread::sleep(std::time::Duration::from_millis(50));
+
+    // Restore original clipboard content regardless of paste success/failure.
+    let restore_result = clipboard
+        .write_text(&clipboard_content)
+        .map_err(|e| format!("Failed to restore clipboard: {}", e));
+
+    match (paste_error, restore_result) {
+        (None, Ok(())) => Ok(()),
+        (None, Err(restore_err)) => Err(restore_err),
+        (Some(paste_err), Ok(())) => Err(format!("All paste methods failed: {}", paste_err)),
+        (Some(paste_err), Err(restore_err)) => Err(format!(
+            "All paste methods failed: {}. Clipboard restore also failed: {}",
+            paste_err, restore_err
+        )),
+    }
+}
+
+fn paste_method_fallbacks(primary: PasteMethod) -> Vec<PasteMethod> {
+    let mut methods = vec![primary];
+    for candidate in [
+        PasteMethod::CtrlV,
+        PasteMethod::CtrlShiftV,
+        PasteMethod::ShiftInsert,
+    ] {
+        if candidate != primary {
+            methods.push(candidate);
+        }
+    }
+    methods
+}
+
+fn send_paste_shortcut(enigo: &mut Enigo, paste_method: &PasteMethod) -> Result<(), String> {
     // Send paste key combo
     #[cfg(target_os = "linux")]
     let key_combo_sent = try_send_key_combo_linux(paste_method)?;
@@ -43,13 +91,6 @@ fn paste_via_clipboard(
             _ => return Err("Invalid paste method for clipboard paste".into()),
         }
     }
-
-    std::thread::sleep(std::time::Duration::from_millis(50));
-
-    // Restore original clipboard content
-    clipboard
-        .write_text(&clipboard_content)
-        .map_err(|e| format!("Failed to restore clipboard: {}", e))?;
 
     Ok(())
 }
