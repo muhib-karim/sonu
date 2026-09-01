@@ -99,6 +99,10 @@
           "cancel": {
             "name": "Annuler",
             "description": "Annule l'enregistrement en cours."
+          },
+          "command_mode": {
+            "name": "Mode commande",
+            "description": "Réécrit le texte sélectionné selon vos instructions vocales."
           }
         },
         "errors": {
@@ -421,5 +425,11 @@
   },
   "overlay": {
     "transcribing": "Transcription..."
+  },
+  "style": {
+    "contextAwareness": {
+      "label": "Dictée contextuelle",
+      "description": "Adapte le style de dictée à l'application utilisée (par exemple, décontracté dans la messagerie, formel dans les e-mails)."
+    }
   }
 }

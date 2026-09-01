@@ -99,6 +99,10 @@
           "cancel": {
             "name": "Hủy",
             "description": "Hủy bản ghi hiện tại."
+          },
+          "command_mode": {
+            "name": "Chế độ lệnh",
+            "description": "Viết lại văn bản đã chọn bằng lệnh giọng nói của bạn."
           }
         },
         "errors": {
@@ -421,5 +425,11 @@
   },
   "overlay": {
     "transcribing": "Đang chuyển đổi..."
+  },
+  "style": {
+    "contextAwareness": {
+      "label": "Nhập liệu giọng nói nhận biết ngữ cảnh",
+      "description": "Điều chỉnh phong cách nhập liệu theo ứng dụng bạn đang gõ (ví dụ: thân mật trong tin nhắn, trang trọng trong email)."
+    }
   }
 }

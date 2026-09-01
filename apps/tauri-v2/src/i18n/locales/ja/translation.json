@@ -98,6 +98,10 @@
           "cancel": {
             "name": "キャンセル",
             "description": "現在の録音をキャンセルします。"
+          },
+          "command_mode": {
+            "name": "コマンドモード",
+            "description": "選択したテキストを音声の指示で書き換えます。"
           }
         },
         "errors": {
@@ -420,5 +424,11 @@
   },
   "overlay": {
     "transcribing": "文字起こし中..."
+  },
+  "style": {
+    "contextAwareness": {
+      "label": "コンテキスト認識ディクテーション",
+      "description": "入力先のアプリに合わせて文体を調整します（例：メッセンジャーではカジュアル、メールではフォーマル）。"
+    }
   }
 }

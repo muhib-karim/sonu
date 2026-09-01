@@ -170,6 +170,26 @@ describe("useSettings", () => {
     expect(audioFeedback).toBe(false);
   });
 
+  it("should update context awareness setting", async () => {
+    setupMocks();
+    vi.mocked(commands.changeContextAwarenessSetting).mockResolvedValue(
+      undefined as any,
+    );
+
+    const { result } = renderHook(() => useSettings());
+
+    await waitFor(() => {
+      expect(result.current.settings).not.toBeNull();
+    });
+
+    await act(async () => {
+      await result.current.updateSetting("context_awareness_enabled", false);
+    });
+
+    expect(commands.changeContextAwarenessSetting).toHaveBeenCalledWith(false);
+    expect(result.current.settings?.context_awareness_enabled).toBe(false);
+  });
+
   it("should handle errors when loading settings", async () => {
     // Return an error Result instead of rejecting
     vi.mocked(commands.getAppSettings).mockResolvedValue({

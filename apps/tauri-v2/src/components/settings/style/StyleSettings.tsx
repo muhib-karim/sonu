@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { Info } from "lucide-react";
+import { commands } from "@/bindings";
+import { useSettings } from "../../../hooks/useSettings";
+import { ContextAwarenessToggle } from "../ContextAwarenessToggle";
 
 type Category = "personal" | "work" | "email" | "other";
 
@@ -115,6 +118,7 @@ const CATEGORY_INFO: Record<Category, string> = {
 
 export const StyleSettings: React.FC = () => {
   const { t } = useTranslation();
+  const { settings, isUpdating } = useSettings();
   const [activeCategory, setActiveCategory] = useState<Category>("personal");
   const [selectedStyles, setSelectedStyles] = useState<
     Record<Category, string>
@@ -124,34 +128,30 @@ export const StyleSettings: React.FC = () => {
     email: "formal",
     other: "neutral",
   });
-  const [llmEnabled, setLlmEnabled] = useState(false);
 
-  // Load from localStorage
+  // Hydrate from persisted backend settings
   useEffect(() => {
-    const saved = localStorage.getItem("sonu-styles");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSelectedStyles(parsed.selectedStyles || selectedStyles);
-        setLlmEnabled(parsed.llmEnabled || false);
-      } catch (e) {
-        console.error("Failed to load styles:", e);
-      }
+    if (!settings) return;
+    const stored = settings.style_selection as
+      | Record<string, string>
+      | undefined;
+    if (stored) {
+      setSelectedStyles((prev) => ({
+        personal: stored.personal || prev.personal,
+        work: stored.work || prev.work,
+        email: stored.email || prev.email,
+        other: stored.other || prev.other,
+      }));
     }
-  }, []);
-
-  // Save to localStorage
-  useEffect(() => {
-    localStorage.setItem(
-      "sonu-styles",
-      JSON.stringify({ selectedStyles, llmEnabled }),
-    );
-  }, [selectedStyles, llmEnabled]);
+  }, [settings]);
 
   const selectStyle = (styleId: string) => {
     setSelectedStyles({
       ...selectedStyles,
       [activeCategory]: styleId,
+    });
+    commands.setStyleSelection(activeCategory, styleId).catch((e) => {
+      console.error("Failed to save style selection:", e);
     });
   };
 
@@ -168,6 +168,9 @@ export const StyleSettings: React.FC = () => {
       <h1 className="text-2xl font-bold tracking-tight">
         {t("style.title", "Style")}
       </h1>
+
+      {/* Context-aware dictation toggle */}
+      <ContextAwarenessToggle grouped={false} />
 
       {/* Category Tabs */}
       <div className="flex gap-6 border-b border-zinc-700 pb-3">

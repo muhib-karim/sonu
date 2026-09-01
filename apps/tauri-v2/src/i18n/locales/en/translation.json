@@ -104,6 +104,10 @@
           "cancel": {
             "name": "Cancel",
             "description": "Cancels the current recording."
+          },
+          "command_mode": {
+            "name": "Command Mode",
+            "description": "Rewrites the selected text using your voice instructions."
           }
         },
         "errors": {
@@ -545,7 +549,11 @@
     "other": "Other",
     "llmSection": "AI Processing",
     "llmToggle": "Enable LLM Post-Processing",
-    "llmDescription": "Use AI model for advanced text transformation. Requires API key."
+    "llmDescription": "Use AI model for advanced text transformation. Requires API key.",
+    "contextAwareness": {
+      "label": "Context-Aware Dictation",
+      "description": "Adapts your dictation style to the app you're typing in (e.g., casual in messengers, formal in email)."
+    }
   },
   "time": {
     "justNow": "Just now",

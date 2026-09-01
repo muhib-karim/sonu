@@ -98,6 +98,10 @@
           "cancel": {
             "name": "Anuluj",
             "description": "Anuluje bieżące nagrywanie."
+          },
+          "command_mode": {
+            "name": "Tryb poleceń",
+            "description": "Przepisuje zaznaczony tekst zgodnie z poleceniami głosowymi."
           }
         },
         "errors": {
@@ -420,5 +424,11 @@
   },
   "overlay": {
     "transcribing": "Transkrypcja..."
+  },
+  "style": {
+    "contextAwareness": {
+      "label": "Dykowanie świadome kontekstu",
+      "description": "Dostosowuje styl dyktowania do aplikacji, w której piszesz (np. swobodny w komunikatorach, formalny w e-mailach)."
+    }
   }
 }

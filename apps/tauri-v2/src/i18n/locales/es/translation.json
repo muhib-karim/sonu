@@ -98,6 +98,10 @@
           "cancel": {
             "name": "Cancelar",
             "description": "Cancela la grabación actual."
+          },
+          "command_mode": {
+            "name": "Modo de comandos",
+            "description": "Reescribe el texto seleccionado con tus instrucciones de voz."
           }
         },
         "errors": {
@@ -420,5 +424,11 @@
   },
   "overlay": {
     "transcribing": "Transcribiendo..."
+  },
+  "style": {
+    "contextAwareness": {
+      "label": "Dictado contextual",
+      "description": "Adapta el estilo del dictado a la aplicación en la que escribes (por ejemplo, informal en mensajería, formal en correo)."
+    }
   }
 }

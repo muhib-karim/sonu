@@ -98,6 +98,10 @@
           "cancel": {
             "name": "Abbrechen",
             "description": "Bricht die aktuelle Aufnahme ab."
+          },
+          "command_mode": {
+            "name": "Befehlsmodus",
+            "description": "Schreibt den ausgewählten Text anhand deiner Sprachanweisungen um."
           }
         },
         "errors": {
@@ -420,5 +424,11 @@
   },
   "overlay": {
     "transcribing": "Transkribiere..."
+  },
+  "style": {
+    "contextAwareness": {
+      "label": "Kontextbewusstes Diktieren",
+      "description": "Passt deinen Diktierstil an die App an, in der du tippst (z. B. locker in Messengern, formell in E-Mails)."
+    }
   }
 }

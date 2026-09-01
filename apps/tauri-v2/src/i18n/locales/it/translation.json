@@ -98,6 +98,10 @@
           "cancel": {
             "name": "Annulla",
             "description": "Annulla la registrazione in corso."
+          },
+          "command_mode": {
+            "name": "Modalità comando",
+            "description": "Riscrive il testo selezionato con le istruzioni vocali."
           }
         },
         "errors": {
@@ -420,5 +424,11 @@
   },
   "overlay": {
     "transcribing": "Trascrizione..."
+  },
+  "style": {
+    "contextAwareness": {
+      "label": "Dettatura contestuale",
+      "description": "Adatta lo stile del dettato all'app in cui stai scrivendo (ad esempio informale nella messaggistica, formale nell'e-mail)."
+    }
   }
 }

@@ -62,6 +62,8 @@ vi.mock("@/bindings", () => ({
     changeClipboardHandlingSetting: vi.fn(),
     updateHistoryLimit: vi.fn(),
     changePostProcessEnabledSetting: vi.fn(),
+    changeContextAwarenessSetting: vi.fn(),
+    setStyleSelection: vi.fn(),
     setPostProcessSelectedPrompt: vi.fn(),
     changeMuteWhileRecordingSetting: vi.fn(),
     changeAppendTrailingSpaceSetting: vi.fn(),

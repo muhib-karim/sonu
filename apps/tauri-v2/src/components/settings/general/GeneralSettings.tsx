@@ -17,6 +17,7 @@ export const GeneralSettings: React.FC = () => {
     <div className="max-w-3xl w-full mx-auto space-y-6">
       <SettingsGroup title={t("settings.general.title")}>
         <SonuShortcut shortcutId="transcribe" grouped={true} />
+        <SonuShortcut shortcutId="command_mode" grouped={true} />
         <LanguageSelector descriptionMode="tooltip" grouped={true} />
         <PushToTalk descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>

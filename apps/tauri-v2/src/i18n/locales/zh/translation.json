@@ -98,6 +98,10 @@
           "cancel": {
             "name": "取消",
             "description": "取消当前录制。"
+          },
+          "command_mode": {
+            "name": "命令模式",
+            "description": "根据你的语音指令重写选中的文本。"
           }
         },
         "errors": {
@@ -420,5 +424,11 @@
   },
   "overlay": {
     "transcribing": "正在转录..."
+  },
+  "style": {
+    "contextAwareness": {
+      "label": "上下文感知听写",
+      "description": "根据你正在输入的应用自动调整听写风格（例如在聊天中更随意，在邮件中更正式）。"
+    }
   }
 }
