@@ -375,6 +375,33 @@ pub fn change_post_process_enabled_setting(app: AppHandle, enabled: bool) -> Res
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_context_awareness_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.context_awareness_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn set_style_selection(
+    app: AppHandle,
+    category: String,
+    style_id: String,
+) -> Result<(), String> {
+    const VALID_CATEGORIES: &[&str] = &["personal", "work", "email", "other"];
+    if !VALID_CATEGORIES.contains(&category.as_str()) {
+        return Err(format!("Invalid style category '{}'", category));
+    }
+
+    let mut settings = settings::get_settings(&app);
+    settings.style_selection.insert(category, style_id);
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_post_process_base_url_setting(
     app: AppHandle,
     provider_id: String,

@@ -19,6 +19,13 @@ use std::time::Instant;
 use tauri::AppHandle;
 use tauri::Emitter;
 use tauri::Manager;
+use tauri_plugin_clipboard_manager::ClipboardExt;
+
+use crate::input::EnigoState;
+
+/// Text captured from the focused application when Command Mode starts.
+static COMMAND_SELECTED_TEXT: Lazy<std::sync::Mutex<Option<String>>> =
+    Lazy::new(|| std::sync::Mutex::new(None));
 
 // Shortcut Action Trait
 pub trait ShortcutAction: Send + Sync {
@@ -94,6 +101,14 @@ async fn maybe_post_process_transcription(
 
     // Replace ${output} variable in the prompt with the actual text
     let processed_prompt = prompt.replace("${output}", transcription);
+
+    // Context-aware dictation: append a hint derived from the focused app
+    let processed_prompt = if let Some(hint) = crate::active_window::build_context_hint(settings) {
+        format!("{}\n\n{}", processed_prompt, hint)
+    } else {
+        processed_prompt
+    };
+
     debug!("Processed prompt length: {} chars", processed_prompt.len());
 
     if provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
@@ -489,6 +504,258 @@ impl ShortcutAction for TestAction {
     }
 }
 
+// Command Mode Action
+struct CommandAction;
+
+/// Copies the current selection in the focused application and returns it.
+/// Restores the original clipboard content afterwards. Returns `None` when
+/// nothing is selected (the clipboard content did not change).
+fn capture_selected_text(app: &AppHandle) -> Option<String> {
+    let clipboard = app.clipboard();
+    let original = clipboard.read_text().unwrap_or_default();
+
+    let enigo_state = app.try_state::<EnigoState>()?;
+    {
+        let mut enigo = enigo_state.0.lock().ok()?;
+        if let Err(e) = crate::input::send_copy_ctrl_c(&mut enigo) {
+            debug!("Command Mode: failed to send copy shortcut: {}", e);
+            return None;
+        }
+    }
+    std::thread::sleep(std::time::Duration::from_millis(150));
+
+    let copied = clipboard.read_text().unwrap_or_default();
+
+    // Restore the original clipboard so the final paste behaves normally
+    let _ = clipboard.write_text(&original);
+
+    if copied.trim().is_empty() || copied == original {
+        debug!("Command Mode: no text selection detected");
+        None
+    } else {
+        debug!("Command Mode: captured selection of {} chars", copied.len());
+        Some(copied)
+    }
+}
+
+/// Resolves the active LLM provider/model for a raw prompt. Returns `None`
+/// when post-processing is not configured for the current provider.
+async fn rewrite_with_instruction(
+    settings: &AppSettings,
+    selected_text: &str,
+    instruction: &str,
+) -> Option<String> {
+    let provider = settings.active_post_process_provider().cloned()?;
+    let model = settings
+        .post_process_models
+        .get(&provider.id)
+        .cloned()
+        .unwrap_or_default();
+
+    if model.trim().is_empty() {
+        debug!(
+            "Command Mode: no model configured for provider '{}'",
+            provider.id
+        );
+        return None;
+    }
+
+    if provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            let prompt = format!(
+                "Rewrite the selected text according to the instruction. Return ONLY the rewritten text, no explanations.\n\nSelected text:\n{}\n\nInstruction: {}",
+                selected_text, instruction
+            );
+            let token_limit = model.trim().parse::<i32>().unwrap_or(0);
+            return crate::apple_intelligence::process_text(&prompt, token_limit)
+                .map(|result| {
+                    if result.trim().is_empty() {
+                        None
+                    } else {
+                        Some(result)
+                    }
+                })
+                .unwrap_or_else(|e| {
+                    error!("Command Mode: Apple Intelligence rewrite failed: {}", e);
+                    None
+                });
+        }
+
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        {
+            debug!("Command Mode: Apple Intelligence unsupported on this platform");
+            return None;
+        }
+    }
+
+    let prompt = format!(
+        "You are a text rewriting assistant. The user selected the text between the <selected_text> tags and spoke an instruction. Rewrite the selected text according to the instruction. Return ONLY the rewritten text with no explanations, no quotes, and no markdown formatting. Keep the language of the selected text.\n\n<selected_text>\n{}\n</selected_text>\n\nInstruction: {}",
+        selected_text, instruction
+    );
+
+    let api_key = settings
+        .post_process_api_keys
+        .get(&provider.id)
+        .cloned()
+        .unwrap_or_default();
+
+    match crate::llm_client::send_chat_completion(&provider, api_key, &model, prompt).await {
+        Ok(Some(content)) => Some(content),
+        Ok(None) => {
+            error!("Command Mode: LLM API response has no content");
+            None
+        }
+        Err(e) => {
+            error!("Command Mode: LLM rewrite failed: {}", e);
+            None
+        }
+    }
+}
+
+impl ShortcutAction for CommandAction {
+    fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
+        debug!("CommandAction::start called for binding: {}", binding_id);
+
+        // Load model in background if cloud transcription is not enabled
+        let settings = get_settings(app);
+        if !settings.cloud_transcription.enabled {
+            let tm = app.state::<Arc<TranscriptionManager>>();
+            tm.initiate_model_load();
+        }
+
+        // Capture the current selection before recording starts
+        let selected_text = capture_selected_text(app);
+        if let Ok(mut selected) = COMMAND_SELECTED_TEXT.lock() {
+            *selected = selected_text;
+        }
+
+        change_tray_icon(app, TrayIconState::Recording);
+        show_recording_overlay(app);
+
+        let rm = app.state::<Arc<AudioRecordingManager>>();
+        if !rm.try_start_recording(binding_id) {
+            error!("Command Mode: failed to start recording");
+            if let Ok(mut selected) = COMMAND_SELECTED_TEXT.lock() {
+                *selected = None;
+            }
+            utils::hide_recording_overlay(app);
+            change_tray_icon(app, TrayIconState::Idle);
+            return;
+        }
+
+        shortcut::register_cancel_shortcut(app);
+    }
+
+    fn stop(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
+        shortcut::unregister_cancel_shortcut(app);
+        debug!("CommandAction::stop called for binding: {}", binding_id);
+
+        let ah = app.clone();
+        let rm = Arc::clone(&app.state::<Arc<AudioRecordingManager>>());
+        let tm = Arc::clone(&app.state::<Arc<TranscriptionManager>>());
+        let hm = Arc::clone(&app.state::<Arc<HistoryManager>>());
+        let ctm = Arc::clone(&app.state::<Arc<CloudTranscriptionManager>>());
+        let binding_id = binding_id.to_string();
+
+        change_tray_icon(app, TrayIconState::Transcribing);
+        show_transcribing_overlay(app);
+
+        rm.remove_mute();
+        play_feedback_sound(app, SoundType::Stop);
+
+        tauri::async_runtime::spawn(async move {
+            let selected_text = COMMAND_SELECTED_TEXT
+                .lock()
+                .ok()
+                .and_then(|mut sel| sel.take());
+
+            let Some(samples) = rm.stop_recording(&binding_id) else {
+                debug!("Command Mode: no samples retrieved from recording stop");
+                utils::hide_recording_overlay(&ah);
+                change_tray_icon(&ah, TrayIconState::Idle);
+                return;
+            };
+
+            let samples_clone = samples.clone();
+
+            // Transcribe the spoken instruction (cloud with local fallback)
+            let settings = get_settings(&ah);
+            let use_cloud = settings.cloud_transcription.enabled;
+            let transcription_result: Result<String, String> = if use_cloud {
+                debug!("Command Mode: using cloud transcription");
+                match ctm.transcribe(samples).await {
+                    Ok(text) => Ok(text),
+                    Err(e) => {
+                        error!("Command Mode: cloud transcription failed: {}", e);
+                        tm.transcribe(samples_clone.clone())
+                            .map_err(|e| e.to_string())
+                    }
+                }
+            } else {
+                debug!("Command Mode: using local transcription");
+                tm.transcribe(samples).map_err(|e| e.to_string())
+            };
+
+            let instruction = match transcription_result {
+                Ok(text) if !text.is_empty() => text,
+                Ok(_) => {
+                    debug!("Command Mode: empty transcription");
+                    utils::hide_recording_overlay(&ah);
+                    change_tray_icon(&ah, TrayIconState::Idle);
+                    return;
+                }
+                Err(err) => {
+                    error!("Command Mode: transcription error: {}", err);
+                    utils::hide_recording_overlay(&ah);
+                    change_tray_icon(&ah, TrayIconState::Idle);
+                    return;
+                }
+            };
+
+            let settings = get_settings(&ah);
+            let mut final_text = instruction.clone();
+            let mut post_processed_text: Option<String> = None;
+
+            if let Some(selected) = &selected_text {
+                debug!("Command Mode: rewriting {} selected chars", selected.len());
+                if let Some(rewritten) =
+                    rewrite_with_instruction(&settings, selected, &instruction).await
+                {
+                    final_text = rewritten.clone();
+                    post_processed_text = Some(rewritten);
+                }
+            }
+
+            // Save to history
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = hm
+                    .save_transcription(samples_clone, instruction, post_processed_text, None)
+                    .await
+                {
+                    error!("Command Mode: failed to save history: {}", e);
+                }
+            });
+
+            // Paste the result (replaces the selection when one was captured)
+            let ah_clone = ah.clone();
+            ah.run_on_main_thread(move || {
+                match utils::paste(final_text, ah_clone.clone()) {
+                    Ok(()) => debug!("Command Mode: text pasted successfully"),
+                    Err(e) => error!("Command Mode: failed to paste text: {}", e),
+                }
+                let _ = ah_clone.emit("transcription-done", ());
+                change_tray_icon(&ah_clone, TrayIconState::Idle);
+            })
+            .unwrap_or_else(|e| {
+                error!("Command Mode: failed to run paste on main thread: {:?}", e);
+                utils::hide_recording_overlay(&ah);
+                change_tray_icon(&ah, TrayIconState::Idle);
+            });
+        });
+    }
+}
+
 // Static Action Map
 pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::new(|| {
     let mut map = HashMap::new();
@@ -499,6 +766,10 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
     map.insert(
         "cancel".to_string(),
         Arc::new(CancelAction) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        "command_mode".to_string(),
+        Arc::new(CommandAction) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "test".to_string(),

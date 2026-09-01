@@ -325,12 +325,21 @@ pub struct AppSettings {
     pub offline_post_process_enabled: bool,
     #[serde(default)]
     pub offline_llm_model: String,
+    // Context-aware dictation settings
+    #[serde(default = "default_context_awareness_enabled")]
+    pub context_awareness_enabled: bool,
+    #[serde(default)]
+    pub style_selection: HashMap<String, String>,
     // Cloud transcription settings
     #[serde(default = "default_cloud_transcription_settings")]
     pub cloud_transcription: CloudTranscriptionSettings,
 }
 
 fn default_show_waveform() -> bool {
+    true
+}
+
+fn default_context_awareness_enabled() -> bool {
     true
 }
 
@@ -622,6 +631,20 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: "escape".to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let command_mode_shortcut = "cmd+shift+e";
+    #[cfg(not(target_os = "macos"))]
+    let command_mode_shortcut = "ctrl+shift+e";
+    bindings.insert(
+        "command_mode".to_string(),
+        ShortcutBinding {
+            id: "command_mode".to_string(),
+            name: "Command Mode".to_string(),
+            description: "Rewrites the selected text with your voice instructions.".to_string(),
+            default_binding: command_mode_shortcut.to_string(),
+            current_binding: command_mode_shortcut.to_string(),
+        },
+    );
 
     AppSettings {
         bindings,
@@ -662,6 +685,8 @@ pub fn get_default_settings() -> AppSettings {
         show_waveform: default_show_waveform(),
         offline_post_process_enabled: false,
         offline_llm_model: String::new(),
+        context_awareness_enabled: default_context_awareness_enabled(),
+        style_selection: HashMap::new(),
         cloud_transcription: default_cloud_transcription_settings(),
     }
 }
