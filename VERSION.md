@@ -4,16 +4,23 @@
 
 | Component | Version | Status |
 |-----------|---------|--------|
-| **Desktop (Electron)** | 3.7.0 | Stable |
-| **Desktop v2 (Tauri)** | 2.2.1 | Stable |
+| **Desktop v2 (Tauri)** | 2.3.0 | Stable |
 
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-09-02
 
 ## Version History
 
 ### Desktop v2 (Tauri)
 
-#### Version 2.2.1 (Current)
+#### Version 2.3.0 (Current)
+- Context-aware dictation: adapts LLM post-processing tone to the focused app
+- Command Mode: voice-rewrite selected text via global shortcut
+- Style settings persisted in the backend settings store and wired into the LLM pipeline
+- Licensing experiment fully reverted; project remains 100% free and open-source
+- Branding hygiene: outgoing LLM HTTP headers identify as SONU
+- Documentation refresh: README, AI_FEATURES, stale-reference cleanup
+
+#### Version 2.2.1
 - Notes mic button: click-to-record with visual recording state
 - GitHub Actions: 3 clean workflows replacing 13 broken ones (CI, Build, Release)
 - Documentation overhaul: 35+ stale files removed, essential docs rewritten for Tauri v2
@@ -38,23 +45,10 @@
 - React 18 frontend with TypeScript, Tailwind CSS 4, Zustand
 - Specta-generated type-safe Tauri bindings
 
-### Desktop (Electron)
+### Desktop (Electron) — Removed
 
-#### Version 3.7.0 (Current)
-- Security audit and hardening
-- Comprehensive input validation and error handling
-- Removed 40+ debug/test files
-- Window state persistence
-
-#### Version 3.6.1
-- Instant text output (Wispr parity)
-- Model loading and configuration fixes
-- Widget position persistence
-
-#### Version 3.6.0
-- AI Command Mode ("Magic Edit") with Phi-3 Mini LLM
-- Chameleon Mode context awareness
-- Dedicated AI settings tab
+The legacy Electron app has been removed from the repository. Its version
+history (3.5.x – 3.7.0) is preserved in `CHANGELOG.md`.
 
 ## Versioning Scheme
 
@@ -70,16 +64,13 @@ SONU follows [Semantic Versioning](https://semver.org/) (SemVer):
 
 | File | Location |
 |------|----------|
-| `apps/tauri-v2/package.json` | `"version": "2.2.0"` |
-| `apps/tauri-v2/src-tauri/Cargo.toml` | `version = "2.2.0"` |
-| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.2.0"` |
+| `apps/tauri-v2/package.json` | `"version": "2.3.0"` |
+| `apps/tauri-v2/src-tauri/Cargo.toml` | `version = "2.3.0"` |
+| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.3.0"` |
 
-### Desktop App (Electron)
+### Desktop App (Electron) — Removed
 
-| File | Location |
-|------|----------|
-| `apps/desktop/package.json` | `"version": "3.7.0"` |
-| `README.md` | Badge references |
+The Electron app no longer exists in this repository.
 
 ## Release Process
 
@@ -88,7 +79,7 @@ SONU follows [Semantic Versioning](https://semver.org/) (SemVer):
 3. **Version Bump**: Update version in all locations listed above
 4. **Changelog**: Document all changes in CHANGELOG.md
 5. **Commit**: Commit version changes
-6. **Tag**: Create git tag: `git tag v2.2.0`
+6. **Tag**: Create git tag: `git tag v2.3.0`
 7. **Build**: Build release: `bun run tauri build`
 8. **Release**: Push tag and create GitHub release
 
@@ -100,10 +91,4 @@ SONU follows [Semantic Versioning](https://semver.org/) (SemVer):
 - **React**: 18.3.x
 - **TypeScript**: 5.6.x
 - **Bun**: Package manager
-
-### Desktop (Electron)
-- **Electron**: v28.3.3
-- **Node.js**: v16.0.0+
-- **Python**: 3.8+
-- **Platform**: Windows 10/11 (64-bit)
 

@@ -70,8 +70,22 @@ SONU types directly into **any application** — your browser, IDE, email client
 </td>
 <td width="50%">
 
+### 🧠 Context-Aware Dictation
+SONU detects the **app you're typing in** and adapts tone and formatting automatically — casual in messengers, formal in email, code-safe in your IDE.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### ✨ Command Mode
+Select any text, press the Command Mode shortcut, and speak an instruction like *"make this more concise"* — your voice-driven AI rewrites it in place.
+
+</td>
+<td width="50%">
+
 ### ☁️ Cloud Transcription (Optional)
-Connect to **Groq**, **Deepgram**, or your own **self-hosted server** for cloud-powered transcription when you want maximum accuracy.
+Connect to **Groq**, **Deepgram**, or any **custom API endpoint** for cloud-powered transcription when you want maximum accuracy.
 
 </td>
 </tr>
@@ -144,8 +158,10 @@ Choose AI dictation style presets organized by category: *Personal*, *Work*, *Em
 | **Text snippets** | ✅ | ❌ | ❌ | ❌ |
 | **AI text enhancement** | ✅ | ✅ | ✅ | ❌ |
 | **Offline LLM support** | ✅ | ❌ | ❌ | ❌ |
-| **Cloud transcription option** | ✅ | ✅ | ❌ | ✅ |
-| **Self-hosted server** | ✅ | ❌ | ❌ | ❌ |
+| **Context-aware dictation** | ✅ | ❌ | ✅ | ❌ |
+| **Command Mode (voice rewrite)** | ✅ | ❌ | ❌ | ❌ |
+| **Cloud transcription option** | ✅ | ✅ | ✅ | ✅ |
+| **Custom API endpoint / self-hosted** | ✅ | ❌ | ❌ | ❌ |
 | **Voice notes** | ✅ | ❌ | ✅ | ❌ |
 | **Push-to-talk + toggle** | ✅ | ✅ | ✅ | ✅ |
 | **Auto-type into any app** | ✅ | ✅ | ✅ | ✅ |
@@ -227,16 +243,12 @@ Models download automatically on first use. All processing stays local.
 ```
 SONU/
 ├── apps/
-│   ├── tauri-v2/          🦀 Tauri v2 desktop app (Rust + React)
-│   │   ├── src/           React/TypeScript frontend
-│   │   └── src-tauri/     Rust backend (whisper.cpp, audio, models)
-│   │
-│   └── desktop/           🖥️ Electron desktop app (Node.js + Python)
-│       └── src/           Main process, services, IPC
+│   └── tauri-v2/          🦀 Tauri v2 desktop app (Rust + React)
+│       ├── src/           React/TypeScript frontend
+│       └── src-tauri/     Rust backend (transcription, audio, models)
 │
-├── server/                🌐 Self-hosted transcription server (FastAPI + Docker)
 ├── docs/                  📚 Documentation & guides
-└── plans/                 📋 Roadmap & improvement plans
+└── .github/               ⚙️ CI, build & release workflows
 ```
 
 ### Tech Stack
@@ -247,7 +259,7 @@ SONU/
 | **Frontend** | React 18, TypeScript, TailwindCSS |
 | **Speech Engine** | [whisper.cpp](https://github.com/ggerganov/whisper.cpp), Parakeet TDT |
 | **AI Enhancement** | Local LLM (GGUF) + Cloud providers (OpenAI, Groq, etc.) |
-| **Cloud Transcription** | Groq, Deepgram, Custom server (FastAPI) |
+| **Cloud Transcription** | Groq, Deepgram, Custom API endpoints |
 | **Security** | OS Keychain, Context Isolation, CSP, Input Validation |
 | **Testing** | Vitest, Playwright, Rust tests, GitHub Actions CI |
 
@@ -292,16 +304,11 @@ bun run format        # Prettier format
 bun run typecheck     # TypeScript check
 ```
 
-### Self-Hosted Server
+### Self-Hosted / Custom Transcription
 
-Run your own transcription server with Docker:
-
-```bash
-cd server
-docker compose up -d
-```
-
-See [server/README.md](server/README.md) for full setup instructions.
+SONU can send audio to any transcription endpoint you control. Go to
+**Settings → Cloud**, pick the *Custom / Self-Hosted* provider, and point it
+at your own OpenAI-compatible API endpoint. Nothing is routed through us.
 
 ---
 
@@ -325,7 +332,9 @@ SONU is designed with security-first principles:
 
 - [x] Offline voice-to-text with Whisper & Parakeet
 - [x] AI text enhancement (local + cloud LLMs)
-- [x] Cloud transcription (Groq, Deepgram, custom server)
+- [x] Context-aware dictation (adapts to the active app)
+- [x] Command Mode (voice-rewrite selected text)
+- [x] Cloud transcription (Groq, Deepgram, custom endpoint)
 - [x] Custom dictionary & text snippets
 - [x] Voice notes with search & playback
 - [x] Multi-theme support (dark, light, custom)
@@ -369,11 +378,12 @@ See [AGENTS.md](AGENTS.md) for development guidelines and coding conventions.
 |----------|-------------|
 | [AGENTS.md](AGENTS.md) | AI assistant guidelines & build commands |
 | [CHANGELOG.md](CHANGELOG.md) | Version history & release notes |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development setup guide |
-| [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Contribution guidelines |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture overview |
+| [INSTALL.md](INSTALL.md) | Installation guide |
+| [docs/AI_FEATURES.md](docs/AI_FEATURES.md) | AI post-processing & context-aware dictation |
+| [docs/BRAND_GUIDELINES.md](docs/BRAND_GUIDELINES.md) | Brand & logo usage |
 | [docs/TAURI_V2_MIGRATION_GUIDE.md](docs/TAURI_V2_MIGRATION_GUIDE.md) | Tauri v2 migration guide |
-| [server/README.md](server/README.md) | Self-hosted server setup |
-| [plans/CODEBASE_IMPROVEMENT_PLAN.md](plans/CODEBASE_IMPROVEMENT_PLAN.md) | Future improvement roadmap |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 
 ---
 
@@ -385,10 +395,12 @@ See [AGENTS.md](AGENTS.md) for development guidelines and coding conventions.
 
 ## 🙏 Acknowledgments
 
+- [Handy](https://github.com/cjpais/Handy) — SONU's foundation; a superb open-source speech-to-text app by CJ Pais
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) — Fast C++ Whisper inference
 - [Tauri](https://tauri.app) — Secure, lightweight desktop framework
 - [NVIDIA Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) — High-accuracy English ASR
-- [Electron](https://electronjs.org) — Cross-platform desktop apps
+
+<sub>Fork notice: SONU is an independent fork of Handy. The Handy name, logo, and brand assets are not open-source — SONU uses its own branding and does not imply endorsement or affiliation.</sub>
 
 ---
 

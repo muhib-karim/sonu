@@ -1,63 +1,77 @@
-# SONU AI Features Documentation
+# SONU AI Features
 
-**Version 3.6.0+**
+**Tauri v2 (2.3.0+)**
 
-SONU now includes powerful offline AI capabilities designed to rival online tools like Wispr Flow and Typeless, while maintaining our strict privacy-first, 100% offline philosophy.
+SONU's AI features enhance raw transcriptions without ever sending your audio
+anywhere you haven't explicitly configured.
 
-## 1. Command Mode ("Magic Edit")
+## 1. Context-Aware Dictation
 
-Command Mode allows you to use AI to modify, rewrite, or generate text based on your existing selection or transcription.
+SONU detects the application you're typing into and adapts the LLM
+post-processing instructions accordingly.
 
 ### How it Works
-1.  **Select Text**: Highlight any text in any application (Word, Browser, Slack, etc.).
-2.  **Trigger**: Press the global hotkey **`Ctrl + Win + E`**.
-3.  **Command**: A transparent overlay appears. Speak or type your instruction.
-    *   *"Make this more professional"*
-    *   *"Fix the grammar errors"*
-    *   *"Summarize this into a bulleted list"*
-    *   *"Reply to this email saying I'm interested"*
-4.  **Apply**: Press **Enter** to generate the result. The overlay shows a preview. Press **Enter** again to replace your selected text with the AI output.
+1. You dictate as usual with the transcribe shortcut.
+2. Before the transcription is enhanced, SONU looks up the focused
+   application (process name + window title).
+3. The app is mapped to one of four categories, and the style you picked for
+   that category is injected into the LLM prompt:
 
-### Technical Details
-*   **Model**: Microsoft **Phi-3 Mini 4k Instruct** (Quantized to Q4_K_M GGUF).
-*   **Engine**: `llama.cpp` via Python bindings.
-*   **Hardware**: Runs entirely on CPU. Requires ~2.5GB RAM when active.
-*   **Privacy**: No text ever leaves your machine.
+   | Category | Example apps | Default style |
+   |----------|-------------|---------------|
+   | Personal messages | Discord, WhatsApp, Telegram | Casual |
+   | Work messages | Slack, Teams, Zoom | Professional |
+   | Email | Outlook, Thunderbird, Mail | Formal |
+   | Everything else | Browsers, IDEs, editors | Neutral (faithful) |
 
-## 2. Chameleon Mode (Context Awareness)
+4. The enhanced result keeps the meaning of your dictation, with a tone that
+   fits where it's going.
 
-Chameleon Mode makes SONU aware of *where* you are typing, automatically adjusting its behavior to match the context.
+### Configuration
+- Toggle **Settings → Style → Context-Aware Dictation** (on by default).
+- Pick a per-category style from the same page. Selections are persisted in
+  the app settings store.
+- Requires an LLM post-processing provider (cloud such as OpenAI/Groq, or a
+  local GGUF model). Without one, dictation simply skips enhancement.
 
-### Capabilities
-*   **Coding Apps (VS Code, IntelliJ)**:
-    *   Preserves `snake_case` and `camelCase`.
-    *   Reduces aggressive punctuation normalization.
-    *   Prevents "smart" capitalization of variable names.
-*   **Chat Apps (Discord, Slack)**:
-    *   Allows more casual phrasing.
-    *   Supports emoji expansion.
-*   **Writing Apps (Word, Obsidian)**:
-    *   Enforces strict grammar and capitalization.
-    *   Uses "Formal" style profile by default.
+### Platform Support
+Foreground-window detection is currently implemented on **Windows**. On
+macOS and Linux the feature degrades gracefully — dictation works exactly as
+before, just without the per-app context hint.
 
-### enabling
-Go to **Settings > AI & Intelligence** and toggle **"Chameleon Mode"** on.
+## 2. Command Mode
+
+Select any text anywhere, press the Command Mode shortcut, and speak an
+instruction — SONU rewrites the selected text with your configured LLM and
+pastes it in place of the selection.
+
+### How it Works
+1. **Select text** in any application (browser, editor, email client…).
+2. **Trigger** the Command Mode shortcut (default `Ctrl+Shift+E`,
+   `Cmd+Shift+E` on macOS; configurable in **Settings → General**).
+3. **Speak your instruction**, e.g.
+   - "make this more concise"
+   - "fix the grammar"
+   - "translate this to German"
+   - "reply saying I'm interested"
+4. **Stop talking** (release the shortcut). SONU:
+   - transcribes your instruction,
+   - sends the selected text + instruction to the configured LLM,
+   - pastes the rewritten text in place of the original selection.
+
+### Fallbacks
+- **No text selected?** Your dictation is typed as plain text instead.
+- **No LLM configured?** The transcription is typed as-is.
+- Your original clipboard content is restored after the selection capture,
+  and again before the final paste.
 
 ## 3. Setup & Requirements
 
-### System Requirements
-*   **RAM**: Minimum 8GB (16GB recommended for smooth multitasking).
-*   **Disk**: ~2.5GB additional free space for the LLM model.
-*   **CPU**: Any modern multi-core processor (AVX2 support required, which is standard on CPUs since ~2013).
+Both features reuse SONU's existing LLM post-processing pipeline:
 
-### Installation
-1.  Open **Settings > AI & Intelligence**.
-2.  Click **"Download Model"** under the Local LLM section.
-3.  Wait for the download to complete (progress bar shown).
-4.  Once "Installed", the features are ready to use.
+1. Open **Settings → Post-Processing**.
+2. Choose a provider — a cloud API (OpenAI, Groq, …) or a local GGUF model.
+3. Enter the model name and API key (cloud providers).
 
-## Troubleshooting
-
-*   **Overlay doesn't appear**: Ensure `Ctrl+Win+E` isn't conflicting with another app. You can change this in Settings.
-*   **Model download fails**: Check your internet connection. Resume is supported if interrupted.
-*   **Slow generation**: Local LLMs depend on CPU speed. On older laptops, generation might take 2-5 seconds.
+Cloud providers are used only for the short text-enhancement request; audio
+is transcribed locally unless you separately enable cloud transcription.

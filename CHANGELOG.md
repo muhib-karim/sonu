@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] - 2026-09-02
+
+### Tauri App - Context-Aware Dictation & Command Mode
+
+### Added
+- **Context-aware dictation**: SONU detects the focused application and adapts
+  LLM post-processing tone accordingly (casual in messengers, professional in
+  work chat, formal in email). Per-category styles from the Style settings are
+  now persisted in the app settings and actually applied to the LLM prompt.
+  Toggle available in Settings → Style.
+- **Command Mode**: new global shortcut (default `Ctrl+Shift+E`, `Cmd+Shift+E`
+  on macOS). Select any text, press the shortcut, speak an instruction, and
+  SONU transcribes your instruction and rewrites the selected text with the
+  configured LLM — pasting the result in place of the selection. Falls back to
+  plain dictation when no text is selected or no LLM is configured.
+- Style selections now persist via the backend settings store (previously
+  localStorage only and not wired into the transcription pipeline).
+- Command Mode shortcut configurable from Settings → General, with i18n
+  support for all 12 languages.
+
+### Changed
+- **Licensing WIP removed**: the repository remains 100% free and open-source;
+  an unmerged paid-license experiment was fully reverted.
+- Project branding hygiene: outgoing LLM HTTP headers now identify as SONU.
+- Documentation: README, VERSION.md updated; removed references to the
+  deleted Electron app, self-hosted server, and legacy plan folders.
+
+### Fixed
+- `prettier --check` failed locally on Windows due to CRLF line endings
+  (`.prettierrc` now uses `endOfLine: "auto"`, matching CI behavior).
+- `.prettierignore` now excludes alternate cargo target directories.
+
+---
+
 ## [2.2.1] - 2026-02-28
 
 ### Tauri App - CI/CD & Documentation Cleanup
