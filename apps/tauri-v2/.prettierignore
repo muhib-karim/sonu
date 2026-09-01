@@ -10,7 +10,13 @@ target
 
 # Tauri
 src-tauri/target
+src-tauri/target-msvc-hermes
+src-tauri/target-msvc-release-hermes
 src-tauri/gen
+
+# Test artifacts
+test-results
+playwright-report
 
 # Generated files
 src/bindings.ts

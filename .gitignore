@@ -12,6 +12,8 @@ out/
 
 # Rust build cache
 **/target/
+**/target-msvc-*/
+**/target-*/
 
 # OS files
 .DS_Store
@@ -21,9 +23,14 @@ desktop.ini
 # IDE
 .vscode/
 .idea/
+*.code-workspace
 *.swp
 *.swo
 *~
+
+# Test artifacts
+test-results/
+playwright-report/
 
 # Environment variables
 .env
