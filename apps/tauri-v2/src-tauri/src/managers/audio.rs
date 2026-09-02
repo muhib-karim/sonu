@@ -178,6 +178,10 @@ pub struct AudioRecordingManager {
     is_open: Arc<Mutex<bool>>,
     is_recording: Arc<Mutex<bool>>,
     did_mute: Arc<Mutex<bool>>,
+    /// Bumped on every recording start. Preview tickers capture the value at
+    /// spawn and exit when it changes, so stop/start cycles never leave
+    /// zombie tickers from a previous session emitting stale text.
+    generation: Arc<std::sync::atomic::AtomicU64>,
 }
 
 impl AudioRecordingManager {
@@ -200,6 +204,7 @@ impl AudioRecordingManager {
             is_open: Arc::new(Mutex::new(false)),
             is_recording: Arc::new(Mutex::new(false)),
             did_mute: Arc::new(Mutex::new(false)),
+            generation: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         };
 
         // Always-on?  Open immediately.
@@ -472,6 +477,8 @@ impl AudioRecordingManager {
                 };
                 debug!("Recording started for binding {binding_id}");
                 drop(state);
+                self.generation
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 self.spawn_preview_ticker();
                 return true;
             }
@@ -577,16 +584,20 @@ impl AudioRecordingManager {
         }
     }
 
-    /// Returns a clone of the samples buffered since recording started,
-    /// capped to the last `max_seconds` of audio. `None` when not recording.
+    fn generation(&self) -> u64 {
+        self.generation.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Returns a clone of the last `max_seconds` of samples buffered since
+    /// recording started. `None` when not recording.
     pub fn peek_samples(&self, max_seconds: u32) -> Option<Vec<f32>> {
         if !self.is_recording() {
             return None;
         }
+        let max_len = WHISPER_SAMPLE_RATE * max_seconds.max(1) as usize;
         let guard = self.safe_lock(&self.recorder).ok()?;
         let rec = guard.as_ref()?;
-        let buf = rec.peek().ok()?;
-        let max_len = WHISPER_SAMPLE_RATE * max_seconds.max(1) as usize;
+        let buf = rec.peek(max_len).ok()?;
         if buf.len() > max_len {
             Some(buf[buf.len() - max_len..].to_vec())
         } else {
@@ -599,6 +610,7 @@ impl AudioRecordingManager {
     /// the user is still speaking. Exits automatically when recording stops.
     fn spawn_preview_ticker(&self) {
         let manager = self.clone();
+        let my_generation = manager.generation();
 
         thread::spawn(move || {
             const TICK_INTERVAL: Duration = Duration::from_millis(1200);
@@ -608,7 +620,7 @@ impl AudioRecordingManager {
             loop {
                 thread::sleep(TICK_INTERVAL);
 
-                if !manager.is_recording() {
+                if manager.generation() != my_generation || !manager.is_recording() {
                     break;
                 }
 
@@ -629,9 +641,11 @@ impl AudioRecordingManager {
                     .try_state::<std::sync::Arc<crate::managers::transcription::TranscriptionManager>>();
                 let Some(tm) = tm else { break };
 
-                match tm.transcribe(samples) {
+                // transcribe_preview never unloads the model: doing so
+                // mid-recording would break the final transcription.
+                match tm.transcribe_preview(samples) {
                     Ok(text) if !text.trim().is_empty() => {
-                        if !manager.is_recording() {
+                        if manager.generation() != my_generation || !manager.is_recording() {
                             break;
                         }
                         if let Err(e) = manager.app_handle.emit("preview-text", text) {

@@ -93,9 +93,10 @@ The Electron app no longer exists in this repository.
 3. **Version Bump**: Update version in all locations listed above
 4. **Changelog**: Document all changes in CHANGELOG.md
 5. **Commit**: Commit version changes
-6. **Tag**: Create git tag: `git tag v2.4.0`
-7. **Build**: Build release: `bun run tauri build`
-8. **Release**: Push tag and create GitHub release
+6. **Release**: Dispatch the Release workflow (GitHub Actions → Release →
+   Run workflow). It reads the version from `tauri.conf.json`, creates the
+   `v{version}` draft release and tag, builds all 6 platform targets, and
+   publishes the release on success. No manual tagging is needed.
 
 ## Build Information
 

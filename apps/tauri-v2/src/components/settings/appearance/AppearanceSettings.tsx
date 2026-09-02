@@ -128,6 +128,7 @@ export const AppearanceSettings: React.FC = () => {
               data-testid={`accent-${color.id}`}
               aria-label={color.label}
               title={color.label}
+              aria-pressed={accentColor === color.id}
               onClick={() => updateSetting("accent_color", color.id)}
               className={`w-7 h-7 rounded-full transition-all duration-150 ring-offset-2 ring-offset-surface ${
                 accentColor === color.id

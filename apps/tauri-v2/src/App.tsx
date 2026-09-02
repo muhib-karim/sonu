@@ -40,7 +40,7 @@ function App() {
         if (result.status === "ok") {
           // If no model has been selected yet, show onboarding
           const s = result.data as any;
-          if (!s.selected_model && !s.onboarding_completed) {
+          if (!s.selected_model) {
             setShowOnboarding(true);
           }
         }

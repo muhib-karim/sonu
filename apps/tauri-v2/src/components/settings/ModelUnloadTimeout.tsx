@@ -17,7 +17,8 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
   const { t } = useTranslation();
   const { settings, getSetting, updateSetting } = useSettings();
 
-  // All timeout options including debug options (5 seconds)
+  // All timeout options including debug options (5 seconds).
+  // Values must match the serde snake_case ModelUnloadTimeout enum.
   const allTimeoutOptions = [
     {
       value: "never" as ModelUnloadTimeout,
@@ -28,32 +29,27 @@ export const ModelUnloadTimeoutSetting: React.FC<ModelUnloadTimeoutProps> = ({
       label: t("settings.advanced.modelUnload.options.immediately"),
     },
     {
-      value: "sec5" as ModelUnloadTimeout,
+      value: "sec_5" as ModelUnloadTimeout,
       label: t("settings.advanced.modelUnload.options.sec5"),
     },
     {
-      value: "sec30" as ModelUnloadTimeout,
-      label:
-        t("settings.advanced.modelUnload.options.sec30") || "After 30 seconds",
-    },
-    {
-      value: "min2" as ModelUnloadTimeout,
+      value: "min_2" as ModelUnloadTimeout,
       label: t("settings.advanced.modelUnload.options.min2"),
     },
     {
-      value: "min5" as ModelUnloadTimeout,
+      value: "min_5" as ModelUnloadTimeout,
       label: t("settings.advanced.modelUnload.options.min5"),
     },
     {
-      value: "min10" as ModelUnloadTimeout,
+      value: "min_10" as ModelUnloadTimeout,
       label: t("settings.advanced.modelUnload.options.min10"),
     },
     {
-      value: "min15" as ModelUnloadTimeout,
+      value: "min_15" as ModelUnloadTimeout,
       label: t("settings.advanced.modelUnload.options.min15"),
     },
     {
-      value: "hour1" as ModelUnloadTimeout,
+      value: "hour_1" as ModelUnloadTimeout,
       label: t("settings.advanced.modelUnload.options.hour1"),
     },
   ];

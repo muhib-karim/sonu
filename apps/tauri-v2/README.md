@@ -7,7 +7,7 @@ A modern, high-performance offline voice typing application built with Tauri v2,
 - **🎤 Offline Voice Typing** - Convert speech to text using local AI models
 - **⚡ Lightning Fast** - Native Rust backend for 10x better performance
 - **🔒 100% Private** - All processing happens on your device
-- **🌍 Multi-language** - Support for 40+ languages with auto-detection
+- **🌍 Multi-language** - Support for 50+ languages with auto-detection
 - **⌨️ Global Shortcuts** - Type anywhere with customizable hotkeys
 - **📊 Smart History** - Search and reuse past transcriptions
 - **🤖 AI Post-Processing** - Optional text refinement with local LLMs
@@ -25,16 +25,12 @@ A modern, high-performance offline voice typing application built with Tauri v2,
 
 ```bash
 # Clone and navigate to the project
-git clone <repository-url>
-cd SONU/apps/tauri-v2
+git clone https://github.com/muhib-karim/sonu.git
+cd sonu/apps/tauri-v2
 
-# Install dependencies
+# Install dependencies (the Silero VAD model is already bundled in
+# src-tauri/resources/models)
 bun install
-
-# Download required models
-mkdir -p src-tauri/resources/models
-curl -o src-tauri/resources/models/silero_vad_v4.onnx \
-  https://blob.handy.computer/silero_vad_v4.onnx
 
 # Start development server
 bun run tauri dev
@@ -111,13 +107,13 @@ sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
 
 ### Technology Stack
 
-| Layer    | Technology                               |
-| -------- | ---------------------------------------- |
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS |
-| Backend  | Rust, Tauri v2                           |
-| Audio    | CPAL, Whisper-rs, Silero VAD             |
-| State    | Zustand                                  |
-| I18n     | i18next                                  |
+| Layer    | Technology                                 |
+| -------- | ------------------------------------------ |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS   |
+| Backend  | Rust, Tauri v2                             |
+| Audio    | CPAL, transcribe-rs (Parakeet), Silero VAD |
+| State    | Zustand                                    |
+| I18n     | i18next                                    |
 
 ### Key Improvements
 
@@ -133,9 +129,9 @@ sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
 
 Settings are stored in the OS-specific app data directory:
 
-- **Windows**: `%APPDATA%/SONU/settings_store.json`
-- **macOS**: `~/Library/Application Support/SONU/settings_store.json`
-- **Linux**: `~/.config/SONU/settings_store.json`
+- **Windows**: `%APPDATA%/com.sonu.desktop/settings_store.json`
+- **macOS**: `~/Library/Application Support/com.sonu.desktop/settings_store.json`
+- **Linux**: `~/.config/com.sonu.desktop/settings_store.json`
 
 ### Environment Variables
 
@@ -144,7 +140,7 @@ Settings are stored in the OS-specific app data directory:
 
 ## Contributing
 
-Please read our [Contributing Guide](../../docs/CONTRIBUTING.md) for details on:
+Please read our [Contributing Guide](../../CONTRIBUTING.md) for details on:
 
 - Code style and conventions
 - Development workflow
@@ -154,8 +150,7 @@ Please read our [Contributing Guide](../../docs/CONTRIBUTING.md) for details on:
 ## Documentation
 
 - [Migration Guide](../../docs/TAURI_V2_MIGRATION_GUIDE.md) - Complete migration guide
-- [Contributing Guide](../../docs/CONTRIBUTING.md) - How to contribute
-- [API Documentation](../../docs/API.md) - Backend API reference
+- [Contributing Guide](../../CONTRIBUTING.md) - How to contribute
 
 ## License
 
@@ -163,8 +158,8 @@ MIT License - see LICENSE file for details
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/SONU/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/SONU/discussions)
+- **Issues**: [GitHub Issues](https://github.com/muhib-karim/sonu/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/muhib-karim/sonu/discussions)
 - **Email**: support@sonu.app (if applicable)
 
 ---

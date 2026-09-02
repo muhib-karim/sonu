@@ -376,6 +376,17 @@ impl TranscriptionManager {
     }
 
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
+        self.transcribe_inner(audio, false)
+    }
+
+    /// Like [`Self::transcribe`], but never unloads the model afterwards.
+    /// Used by the live preview ticker: unloading mid-recording would break
+    /// the final transcription of the recording in progress.
+    pub fn transcribe_preview(&self, audio: Vec<f32>) -> Result<String> {
+        self.transcribe_inner(audio, true)
+    }
+
+    fn transcribe_inner(&self, audio: Vec<f32>, is_preview: bool) -> Result<String> {
         // Update last activity timestamp
         let current_time_ms = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
@@ -392,7 +403,9 @@ impl TranscriptionManager {
 
         if audio.is_empty() {
             debug!("Empty audio vector");
-            self.maybe_unload_immediately("empty audio");
+            if !is_preview {
+                self.maybe_unload_immediately("empty audio");
+            }
             return Ok(String::new());
         }
 
@@ -477,7 +490,9 @@ impl TranscriptionManager {
             info!("Transcription result: {}", final_result);
         }
 
-        self.maybe_unload_immediately("transcription");
+        if !is_preview {
+            self.maybe_unload_immediately("transcription");
+        }
 
         Ok(final_result)
     }

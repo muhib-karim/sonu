@@ -38,7 +38,7 @@ SONU Tauri v2 is a complete rewrite of the desktop application, replacing the le
 ├─────────────────────────────────────────────────────────────┤
 │                     Backend (Rust)                           │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │    Audio     │  │   Whisper    │  │    History   │      │
+│  │    Audio     │  │Transcription │  │    History   │      │
 │  │   Manager    │  │   Manager    │  │   Manager    │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
@@ -74,7 +74,7 @@ apps/tauri-v2/
 │       ├── managers/            # Core business logic
 │       │   ├── audio.rs         # Audio recording
 │       │   ├── history.rs       # Transcription history
-│       │   ├── model.rs         # Whisper model management
+│       │   ├── model.rs         # Model catalog and download management
 │       │   ├── offline_llm.rs   # Local LLM integration
 │       │   └── transcription.rs # Speech-to-text pipeline
 │       ├── tests/               # Unit tests
@@ -83,12 +83,11 @@ apps/tauri-v2/
 │       ├── settings.rs          # Settings management
 │       ├── shortcut.rs          # Global shortcuts
 │       ├── tray.rs              # System tray
-│       └── utils.rs             # General utilities
-├── docs/                        # Documentation
+│       ├── Cargo.toml           # Rust dependencies
+│       └── utils/               # General utilities
 ├── package.json                 # Node dependencies
 ├── vite.config.ts              # Vite configuration
-├── tsconfig.json               # TypeScript configuration
-└── Cargo.toml                  # Rust dependencies
+└── tsconfig.json               # TypeScript configuration
 ```
 
 ## Key Improvements
@@ -255,14 +254,13 @@ The project includes a comprehensive GitHub Actions workflow:
 
 1. **Code Quality Checks**: ESLint, Prettier, Rust fmt, Clippy
 2. **Unit Tests**: Frontend and backend tests
-3. **Security Audit**: cargo audit and npm audit
-4. **Build Tests**: Cross-platform builds
-5. **Release**: Automated release creation
+3. **Build Tests**: Cross-platform builds
+4. **Release**: Automated release creation (security auditing is planned)
 
 ### Distribution
 
 Builds are created for:
-- Windows (x64)
+- Windows (x64, ARM64)
 - macOS (x64, ARM64)
 - Linux (x64)
 

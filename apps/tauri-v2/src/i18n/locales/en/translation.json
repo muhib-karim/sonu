@@ -472,7 +472,8 @@
     "off": "Off",
     "yes": "Yes",
     "no": "No",
-    "noOptionsFound": "No options found"
+    "noOptionsFound": "No options found",
+    "copy": "Copy"
   },
   "accessibility": {
     "permissionsRequired": "Accessibility Permissions Required",
@@ -481,7 +482,12 @@
     "dismiss": "Dismiss"
   },
   "errors": {
-    "loadDirectory": "Error loading directory: {{error}}"
+    "loadDirectory": "Error loading directory: {{error}}",
+    "boundary_title": "Something went wrong",
+    "boundary_subtitle": "The application encountered an unexpected error",
+    "report_prompt": "If this problem persists, please report it to the development team",
+    "update_check_failed": "Failed to check for updates",
+    "update_install_failed": "Failed to install update"
   },
   "appLanguage": {
     "title": "Application Language",
@@ -489,7 +495,8 @@
   },
   "overlay": {
     "transcribing": "Transcribing...",
-    "listening": "Listening..."
+    "listening": "Listening...",
+    "cloudProcessing": "Cloud..."
   },
   "home": {
     "title": "Speak Everywhere",
@@ -509,6 +516,16 @@
     },
     "history": {
       "title": "Recent"
+    },
+    "copied": "Copied to clipboard",
+    "mode": {
+      "cloud": "Cloud Mode",
+      "local": "Local Mode"
+    },
+    "transcriptions": "{{count}} transcriptions",
+    "shortcut": {
+      "title": "Voice Activation",
+      "description": "Hold this key, speak, and release to transcribe."
     }
   },
   "dictionary": {
@@ -540,7 +557,9 @@
     "refresh": "Refresh",
     "toggleView": "Toggle view",
     "empty": "No notes yet. Click the microphone to start.",
-    "noResults": "No notes found"
+    "noResults": "No notes found",
+    "subtitle": "Save transcriptions as notes by clicking the star icon in History",
+    "recording": "Recording... Click the mic to stop"
   },
   "style": {
     "title": "Style",
@@ -634,5 +653,49 @@
       "label": "Live transcription preview",
       "description": "Show text while you speak in the recording overlay. Requires a local model."
     }
+  },
+  "buttons": {
+    "try_again": "Try Again",
+    "reload_app": "Reload App",
+    "view": "View",
+    "refresh": "Refresh",
+    "update": "Update",
+    "close": "Close"
+  },
+  "model": {
+    "updates_available": "{{count}} model update(s) available",
+    "all_up_to_date": "All models are up to date",
+    "update_installed": "Model {{model}} updated successfully",
+    "checking": "Checking...",
+    "check_updates": "Check for Updates",
+    "updates_available_title": "Model Updates Available",
+    "updating": "Updating...",
+    "update_all": "Update All",
+    "version_info": "{{current}} → {{latest}}",
+    "required": "Required",
+    "downloading": "Downloading..."
+  },
+  "shortcuts": {
+    "toggle_recording": "Toggle recording",
+    "hold_to_record": "Hold to record (PTT)",
+    "cancel_recording": "Cancel recording",
+    "show_help": "Show keyboard shortcuts",
+    "open_settings": "Open settings",
+    "open_history": "Open history",
+    "paste_transcription": "Paste last transcription",
+    "undo": "Undo last action",
+    "close_window": "Close window",
+    "quit_app": "Quit application",
+    "minimize": "Minimize to tray",
+    "categories": {
+      "all": "All Shortcuts",
+      "recording": "Recording",
+      "navigation": "Navigation",
+      "editing": "Text Editing",
+      "window": "Window"
+    },
+    "title": "Keyboard Shortcuts",
+    "subtitle": "Press any shortcut to perform the action",
+    "customize_hint": "You can customize these shortcuts in Settings > Keyboard Shortcuts"
   }
 }

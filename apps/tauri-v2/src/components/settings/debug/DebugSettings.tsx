@@ -16,7 +16,6 @@ import { RecordingRetentionPeriodSelector } from "../RecordingRetentionPeriod";
 import { ClamshellMicrophoneSelector } from "../ClamshellMicrophoneSelector";
 import { SonuShortcut } from "../SonuShortcut";
 import { UpdateChecksToggle } from "../UpdateChecksToggle";
-import { ShowWaveformToggle } from "../ShowWaveformToggle";
 import { useSettings } from "../../../hooks/useSettings";
 
 export const DebugSettings: React.FC = () => {
@@ -35,7 +34,6 @@ export const DebugSettings: React.FC = () => {
           label={t("settings.debug.soundTheme.label")}
           description={t("settings.debug.soundTheme.description")}
         />
-        <ShowWaveformToggle descriptionMode="tooltip" grouped={true} />
         <WordCorrectionThreshold descriptionMode="tooltip" grouped={true} />
         <HistoryLimit descriptionMode="tooltip" grouped={true} />
         <RecordingRetentionPeriodSelector

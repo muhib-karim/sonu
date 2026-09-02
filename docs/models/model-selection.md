@@ -5,6 +5,8 @@ SONU supports multiple AI models for speech recognition and text processing. Thi
 > **Note on sizes:** Sizes below are the actual download sizes served by SONU's model
 > catalog (see `apps/tauri-v2/src-tauri/src/managers/model.rs`). Most Whisper models are
 > quantized ggml builds, so they are smaller than the upstream fp16 releases.
+> Local transcription currently runs on the **Parakeet** engine (V2/V3); Whisper and
+> Moonshine entries are listed in the catalog with local inference for them planned.
 
 ## Quick Comparison
 
@@ -151,7 +153,7 @@ All models run on CPU. Performance scales with:
 - Memory bandwidth
 
 ### GPU Acceleration
-- **Parakeet**: Requires NVIDIA GPU
+- **Parakeet**: CPU-optimized (int8); no GPU required
 - **Whisper**: CPU-only (future GPU support planned)
 - **LLM**: Can use GPU if available
 

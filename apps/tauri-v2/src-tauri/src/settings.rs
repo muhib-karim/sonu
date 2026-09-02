@@ -318,8 +318,6 @@ pub struct AppSettings {
     pub append_trailing_space: bool,
     #[serde(default = "default_app_language")]
     pub app_language: String,
-    #[serde(default = "default_show_waveform")]
-    pub show_waveform: bool,
     // Offline post-processing settings
     #[serde(default)]
     pub offline_post_process_enabled: bool,
@@ -340,10 +338,6 @@ pub struct AppSettings {
     // Cloud transcription settings
     #[serde(default = "default_cloud_transcription_settings")]
     pub cloud_transcription: CloudTranscriptionSettings,
-}
-
-fn default_show_waveform() -> bool {
-    true
 }
 
 fn default_context_awareness_enabled() -> bool {
@@ -437,7 +431,7 @@ fn default_overlay_position() -> OverlayPosition {
 }
 
 fn default_debug_mode() -> bool {
-    true
+    false
 }
 
 fn default_log_level() -> LogLevel {
@@ -701,7 +695,6 @@ pub fn get_default_settings() -> AppSettings {
         mute_while_recording: false,
         append_trailing_space: false,
         app_language: default_app_language(),
-        show_waveform: default_show_waveform(),
         offline_post_process_enabled: false,
         offline_llm_model: String::new(),
         context_awareness_enabled: default_context_awareness_enabled(),

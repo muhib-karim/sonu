@@ -19,8 +19,10 @@ use crate::audio_toolkit::{
 enum Cmd {
     Start,
     Stop(mpsc::Sender<Vec<f32>>),
-    /// Clone the current in-flight sample buffer without stopping.
-    Peek(mpsc::Sender<Vec<f32>>),
+    /// Clone the tail of the current in-flight sample buffer without
+    /// stopping. The usize caps how many of the most recent samples are
+    /// returned so previews never clone the full (unbounded) buffer.
+    Peek(usize, mpsc::Sender<Vec<f32>>),
     Shutdown,
 }
 
@@ -145,12 +147,13 @@ impl AudioRecorder {
         Ok(resp_rx.recv()?) // wait for the samples
     }
 
-    /// Returns a clone of the samples buffered since recording started,
-    /// without stopping the recording. Returns an empty buffer when idle.
-    pub fn peek(&self) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
+    /// Returns a clone of the most recent `max_samples` buffered since
+    /// recording started, without stopping the recording. Returns an empty
+    /// buffer when idle.
+    pub fn peek(&self, max_samples: usize) -> Result<Vec<f32>, Box<dyn std::error::Error>> {
         let (resp_tx, resp_rx) = mpsc::channel();
         if let Some(tx) = &self.cmd_tx {
-            tx.send(Cmd::Peek(resp_tx))?;
+            tx.send(Cmd::Peek(max_samples, resp_tx))?;
         }
         Ok(resp_rx.recv()?)
     }
@@ -338,8 +341,9 @@ fn run_consumer(
 
                     let _ = reply_tx.send(std::mem::take(&mut processed_samples));
                 }
-                Cmd::Peek(reply_tx) => {
-                    let _ = reply_tx.send(processed_samples.clone());
+                Cmd::Peek(max_samples, reply_tx) => {
+                    let start = processed_samples.len().saturating_sub(max_samples);
+                    let _ = reply_tx.send(processed_samples[start..].to_vec());
                 }
                 Cmd::Shutdown => return,
             }

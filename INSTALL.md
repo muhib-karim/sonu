@@ -9,6 +9,7 @@ Get the latest release for your platform from [GitHub Releases](https://github.c
 | **Windows x64** | Installer | `SONU_x.x.x_x64-setup.exe` |
 | **Windows x64** | MSI | `SONU_x.x.x_x64_en-US.msi` |
 | **Windows ARM64** | Installer | `SONU_x.x.x_arm64-setup.exe` |
+| **Windows ARM64** | MSI | `SONU_x.x.x_arm64_en-US.msi` |
 | **macOS Apple Silicon** | DMG | `SONU_x.x.x_aarch64.dmg` |
 | **macOS Intel** | DMG | `SONU_x.x.x_x64.dmg` |
 | **Linux (Ubuntu 24.04+)** | AppImage | `SONU_x.x.x_amd64.AppImage` |

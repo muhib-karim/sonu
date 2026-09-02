@@ -102,6 +102,8 @@
   --color-muted: var(--app-muted);
   --color-muted-foreground: var(--app-text-muted);
   --color-mid-gray: var(--app-border-hover);
+  --color-background-ui: var(--app-background-ui);
+  --color-text-secondary: var(--app-text-secondary);
 
   /* Logo Specific Colors */
   --color-logo-primary: var(--app-accent);
@@ -150,11 +152,13 @@
 .dark {
   --app-text: #fafafa;
   --app-text-muted: #a1a1aa;
+  --app-text-secondary: #d4d4d8;
   --app-text-disabled: #52525b;
 
   --app-background: #0d0d0f;
   --app-background-elevated: #18181b;
   --app-background-pressed: #27272a;
+  --app-background-ui: #27272a;
 
   --app-primary: #d4d4d8;
   --app-primary-hover: #e4e4e7;
@@ -188,11 +192,15 @@
 .light {
   --app-text: #18181b;
   --app-text-muted: #52525b;
+  --app-text-secondary: #3f3f46;
   --app-text-disabled: #a1a1aa;
 
   --app-background: #ececee;
   --app-background-elevated: #f4f4f5;
   --app-background-pressed: #e4e4e7;
+  /* Solid fill for white-text controls (primary buttons, slider track);
+     stays dark in the light theme so `text-white` keeps its contrast. */
+  --app-background-ui: #3f3f46;
 
   --app-primary: #3f3f46;
   --app-primary-hover: #27272a;

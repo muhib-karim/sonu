@@ -38,14 +38,14 @@
 
 ### 🔒 100% Offline & Private
 
-All transcription runs **locally on your device**. No audio ever leaves your machine. No accounts, no cloud, no subscriptions. Your voice stays yours.
+All transcription runs **locally on your device** by default — no audio ever leaves your machine unless you explicitly enable cloud transcription. No accounts, no subscriptions. Your voice stays yours.
 
 </td>
 <td width="50%">
 
 ### ⚡ Real-Time Transcription
 
-Powered by optimized **whisper.cpp** and **Parakeet** engines for blazing-fast, real-time voice-to-text. Start speaking and see words appear instantly.
+Powered by the NVIDIA **Parakeet** engine (via transcribe-rs) for blazing-fast, real-time voice-to-text. Start speaking and see words appear instantly.
 
 </td>
 </tr>
@@ -61,7 +61,7 @@ Optional **LLM post-processing** cleans up filler words, fixes grammar, and form
 
 ### 🌍 50+ Languages
 
-Transcribe in over 50 languages with automatic language detection. Switch languages on the fly or lock to a specific one.
+Transcribe in 50+ languages with automatic language detection via cloud Whisper. Offline models cover English and major European languages (Parakeet). Switch languages on the fly or lock to a specific one.
 
 </td>
 </tr>
@@ -179,15 +179,15 @@ Choose AI dictation style presets organized by category: _Personal_, _Work_, _Em
 | **Custom dictionary**                 |          ✅          |     ❌      |      ❌      |       ❌        |
 | **Text snippets**                     |          ✅          |     ❌      |      ❌      |       ❌        |
 | **AI text enhancement**               |          ✅          |     ✅      |      ✅      |       ❌        |
-| **Offline LLM support**               |          ✅          |     ❌      |      ❌      |       ❌        |
-| **Context-aware dictation**           |          ✅          |     ❌      |      ✅      |       ❌        |
+| **Offline LLM support**               |         🚧 planned     |     ❌      |      ❌      |       ❌        |
+| **Context-aware dictation**           |     ✅ (Windows)     |     ❌      |      ✅      |       ❌        |
 | **Command Mode (voice rewrite)**      |          ✅          |     ❌      |      ❌      |       ❌        |
 | **Cloud transcription option**        |          ✅          |     ✅      |      ✅      |       ✅        |
 | **Custom API endpoint / self-hosted** |          ✅          |     ❌      |      ❌      |       ❌        |
 | **Voice notes**                       |          ✅          |     ❌      |      ✅      |       ❌        |
 | **Push-to-talk + toggle**             |          ✅          |     ✅      |      ✅      |       ✅        |
 | **Auto-type into any app**            |          ✅          |     ✅      |      ✅      |       ✅        |
-| **Multiple Whisper models**           | ✅ (small → large-v3) |     ❌      |      ✅      |       ❌        |
+| **Multiple ASR models**               | ✅ (Parakeet local; Whisper cloud) |     ❌      |      ✅      |       ❌        |
 | **Themes & customization**            |          ✅          |   Limited   |   Limited    |       ❌        |
 
 ---
@@ -217,7 +217,7 @@ Choose AI dictation style presets organized by category: _Personal_, _Work_, _Em
 1. Download the `.exe` installer from [Releases](https://github.com/muhib-karim/sonu/releases/latest)
 2. Run the installer and follow the prompts
 3. Launch SONU from the Start Menu or system tray
-4. Press your hotkey (default: `Ctrl+Shift+Space`) and start speaking
+4. Press your hotkey (default: `Alt` on Windows, `Option+Space` on macOS, `Ctrl+Space` on Linux) and start speaking
 
 </details>
 
@@ -257,7 +257,7 @@ SONU supports multiple speech recognition engines and models:
 | **Parakeet V2**    | 473 MB        | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
 | **Parakeet V3**    | 478 MB        | ⚡⚡⚡⚡   | ★★★★☆    | Multilingual, fast and accurate     |
 
-Download sizes reflect the quantized builds served by SONU's model catalog. Models download automatically on first use. All processing stays local.
+Download sizes reflect the quantized builds served by SONU's model catalog. Local transcription currently runs on the Parakeet engine; Whisper and Moonshine entries are available in the catalog, with local inference for them planned. Models download automatically on first use. All processing stays local.
 
 ---
 
@@ -280,7 +280,7 @@ SONU/
 | ----------------------- | --------------------------------------------------------------------- |
 | **Desktop Framework**   | [Tauri v2](https://v2.tauri.app) (Rust)                               |
 | **Frontend**            | React 18, TypeScript, TailwindCSS                                     |
-| **Speech Engine**       | [whisper.cpp](https://github.com/ggerganov/whisper.cpp), Parakeet TDT |
+| **Speech Engine**       | [transcribe-rs](https://github.com/cjpais/transcribe-rs) (NVIDIA Parakeet TDT) |
 | **AI Enhancement**      | Local LLM (GGUF) + Cloud providers (OpenAI, Groq, etc.)               |
 | **Cloud Transcription** | Groq, Deepgram, Custom API endpoints                                  |
 | **Security**            | OS Keychain, Context Isolation, CSP, Input Validation                 |
@@ -353,15 +353,15 @@ SONU is designed with security-first principles:
 
 ### ✅ Shipped
 
-- [x] Offline voice-to-text with Whisper & Parakeet
-- [x] AI text enhancement (local + cloud LLMs)
+- [x] Offline voice-to-text (NVIDIA Parakeet)
+- [x] AI text enhancement (cloud LLMs; local models planned)
 - [x] Context-aware dictation (adapts to the active app)
 - [x] Command Mode (voice-rewrite selected text)
 - [x] Cloud transcription (Groq, Deepgram, custom endpoint)
 - [x] Custom dictionary & text snippets
 - [x] Voice notes with search & playback
-- [x] Multi-theme support (dark, light, custom)
-- [x] 50+ language support with auto-detection
+- [x] Multi-theme support (dark, light, system) with six accent presets
+- [x] 50+ language support with auto-detection (cloud Whisper; offline Parakeet covers English + European languages)
 - [x] Cross-platform support (Windows, macOS, Linux)
 
 ### 🚧 In Progress

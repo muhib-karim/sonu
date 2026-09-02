@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import type { AppSettings as Settings, AudioDevice } from "@/bindings";
+import type {
+  AppSettings as Settings,
+  AudioDevice,
+  ModelUnloadTimeout,
+} from "@/bindings";
 import { commands } from "@/bindings";
 
 interface SettingsStore {
@@ -111,6 +115,8 @@ const settingUpdaters: {
   custom_words: (value) => commands.updateCustomWords(value as string[]),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
+  model_unload_timeout: (value) =>
+    commands.changeModelUnloadTimeoutSetting(value as ModelUnloadTimeout),
   paste_method: (value) => commands.changePasteMethodSetting(value as string),
   clipboard_handling: (value) =>
     commands.changeClipboardHandlingSetting(value as string),
@@ -265,7 +271,20 @@ export const useSettingsStore = create<SettingsStore>()(
 
         const updater = settingUpdaters[key];
         if (updater) {
-          await updater(value);
+          const result = await updater(value);
+          // Generated commands resolve backend Err strings as
+          // { status: "error", error } instead of throwing, so a failed
+          // command must be surfaced here for the rollback below to run.
+          if (
+            result &&
+            typeof result === "object" &&
+            (result as { status?: unknown }).status === "error"
+          ) {
+            const errorValue = (result as { error?: unknown }).error;
+            throw new Error(
+              typeof errorValue === "string" ? errorValue : "Command failed",
+            );
+          }
         } else if (key !== "bindings" && key !== "selected_model") {
           console.warn(`No handler for setting: ${String(key)}`);
         }

@@ -3,6 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 
 import ModelSelector from "../model-selector";
 import UpdateChecker from "../update-checker";
+import packageInfo from "../../../package.json";
 
 const Footer: React.FC = () => {
   const [version, setVersion] = useState("");
@@ -13,8 +14,10 @@ const Footer: React.FC = () => {
         const appVersion = await getVersion();
         setVersion(appVersion);
       } catch (error) {
+        // getVersion only fails outside the Tauri runtime (e.g. the e2e
+        // browser context); fall back to the build version from package.json.
         console.error("Failed to get app version:", error);
-        setVersion("2.2.0");
+        setVersion(packageInfo.version);
       }
     };
 

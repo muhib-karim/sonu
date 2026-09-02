@@ -420,6 +420,20 @@ pub fn change_show_live_preview_setting(app: AppHandle, enabled: bool) -> Result
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_model_unload_timeout_setting(
+    app: AppHandle,
+    timeout: settings::ModelUnloadTimeout,
+) -> Result<(), String> {
+    // Invalid values fail deserialization before this runs, so the setting
+    // can never be persisted in a shape the backend cannot parse back.
+    let mut settings = settings::get_settings(&app);
+    settings.model_unload_timeout = timeout;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn set_style_selection(
     app: AppHandle,
     category: String,
