@@ -697,5 +697,24 @@
     "title": "Scorciatoie da Tastiera",
     "subtitle": "Premi una scorciatoia per eseguire l'azione",
     "customize_hint": "Puoi personalizzare queste scorciatoie in Impostazioni > Scorciatoie da Tastiera"
+  },
+  "voiceCommands": {
+    "title": "Comandi vocali",
+    "description": "Comandi vocali e macro applicati a ogni trascrizione.",
+    "enable": {
+      "label": "Attiva i comandi vocali",
+      "description": "Riconosce i comandi vocali come «nuova riga» e «nuovo paragrafo» durante la dettatura."
+    },
+    "macros": {
+      "title": "Macro personalizzate",
+      "description": "Dì la frase e SONU inserisce il testo sostitutivo."
+    },
+    "phrasePlaceholder": "Frase parlata (es. mia email)",
+    "replacementPlaceholder": "Testo sostitutivo",
+    "add": "Aggiungi macro",
+    "remove": "Rimuovi macro",
+    "builtIn": {
+      "hint": "Integrati: «nuova riga» inserisce un a capo, «nuovo paragrafo» inizia un nuovo paragrafo."
+    }
   }
 }

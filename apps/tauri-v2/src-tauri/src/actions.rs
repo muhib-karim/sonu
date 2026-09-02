@@ -5,7 +5,7 @@ use crate::managers::audio::AudioRecordingManager;
 use crate::managers::cloud_transcription::CloudTranscriptionManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID};
+use crate::settings::{get_settings, AppSettings, VoiceCommand, APPLE_INTELLIGENCE_PROVIDER_ID};
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils::{self, show_recording_overlay, show_transcribing_overlay};
@@ -26,6 +26,75 @@ use crate::input::EnigoState;
 /// Text captured from the focused application when Command Mode starts.
 static COMMAND_SELECTED_TEXT: Lazy<std::sync::Mutex<Option<String>>> =
     Lazy::new(|| std::sync::Mutex::new(None));
+
+/// Case-insensitive whole-phrase replacement on word boundaries. The search
+/// runs on per-character lowercased copies but the output is rebuilt from the
+/// ORIGINAL characters, so non-matched text keeps its casing and no byte
+/// slicing of the original can split multi-byte characters. Mismatches from
+/// multi-char lowercase mappings simply fail to match; they never corrupt
+/// text.
+fn replace_phrase(text: &str, phrase: &str, replacement: &str) -> String {
+    let needle: Vec<char> = phrase.to_lowercase().chars().collect();
+    if needle.is_empty() {
+        return text.to_string();
+    }
+    let is_word_char = |c: char| c.is_alphanumeric() || c == '\'';
+    let chars: Vec<char> = text.chars().collect();
+    let lowered: Vec<char> = text
+        .chars()
+        .map(|c| c.to_lowercase().next().unwrap_or(c))
+        .collect();
+
+    let mut result = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < chars.len() {
+        let matches = i + needle.len() <= chars.len() && lowered[i..i + needle.len()] == needle[..];
+        let before_ok = i == 0 || !is_word_char(chars[i - 1]);
+        let after_ok = i + needle.len() >= chars.len() || !is_word_char(chars[i + needle.len()]);
+        if matches && before_ok && after_ok {
+            result.push_str(replacement);
+            i += needle.len();
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    result
+}
+
+/// Apply built-in structural voice commands and user-defined macros to a
+/// transcription. Matching is case-insensitive on whole-phrase word
+/// boundaries; custom macros run first, longest phrase first, so longer
+/// commands are not shadowed by shorter overlapping ones. Built-ins:
+/// "new paragraph" inserts a paragraph break, "new line" a line break.
+pub fn apply_voice_commands(text: &str, enabled: bool, custom: &[VoiceCommand]) -> String {
+    if !enabled || text.is_empty() {
+        return text.to_string();
+    }
+
+    let mut pairs: Vec<(String, String)> = custom
+        .iter()
+        .map(|c| (c.phrase.clone(), c.replacement.clone()))
+        .collect();
+    pairs.push(("new paragraph".to_string(), "\n\n".to_string()));
+    pairs.push(("new line".to_string(), "\n".to_string()));
+    pairs.sort_by_key(|(phrase, _)| std::cmp::Reverse(phrase.chars().count()));
+
+    let mut out = text.to_string();
+    for (phrase, replacement) in &pairs {
+        out = replace_phrase(&out, phrase, replacement);
+    }
+
+    // Tidy the whitespace left around inserted line breaks.
+    let out = out
+        .replace(" \n\n", "\n\n")
+        .replace("\n\n ", "\n\n")
+        .replace(" \n", "\n")
+        .replace("\n ", "\n")
+        .replace("  ", " ")
+        .replace("  ", " ");
+    out.trim().to_string()
+}
 
 // Shortcut Action Trait
 pub trait ShortcutAction: Send + Sync {
@@ -399,6 +468,16 @@ impl ShortcutAction for TranscribeAction {
                                     }
                                 }
                             }
+
+                            // Apply voice commands & macros (e.g. "new
+                            // paragraph", custom phrase→text replacements)
+                            // after post-processing so the LLM cannot mangle
+                            // them, right before the text is saved and pasted.
+                            final_text = apply_voice_commands(
+                                &final_text,
+                                settings.voice_commands_enabled,
+                                &settings.voice_commands,
+                            );
 
                             // Save to history with post-processed text and prompt
                             let hm_clone = Arc::clone(&hm);
@@ -777,3 +856,100 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
     );
     map
 });
+
+#[cfg(test)]
+mod voice_command_tests {
+    use super::*;
+    use crate::settings::VoiceCommand;
+
+    fn macros() -> Vec<VoiceCommand> {
+        vec![
+            VoiceCommand {
+                phrase: "my email".to_string(),
+                replacement: "john@example.com".to_string(),
+            },
+            VoiceCommand {
+                phrase: "my long email signature".to_string(),
+                replacement: "SIGNATURE".to_string(),
+            },
+        ]
+    }
+
+    #[test]
+    fn disabled_returns_text_unchanged() {
+        let text = "hello new line world my email";
+        assert_eq!(apply_voice_commands(text, false, &macros()), text);
+    }
+
+    #[test]
+    fn builtin_new_line_is_replaced() {
+        assert_eq!(
+            apply_voice_commands("hello new line world", true, &[]),
+            "hello\nworld"
+        );
+    }
+
+    #[test]
+    fn builtin_new_paragraph_is_replaced() {
+        assert_eq!(
+            apply_voice_commands("first new paragraph second", true, &[]),
+            "first\n\nsecond"
+        );
+    }
+
+    #[test]
+    fn custom_macro_replacement() {
+        assert_eq!(
+            apply_voice_commands("send it to my email please", true, &macros()),
+            "send it to john@example.com please"
+        );
+    }
+
+    #[test]
+    fn matching_is_case_insensitive() {
+        assert_eq!(
+            apply_voice_commands("Hello New Paragraph World", true, &[]),
+            "Hello\n\nWorld"
+        );
+    }
+
+    #[test]
+    fn word_boundaries_respected() {
+        // "newline" inside a word must not trigger "new line".
+        assert_eq!(
+            apply_voice_commands("hit the newline button", true, &[]),
+            "hit the newline button"
+        );
+        // a macro must not match inside another word
+        assert_eq!(
+            apply_voice_commands("the emailman walks", true, &macros()),
+            "the emailman walks"
+        );
+    }
+
+    #[test]
+    fn longest_phrase_wins() {
+        // "my email" is a prefix of "my long email signature"? No — but an
+        // overlapping custom set proves ordering; "my email" would also match
+        // inside the longer phrase text, so the longer must win when both
+        // could apply at the same position.
+        let text = "say my long email signature now";
+        assert_eq!(
+            apply_voice_commands(text, true, &macros()),
+            "say SIGNATURE now"
+        );
+    }
+
+    #[test]
+    fn multiple_occurrences_and_tidy() {
+        assert_eq!(
+            apply_voice_commands("a new paragraph  b new line c ", true, &[]),
+            "a\n\nb\nc"
+        );
+    }
+
+    #[test]
+    fn empty_text_passthrough() {
+        assert_eq!(apply_voice_commands("", true, &macros()), "");
+    }
+}

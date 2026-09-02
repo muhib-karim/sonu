@@ -10,12 +10,16 @@ import { syncLanguageFromSettings } from "@/i18n";
 
 type OverlayState = "recording" | "transcribing" | "done";
 
+type PreviewText = { stable: string; partial: string };
+
+const EMPTY_PREVIEW: PreviewText = { stable: "", partial: "" };
+
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<OverlayState>("recording");
   const [levels, setLevels] = useState<number[]>(Array(9).fill(0));
-  const [previewText, setPreviewText] = useState<string>("");
+  const [preview, setPreview] = useState<PreviewText>(EMPTY_PREVIEW);
   const [isCloudMode, setIsCloudMode] = useState(false);
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
 
@@ -37,7 +41,7 @@ const RecordingOverlay: React.FC = () => {
         const overlayState = event.payload as OverlayState;
         setState(overlayState);
         setIsVisible(true);
-        setPreviewText("");
+        setPreview(EMPTY_PREVIEW);
 
         // Re-check cloud status on each show
         try {
@@ -53,7 +57,7 @@ const RecordingOverlay: React.FC = () => {
       // Listen for hide-overlay event from Rust
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
-        setPreviewText("");
+        setPreview(EMPTY_PREVIEW);
       });
 
       // Listen for mic-level updates
@@ -70,9 +74,28 @@ const RecordingOverlay: React.FC = () => {
         setLevels(smoothed.slice(0, 9));
       });
 
-      // Listen for preview text updates (live transcription)
-      const unlistenPreview = await listen<string>("preview-text", (event) => {
-        setPreviewText(event.payload || "");
+      // Listen for preview text updates (streaming live transcription:
+      // { stable, partial } — the confirmed prefix and the volatile tail).
+      const unlistenPreview = await listen("preview-text", (event) => {
+        const payload = event.payload as unknown;
+        if (
+          payload &&
+          typeof payload === "object" &&
+          "stable" in payload &&
+          "partial" in payload
+        ) {
+          const p = payload as { stable: unknown; partial: unknown };
+          setPreview({
+            stable: typeof p.stable === "string" ? p.stable : "",
+            partial: typeof p.partial === "string" ? p.partial : "",
+          });
+        } else {
+          // Backward compatibility: plain-string payload.
+          setPreview({
+            stable: "",
+            partial: typeof payload === "string" ? payload : "",
+          });
+        }
       });
 
       // Listen for done state
@@ -161,14 +184,17 @@ const RecordingOverlay: React.FC = () => {
 
       {/* Status text or preview on right */}
       <div className="overlay-right">
-        {state === "recording" && !previewText && (
+        {state === "recording" && !preview.stable && !preview.partial && (
           <span className="status-text">
             {t("overlay.listening", "Listening...")}
           </span>
         )}
-        {state === "recording" && previewText && (
+        {state === "recording" && (preview.stable || preview.partial) && (
           <div className="preview-container">
-            <span className="preview-text">{previewText}</span>
+            <span className="preview-text">
+              <span className="preview-stable">{preview.stable}</span>
+              <span className="preview-partial">{preview.partial}</span>
+            </span>
           </div>
         )}
         {state === "transcribing" && (

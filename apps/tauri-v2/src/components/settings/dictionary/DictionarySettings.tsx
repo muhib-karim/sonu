@@ -4,6 +4,9 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
+import { ToggleSwitch } from "../../ui/ToggleSwitch";
+import { useSettings } from "../../../hooks/useSettings";
+import type { VoiceCommand } from "@/bindings";
 
 interface DictionaryWord {
   id: string;
@@ -180,6 +183,137 @@ export const DictionarySettings: React.FC = () => {
           </p>
         </div>
       )}
+
+      <VoiceCommandsSection />
     </div>
+  );
+};
+
+/* Spoken commands & macros: built-in structural commands plus user-defined
+   phrase → text replacements, applied to every transcription. */
+const VoiceCommandsSection: React.FC = () => {
+  const { t } = useTranslation();
+  const { settings, updateSetting, isUpdating } = useSettings();
+  const [newPhrase, setNewPhrase] = useState("");
+  const [newReplacement, setNewReplacement] = useState("");
+
+  const enabled = settings?.voice_commands_enabled ?? true;
+  const macros = settings?.voice_commands ?? [];
+
+  const addMacro = () => {
+    const phrase = newPhrase.trim().toLowerCase();
+    const replacement = newReplacement.trim();
+    if (!phrase || !replacement) return;
+    updateSetting("voice_commands", [
+      ...macros,
+      { phrase, replacement } as VoiceCommand,
+    ]);
+    setNewPhrase("");
+    setNewReplacement("");
+  };
+
+  const removeMacro = (index: number) => {
+    updateSetting(
+      "voice_commands",
+      macros.filter((_, i) => i !== index),
+    );
+  };
+
+  return (
+    <SettingsGroup
+      title={t("voiceCommands.title", "Voice commands")}
+      description={t(
+        "voiceCommands.description",
+        "Spoken commands and macros applied to every transcription.",
+      )}
+    >
+      <div className="flex flex-col gap-4 px-4 py-3">
+        <ToggleSwitch
+          checked={enabled}
+          onChange={(value) => updateSetting("voice_commands_enabled", value)}
+          isUpdating={isUpdating("voice_commands_enabled")}
+          label={t("voiceCommands.enable.label", "Enable voice commands")}
+          description={t(
+            "voiceCommands.enable.description",
+            'Recognize spoken commands like "new line" and "new paragraph" while dictating.',
+          )}
+          descriptionMode="tooltip"
+        />
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm font-medium">
+              {t("voiceCommands.macros.title", "Custom macros")}
+            </span>
+            <span className="text-xs text-mid-gray">
+              {t(
+                "voiceCommands.macros.description",
+                "Say the phrase and SONU inserts the replacement.",
+              )}
+            </span>
+          </div>
+
+          {macros.map((macro, index) => (
+            <div
+              key={`${macro.phrase}-${index}`}
+              className="flex items-center gap-2"
+            >
+              <span className="text-sm flex-1 truncate">
+                &ldquo;{macro.phrase}&rdquo;
+              </span>
+              <span className="text-mid-gray">→</span>
+              <span className="text-sm flex-1 truncate">
+                {macro.replacement}
+              </span>
+              <button
+                onClick={() => removeMacro(index)}
+                className="p-1.5 hover:bg-red-500/20 rounded transition-colors"
+                aria-label={t("voiceCommands.remove", "Remove macro")}
+              >
+                <Trash2 size={14} className="text-red-500" />
+              </button>
+            </div>
+          ))}
+
+          <div className="flex items-center gap-2 pt-1">
+            <Input
+              value={newPhrase}
+              onChange={(e) => setNewPhrase(e.target.value)}
+              placeholder={t(
+                "voiceCommands.phrasePlaceholder",
+                "Spoken phrase (e.g. my email)",
+              )}
+              className="flex-1"
+            />
+            <span className="text-mid-gray">→</span>
+            <Input
+              value={newReplacement}
+              onChange={(e) => setNewReplacement(e.target.value)}
+              placeholder={t(
+                "voiceCommands.replacementPlaceholder",
+                "Replacement text",
+              )}
+              className="flex-1"
+              onKeyDown={(e) => e.key === "Enter" && addMacro()}
+            />
+            <Button
+              onClick={addMacro}
+              className="gap-2"
+              disabled={!newPhrase.trim() || !newReplacement.trim()}
+            >
+              <Plus size={16} />
+              {t("voiceCommands.add", "Add macro")}
+            </Button>
+          </div>
+
+          <p className="text-xs text-mid-gray">
+            {t(
+              "voiceCommands.builtIn.hint",
+              'Built-in: "new line" inserts a line break, "new paragraph" starts a new paragraph.',
+            )}
+          </p>
+        </div>
+      </div>
+    </SettingsGroup>
   );
 };

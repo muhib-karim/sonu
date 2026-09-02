@@ -4,6 +4,7 @@ import type {
   AppSettings as Settings,
   AudioDevice,
   ModelUnloadTimeout,
+  VoiceCommand,
 } from "@/bindings";
 import { commands } from "@/bindings";
 
@@ -117,6 +118,10 @@ const settingUpdaters: {
     commands.changeWordCorrectionThresholdSetting(value as number),
   model_unload_timeout: (value) =>
     commands.changeModelUnloadTimeoutSetting(value as ModelUnloadTimeout),
+  voice_commands_enabled: (value) =>
+    commands.changeVoiceCommandsEnabledSetting(value as boolean),
+  voice_commands: (value) =>
+    commands.updateVoiceCommandsSetting(value as VoiceCommand[]),
   paste_method: (value) => commands.changePasteMethodSetting(value as string),
   clipboard_handling: (value) =>
     commands.changeClipboardHandlingSetting(value as string),

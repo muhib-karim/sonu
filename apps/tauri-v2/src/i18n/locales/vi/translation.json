@@ -697,5 +697,24 @@
     "title": "Phím tắt",
     "subtitle": "Nhấn một phím tắt để thực hiện hành động",
     "customize_hint": "Bạn có thể tùy chỉnh các phím tắt này trong Cài đặt > Phím tắt"
+  },
+  "voiceCommands": {
+    "title": "Lệnh thoại",
+    "description": "Lệnh thoại và macro được áp dụng cho mọi bản ghi.",
+    "enable": {
+      "label": "Bật lệnh thoại",
+      "description": "Nhận diện các lệnh thoại như \"dòng mới\" và \"đoạn mới\" khi đọc chính tả."
+    },
+    "macros": {
+      "title": "Macro tùy chỉnh",
+      "description": "Nói cụm từ và SONU sẽ chèn văn bản thay thế."
+    },
+    "phrasePlaceholder": "Cụm từ nói (vd. email của tôi)",
+    "replacementPlaceholder": "Văn bản thay thế",
+    "add": "Thêm macro",
+    "remove": "Xóa macro",
+    "builtIn": {
+      "hint": "Có sẵn: \"dòng mới\" chèn xuống dòng, \"đoạn mới\" bắt đầu đoạn mới."
+    }
   }
 }

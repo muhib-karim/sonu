@@ -4,15 +4,21 @@
 
 | Component              | Version | Status |
 | ---------------------- | ------- | ------ |
-| **Desktop v2 (Tauri)** | 2.4.0   | Stable |
+| **Desktop v2 (Tauri)** | 2.5.0   | Stable |
 
-**Last Updated**: 2026-09-02
+**Last Updated**: 2026-09-03
 
 ## Version History
 
 ### Desktop v2 (Tauri)
 
-#### Version 2.4.0 (Current)
+#### Version 2.5.0
+
+- Streaming live preview: confirmed text renders solid while the volatile tail flows in
+- Voice commands and custom macros applied to every transcription
+- Offline LLM settings hidden behind debug mode until llama.cpp integration ships
+
+#### Version 2.4.0
 
 - Deep visual overhaul with bundled Geist Sans typography
 - Light, dark, and system themes with six accent color presets
@@ -78,9 +84,9 @@ SONU follows [Semantic Versioning](https://semver.org/) (SemVer):
 
 | File                                      | Location             |
 | ----------------------------------------- | -------------------- |
-| `apps/tauri-v2/package.json`              | `"version": "2.4.0"` |
-| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.4.0"`  |
-| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.4.0"` |
+| `apps/tauri-v2/package.json`              | `"version": "2.5.0"` |
+| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.5.0"`  |
+| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.5.0"` |
 
 ### Desktop App (Electron) — Removed
 

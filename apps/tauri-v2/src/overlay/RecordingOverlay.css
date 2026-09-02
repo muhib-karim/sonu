@@ -198,6 +198,12 @@
   letter-spacing: -0.2px;
 }
 
+/* Streaming preview: the confirmed prefix is solid, the volatile tail is
+   translucent so text appears to flow in as it stabilizes. */
+.preview-partial {
+  opacity: 0.55;
+}
+
 /* Done State - Checkmark */
 .done-checkmark {
   display: flex;

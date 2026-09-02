@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2026-09-03
+
+### Added
+
+- **Streaming live dictation**: the recording overlay now shows text as you
+  speak — the confirmed prefix renders solid while the volatile tail is
+  translucent, using word-boundary stabilization across preview ticks.
+- **Voice commands**: built-in spoken commands — "new line" inserts a line
+  break, "new paragraph" starts a new paragraph — applied after AI
+  post-processing so the result is deterministic.
+- **Custom voice macros**: define spoken phrase → replacement text pairs in
+  the Dictionary settings; longest phrase wins and matching is
+  case-insensitive on whole words.
+
+### Changed
+
+- The offline LLM settings section is hidden unless debug mode is enabled;
+  the feature requires the llama.cpp integration which has not shipped yet.
+- 12-locale translation parity including the new voice commands strings.
+
+### Fixed
+
+- The live preview can no longer unload the ASR model mid-recording, which
+  could silently lose the final transcription with an "immediately" model
+  unload timeout.
+- Rapid stop/start cycles can no longer stack zombie preview tickers
+  emitting stale text into a new recording session.
+- The model unload timeout setting is now actually persisted (the UI was
+  silently discarded) and its option values match the backend enum.
+- Missing theme tokens (`background-ui`, `text-secondary`) defined so
+  primary buttons and the slider track render correctly in both themes.
+- Settings updates now roll back on backend errors instead of silently
+  keeping the optimistic value.
+
+---
+
 ## [2.4.0] - 2026-09-02
 
 ### Added

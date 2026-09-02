@@ -273,6 +273,8 @@ pub fn run() {
         shortcut::change_accent_color_setting,
         shortcut::change_show_live_preview_setting,
         shortcut::change_model_unload_timeout_setting,
+        shortcut::change_voice_commands_enabled_setting,
+        shortcut::update_voice_commands_setting,
         shortcut::set_style_selection,
         shortcut::change_post_process_base_url_setting,
         shortcut::change_post_process_api_key_setting,

@@ -450,6 +450,10 @@ PostProcessingSettingsPrompts.displayName = "PostProcessingSettingsPrompts";
 
 export const PostProcessingSettings: React.FC = () => {
   const { t } = useTranslation();
+  const { settings } = useSettings();
+  // The offline LLM path is not wired yet (llama.cpp integration is
+  // pending), so the section only appears with debug mode enabled.
+  const showOfflineLLM = settings?.debug_mode ?? false;
 
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
@@ -461,7 +465,7 @@ export const PostProcessingSettings: React.FC = () => {
         <PostProcessingSettingsPrompts />
       </SettingsGroup>
 
-      <OfflineLLMSettings />
+      {showOfflineLLM && <OfflineLLMSettings />}
     </div>
   );
 };

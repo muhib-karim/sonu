@@ -697,5 +697,24 @@
     "title": "Atalhos de teclado",
     "subtitle": "Pressione um atalho para executar a ação",
     "customize_hint": "Você pode personalizar esses atalhos em Configurações > Atalhos de teclado"
+  },
+  "voiceCommands": {
+    "title": "Comandos de voz",
+    "description": "Comandos falados e macros aplicados a cada transcrição.",
+    "enable": {
+      "label": "Ativar comandos de voz",
+      "description": "Reconhece comandos falados como \"nova linha\" e \"novo parágrafo\" ao ditar."
+    },
+    "macros": {
+      "title": "Macros personalizados",
+      "description": "Diga a frase e o SONU insere o texto de substituição."
+    },
+    "phrasePlaceholder": "Frase falada (ex.: meu e-mail)",
+    "replacementPlaceholder": "Texto de substituição",
+    "add": "Adicionar macro",
+    "remove": "Remover macro",
+    "builtIn": {
+      "hint": "Integrados: \"nova linha\" insere uma quebra de linha, \"novo parágrafo\" inicia um novo parágrafo."
+    }
   }
 }

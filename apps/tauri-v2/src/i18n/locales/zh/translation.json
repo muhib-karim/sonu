@@ -697,5 +697,24 @@
     "title": "键盘快捷键",
     "subtitle": "按下快捷键即可执行对应操作",
     "customize_hint": "你可以在 设置 > 键盘快捷键 中自定义这些快捷键"
+  },
+  "voiceCommands": {
+    "title": "语音命令",
+    "description": "应用于每次转写的语音命令和宏。",
+    "enable": {
+      "label": "启用语音命令",
+      "description": "听写时识别「换行」「新段落」等语音命令。"
+    },
+    "macros": {
+      "title": "自定义宏",
+      "description": "说出短语,SONU 会插入替换文本。"
+    },
+    "phrasePlaceholder": "语音短语(如:我的邮箱)",
+    "replacementPlaceholder": "替换文本",
+    "add": "添加宏",
+    "remove": "删除宏",
+    "builtIn": {
+      "hint": "内置:「换行」插入换行符,「新段落」开始新段落。"
+    }
   }
 }

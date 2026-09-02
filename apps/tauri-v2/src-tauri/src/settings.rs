@@ -149,6 +149,13 @@ pub enum ModelUnloadTimeout {
     Sec5, // Debug mode only
 }
 
+/// A user-defined spoken macro: saying `phrase` inserts `replacement`.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+pub struct VoiceCommand {
+    pub phrase: String,
+    pub replacement: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum PasteMethod {
@@ -335,6 +342,11 @@ pub struct AppSettings {
     pub accent_color: String,
     #[serde(default = "default_show_live_preview")]
     pub show_live_preview: bool,
+    // Voice commands & macros
+    #[serde(default = "default_voice_commands_enabled")]
+    pub voice_commands_enabled: bool,
+    #[serde(default)]
+    pub voice_commands: Vec<VoiceCommand>,
     // Cloud transcription settings
     #[serde(default = "default_cloud_transcription_settings")]
     pub cloud_transcription: CloudTranscriptionSettings,
@@ -353,6 +365,10 @@ fn default_accent_color() -> String {
 }
 
 fn default_show_live_preview() -> bool {
+    true
+}
+
+fn default_voice_commands_enabled() -> bool {
     true
 }
 
@@ -702,6 +718,8 @@ pub fn get_default_settings() -> AppSettings {
         theme_mode: default_theme_mode(),
         accent_color: default_accent_color(),
         show_live_preview: default_show_live_preview(),
+        voice_commands_enabled: default_voice_commands_enabled(),
+        voice_commands: Vec::new(),
         cloud_transcription: default_cloud_transcription_settings(),
     }
 }
@@ -972,5 +990,32 @@ mod appearance_tests {
         assert_eq!(parsed.theme_mode, "dark");
         assert_eq!(parsed.accent_color, "zinc");
         assert!(parsed.show_live_preview);
+    }
+}
+
+#[cfg(test)]
+mod voice_commands_tests {
+    use super::*;
+
+    #[test]
+    fn voice_commands_defaults_match_previous_behavior() {
+        let settings = get_default_settings();
+        assert!(settings.voice_commands_enabled);
+        assert!(settings.voice_commands.is_empty());
+    }
+
+    #[test]
+    fn voice_commands_deserialize_from_legacy_file() {
+        // Simulate a settings file written before the voice command keys
+        // existed; serde defaults must fill them in.
+        let defaults = get_default_settings();
+        let mut value = serde_json::to_value(&defaults).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.remove("voice_commands_enabled");
+        obj.remove("voice_commands");
+
+        let parsed: AppSettings = serde_json::from_value(value).unwrap();
+        assert!(parsed.voice_commands_enabled);
+        assert!(parsed.voice_commands.is_empty());
     }
 }

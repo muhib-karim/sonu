@@ -697,5 +697,24 @@
     "title": "Keyboard Shortcuts",
     "subtitle": "Press any shortcut to perform the action",
     "customize_hint": "You can customize these shortcuts in Settings > Keyboard Shortcuts"
+  },
+  "voiceCommands": {
+    "title": "Voice commands",
+    "description": "Spoken commands and macros applied to every transcription.",
+    "enable": {
+      "label": "Enable voice commands",
+      "description": "Recognize spoken commands like \"new line\" and \"new paragraph\" while dictating."
+    },
+    "macros": {
+      "title": "Custom macros",
+      "description": "Say the phrase and SONU inserts the replacement."
+    },
+    "phrasePlaceholder": "Spoken phrase (e.g. my email)",
+    "replacementPlaceholder": "Replacement text",
+    "add": "Add macro",
+    "remove": "Remove macro",
+    "builtIn": {
+      "hint": "Built-in: \"new line\" inserts a line break, \"new paragraph\" starts a new paragraph."
+    }
   }
 }

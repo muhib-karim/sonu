@@ -168,6 +168,66 @@ fn create_audio_recorder(
 
 /* ──────────────────────────────────────────────────────────────── */
 
+/// Byte length of the longest common prefix of two strings, snapped back to
+/// a UTF-8 character boundary. (UTF-8 byte prefixes correspond to character
+/// prefixes, so comparing bytes is safe.)
+fn common_prefix_len(previous: &str, current: &str) -> usize {
+    let max = previous.len().min(current.len());
+    let (pb, cb) = (previous.as_bytes(), current.as_bytes());
+    let mut byte = 0;
+    while byte < max && pb[byte] == cb[byte] {
+        byte += 1;
+    }
+    while byte > 0 && (!previous.is_char_boundary(byte) || !current.is_char_boundary(byte)) {
+        byte -= 1;
+    }
+    byte
+}
+
+/// Streaming stabilization for the live preview: given the previous and the
+/// current full transcription, split the current text into a stable prefix
+/// (confirmed across ticks; rendered solid) and a volatile suffix (still
+/// likely to change; rendered translucent).
+///
+/// The stable part is the common prefix trimmed back to a whole-word
+/// boundary so partial words never solidify mid-word. Special cases:
+/// - nothing in common → everything is volatile;
+/// - the whole current text is common → fully stable;
+/// - a previous that is fully shared (e.g. a single growing word with no
+///   whitespace yet) stays stable.
+///
+/// The 30s peek window slides once audio exceeds it, which can drop the
+/// common prefix and re-flow the text; that is acceptable for a live
+/// preview — the final transcription is authoritative.
+fn stabilize_preview(previous: &str, current: &str) -> (String, String) {
+    let byte = common_prefix_len(previous, current);
+    if byte == 0 {
+        return (String::new(), current.to_string());
+    }
+    if byte == current.len() {
+        return (current.to_string(), String::new());
+    }
+    // Trim back to just after the last whitespace inside the common prefix
+    // so the stable region never ends mid-word.
+    let head = &current[..byte];
+    let trimmed = head
+        .char_indices()
+        .rev()
+        .find(|(_, c)| c.is_whitespace())
+        .map(|(i, c)| i + c.len_utf8())
+        .unwrap_or(0);
+    if trimmed > 0 {
+        (head[..trimmed].to_string(), current[trimmed..].to_string())
+    } else if byte == previous.len() {
+        // The previous text is fully shared: keep it stable.
+        (head.to_string(), current[byte..].to_string())
+    } else {
+        (String::new(), current.to_string())
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+
 #[derive(Clone)]
 pub struct AudioRecordingManager {
     state: Arc<Mutex<RecordingState>>,
@@ -617,6 +677,10 @@ impl AudioRecordingManager {
             const PREVIEW_WINDOW_SECONDS: u32 = 30;
             const MIN_SAMPLES: usize = WHISPER_SAMPLE_RATE / 2; // 0.5s of audio
 
+            let mut last_full_text = String::new();
+            let mut last_stable_len = 0usize;
+            let mut emitted_text = false;
+
             loop {
                 thread::sleep(TICK_INTERVAL);
 
@@ -644,15 +708,47 @@ impl AudioRecordingManager {
                 // transcribe_preview never unloads the model: doing so
                 // mid-recording would break the final transcription.
                 match tm.transcribe_preview(samples) {
-                    Ok(text) if !text.trim().is_empty() => {
+                    Ok(text) => {
+                        let (stable, partial) = stabilize_preview(&last_full_text, &text);
+                        // Never let the confirmed region shrink while the text
+                        // still shares its prefix (avoids flicker back to
+                        // volatile); a slid window resets it via `common`.
+                        let common = common_prefix_len(&last_full_text, &text);
+                        let mut stable_len = stable.len();
+                        if common >= last_stable_len && stable_len < last_stable_len {
+                            stable_len = last_stable_len;
+                        }
+                        last_stable_len = stable_len;
+                        last_full_text = text;
+
                         if manager.generation() != my_generation || !manager.is_recording() {
                             break;
                         }
-                        if let Err(e) = manager.app_handle.emit("preview-text", text) {
-                            error!("Failed to emit preview-text: {}", e);
+
+                        let stable_text = &last_full_text[..stable_len];
+                        let partial_text = &last_full_text[stable_len..];
+                        if !stable_text.is_empty() || !partial_text.is_empty() {
+                            emitted_text = true;
+                            if let Err(e) = manager.app_handle.emit(
+                                "preview-text",
+                                serde_json::json!({
+                                    "stable": stable_text,
+                                    "partial": partial_text,
+                                }),
+                            ) {
+                                error!("Failed to emit preview-text: {}", e);
+                            }
+                        } else if emitted_text {
+                            // The result emptied out; clear the overlay once.
+                            emitted_text = false;
+                            if let Err(e) = manager.app_handle.emit(
+                                "preview-text",
+                                serde_json::json!({ "stable": "", "partial": "" }),
+                            ) {
+                                error!("Failed to emit preview-text: {}", e);
+                            }
                         }
                     }
-                    Ok(_) => {}
                     Err(e) => {
                         // Model not loaded yet or transient failure: stay quiet.
                         debug!("Preview transcription skipped: {}", e);
@@ -700,5 +796,75 @@ impl AudioRecordingManager {
                 self.stop_microphone_stream();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod preview_tests {
+    use super::*;
+
+    #[test]
+    fn stabilize_identical_text_is_fully_stable() {
+        let (stable, partial) = stabilize_preview("hello world", "hello world");
+        assert_eq!(stable, "hello world");
+        assert_eq!(partial, "");
+    }
+
+    #[test]
+    fn stabilize_empty_previous_is_all_volatile() {
+        let (stable, partial) = stabilize_preview("", "hello world");
+        assert_eq!(stable, "");
+        assert_eq!(partial, "hello world");
+    }
+
+    #[test]
+    fn stabilize_no_common_prefix_is_all_volatile() {
+        let (stable, partial) = stabilize_preview("abc def", "xyz");
+        assert_eq!(stable, "");
+        assert_eq!(partial, "xyz");
+    }
+
+    #[test]
+    fn stabilize_partial_word_stays_volatile() {
+        let (stable, partial) = stabilize_preview("hello wor", "hello world");
+        assert_eq!(stable, "hello ");
+        assert_eq!(partial, "world");
+    }
+
+    #[test]
+    fn stabilize_fully_consumed_previous_stays_stable() {
+        let (stable, partial) = stabilize_preview("hello", "hello world");
+        assert_eq!(stable, "hello");
+        assert_eq!(partial, " world");
+    }
+
+    #[test]
+    fn stabilize_shrinking_text_is_fully_stable() {
+        // The current text is fully explained by the previous one, so there
+        // is no uncertain tail to keep volatile.
+        let (stable, partial) = stabilize_preview("hello world", "hello wor");
+        assert_eq!(stable, "hello wor");
+        assert_eq!(partial, "");
+    }
+
+    #[test]
+    fn stabilize_first_growing_word_with_divergence_stays_volatile() {
+        // Divergence mid-word with no whitespace yet: nothing can be trusted.
+        let (stable, partial) = stabilize_preview("helo wor", "hello wor");
+        assert_eq!(stable, "");
+        assert_eq!(partial, "hello wor");
+    }
+
+    #[test]
+    fn stabilize_utf8_never_splits_characters() {
+        let (stable, partial) = stabilize_preview("héllo wörld", "héllo wörld!");
+        assert!(stable.is_char_boundary(stable.len()));
+        assert!(partial.is_char_boundary(partial.len()));
+        assert_eq!(stable + &partial, "héllo wörld!");
+
+        let (stable, partial) = stabilize_preview("hi 👋", "hi 👋!");
+        assert!(stable.is_char_boundary(stable.len()));
+        assert!(partial.is_char_boundary(partial.len()));
+        assert_eq!(stable + &partial, "hi 👋!");
     }
 }

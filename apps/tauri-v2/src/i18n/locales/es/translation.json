@@ -697,5 +697,24 @@
     "title": "Atajos de Teclado",
     "subtitle": "Presiona cualquier atajo para realizar la acción",
     "customize_hint": "Puedes personalizar estos atajos en Configuración > Atajos de Teclado"
+  },
+  "voiceCommands": {
+    "title": "Comandos de voz",
+    "description": "Comandos hablados y macros que se aplican a cada transcripción.",
+    "enable": {
+      "label": "Activar comandos de voz",
+      "description": "Reconoce comandos hablados como «nueva línea» y «nuevo párrafo» mientras dictas."
+    },
+    "macros": {
+      "title": "Macros personalizados",
+      "description": "Di la frase y SONU inserta el reemplazo."
+    },
+    "phrasePlaceholder": "Frase hablada (p. ej., mi correo)",
+    "replacementPlaceholder": "Texto de reemplazo",
+    "add": "Añadir macro",
+    "remove": "Eliminar macro",
+    "builtIn": {
+      "hint": "Integrados: «nueva línea» inserta un salto de línea; «nuevo párrafo» inicia un párrafo nuevo."
+    }
   }
 }

@@ -697,5 +697,24 @@
     "title": "Skróty klawiaturowe",
     "subtitle": "Naciśnij dowolny skrót, aby wykonać akcję",
     "customize_hint": "Te skróty możesz dostosować w Ustawieniach > Skróty klawiaturowe"
+  },
+  "voiceCommands": {
+    "title": "Polecenia głosowe",
+    "description": "Polecenia głosowe i makra stosowane do każdej transkrypcji.",
+    "enable": {
+      "label": "Włącz polecenia głosowe",
+      "description": "Rozpoznaje polecenia głosowe, takie jak „nowa linia” i „nowy akapit”, podczas dyktowania."
+    },
+    "macros": {
+      "title": "Własne makra",
+      "description": "Powiedz frazę, a SONU wstawi tekst zastępczy."
+    },
+    "phrasePlaceholder": "Wypowiadana fraza (np. mój e-mail)",
+    "replacementPlaceholder": "Tekst zastępczy",
+    "add": "Dodaj makro",
+    "remove": "Usuń makro",
+    "builtIn": {
+      "hint": "Wbudowane: „nowa linia” wstawia złamanie linii, „nowy akapit” rozpoczyna nowy akapit."
+    }
   }
 }

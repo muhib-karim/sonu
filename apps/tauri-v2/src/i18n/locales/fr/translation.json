@@ -697,5 +697,24 @@
     "title": "Raccourcis clavier",
     "subtitle": "Appuyez sur un raccourci pour effectuer l'action",
     "customize_hint": "Vous pouvez personnaliser ces raccourcis dans Paramètres > Raccourcis clavier"
+  },
+  "voiceCommands": {
+    "title": "Commandes vocales",
+    "description": "Commandes vocales et macros appliquées à chaque transcription.",
+    "enable": {
+      "label": "Activer les commandes vocales",
+      "description": "Reconnaît les commandes vocales comme « nouvelle ligne » et « nouveau paragraphe » pendant la dictée."
+    },
+    "macros": {
+      "title": "Macros personnalisées",
+      "description": "Dites la phrase et SONU insère le texte de remplacement."
+    },
+    "phrasePlaceholder": "Phrase vocale (ex. mon e-mail)",
+    "replacementPlaceholder": "Texte de remplacement",
+    "add": "Ajouter une macro",
+    "remove": "Supprimer la macro",
+    "builtIn": {
+      "hint": "Intégrées : « nouvelle ligne » insère un saut de ligne, « nouveau paragraphe » commence un nouveau paragraphe."
+    }
   }
 }

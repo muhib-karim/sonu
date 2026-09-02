@@ -697,5 +697,24 @@
     "title": "Tastenkombinationen",
     "subtitle": "Drücke eine Kombination, um die Aktion auszuführen",
     "customize_hint": "Du kannst diese Kürzel in den Einstellungen unter „Tastenkombinationen“ anpassen"
+  },
+  "voiceCommands": {
+    "title": "Sprachbefehle",
+    "description": "Gesprochene Befehle und Makros, die auf jede Transkription angewendet werden.",
+    "enable": {
+      "label": "Sprachbefehle aktivieren",
+      "description": "Erkennt gesprochene Befehle wie „neue Zeile“ und „neuer Absatz“ beim Diktieren."
+    },
+    "macros": {
+      "title": "Eigene Makros",
+      "description": "Sage den Begriff und SONU fügt den Ersatz ein."
+    },
+    "phrasePlaceholder": "Gesprochener Begriff (z. B. meine E-Mail)",
+    "replacementPlaceholder": "Ersatztext",
+    "add": "Makro hinzufügen",
+    "remove": "Makro entfernen",
+    "builtIn": {
+      "hint": "Eingebaut: „neue Zeile“ fügt einen Zeilenumbruch ein, „neuer Absatz“ beginnt einen neuen Absatz."
+    }
   }
 }

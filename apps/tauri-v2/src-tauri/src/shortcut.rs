@@ -434,6 +434,27 @@ pub fn change_model_unload_timeout_setting(
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_voice_commands_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.voice_commands_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_voice_commands_setting(
+    app: AppHandle,
+    commands: Vec<settings::VoiceCommand>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.voice_commands = commands;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn set_style_selection(
     app: AppHandle,
     category: String,
