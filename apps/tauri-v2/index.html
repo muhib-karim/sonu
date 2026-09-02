@@ -4,6 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SONU</title>
+    <script>
+      // Restore the persisted theme before first paint so light-theme users
+      // don't get a flash of the default dark theme while settings load.
+      // Kept in sync by src/hooks/useTheme.ts.
+      (function () {
+        try {
+          var s = JSON.parse(localStorage.getItem("sonu-theme") || "{}");
+          var resolved =
+            s.theme_mode === "light" || s.theme_mode === "dark"
+              ? s.theme_mode
+              : window.matchMedia &&
+                  window.matchMedia("(prefers-color-scheme: light)").matches
+                ? "light"
+                : "dark";
+          var root = document.documentElement;
+          root.classList.remove("dark", "light");
+          root.classList.add(resolved);
+          var accents = ["zinc", "violet", "blue", "green", "amber", "rose"];
+          root.setAttribute(
+            "data-accent",
+            accents.indexOf(s.accent_color) >= 0 ? s.accent_color : "zinc",
+          );
+        } catch (e) {
+          /* fall back to the static dark default */
+        }
+      })();
+    </script>
   </head>
 
   <body>

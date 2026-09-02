@@ -89,3 +89,5 @@ xet/
 *.dmg
 *.pkg
 *.asar
+# ZCode session-local files
+.zcode/

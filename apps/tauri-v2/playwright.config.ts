@@ -37,5 +37,7 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:1420",
     reuseExistingServer: !process.env.CI,
+    // Cold starts of the Vite dev server can exceed the default 60s.
+    timeout: 180_000,
   },
 });

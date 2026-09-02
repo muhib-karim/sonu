@@ -14,7 +14,7 @@ Get the latest release for your platform from [GitHub Releases](https://github.c
 | **macOS Intel** | DMG | `SONU_x.x.x_x64.dmg` |
 | **Linux (Ubuntu 24.04+)** | AppImage | `SONU_x.x.x_amd64.AppImage` |
 | **Linux (Ubuntu 24.04+)** | RPM | `SONU-x.x.x-1.x86_64.rpm` |
-| **Linux (Ubuntu 22.04)** | Deb | `SONU_x.x.x_amd64.deb` |
+| **Linux (Ubuntu 24.04+)** | Deb | `SONU_x.x.x_amd64.deb` |
 
 ## Platform Notes
 

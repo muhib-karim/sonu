@@ -6,8 +6,14 @@
     "cancel": "キャンセル"
   },
   "sidebar": {
+    "home": "ホーム",
+    "dictionary": "辞書",
+    "snippets": "スニペット",
+    "notes": "メモ",
+    "style": "スタイル",
     "general": "一般",
     "advanced": "詳細設定",
+    "cloud": "クラウド",
     "postProcessing": "後処理",
     "history": "履歴",
     "debug": "デバッグ",
@@ -270,6 +276,41 @@
         "createFirst": "上の「新しいプロンプトを作成」をクリックして、最初の後処理プロンプトを作成してください。"
       }
     },
+    "offlineLLM": {
+      "title": "オフライン後処理",
+      "quality": "品質",
+      "toggle": {
+        "label": "オフラインモデルを使用",
+        "description": "クラウドAPIの代わりに、ダウンロードしたAIモデルで文字起こしをローカル処理します。インターネット接続は不要です。"
+      },
+      "modelSelector": {
+        "title": "モデルを選択",
+        "description": "後処理用のローカルAIモデルを選択します。小さいモデルほど高速ですが、品質が下がる場合があります。"
+      },
+      "disabledNotice": "モデルを選択・ダウンロードするには、上でオフライン後処理を有効にしてください。",
+      "info": {
+        "title": "オフライン後処理について",
+        "description": "オフラインモデルは完全にデバイス上で動作し、プライバシーを確保します。クラウドベースのAIサービスを使いたくないユーザーに最適です。注意: オフライン推論にはllama.cpp連携が必要です（近日公開）。"
+      },
+      "models": {
+        "smollm2-135m": {
+          "name": "SmolLM2 135M",
+          "description": "超高速。簡単な修正に最適。"
+        },
+        "smollm2-360m": {
+          "name": "SmolLM2 360M",
+          "description": "高速でより高品質。おすすめ。"
+        },
+        "smollm2-1.7b": {
+          "name": "SmolLM2 1.7B",
+          "description": "高品質。最良の結果、ただし低速。"
+        },
+        "qwen2.5-0.5b": {
+          "name": "Qwen2.5 0.5B",
+          "description": "高速な代替。指示追従性が良好。"
+        }
+      }
+    },
     "history": {
       "title": "履歴",
       "openFolder": "録音フォルダを開く",
@@ -338,6 +379,10 @@
         "label": "末尾にスペースを追加",
         "description": "貼り付けた文字起こしの後にスペースを追加"
       },
+      "showWaveform": {
+        "label": "波形を表示",
+        "description": "録音中にアニメーションする波形バーを表示"
+      },
       "paths": {
         "appData": "アプリデータ:",
         "models": "モデル:",
@@ -363,6 +408,25 @@
         "title": "開発を支援",
         "description": "Handyの開発を支援してください",
         "button": "寄付する"
+      },
+      "sonuProject": {
+        "title": "SONUプロジェクト",
+        "sourceCode": {
+          "title": "SONUのソースコード",
+          "description": "SONUプロジェクトのソースコードを見て貢献する"
+        },
+        "support": {
+          "title": "SONUの開発を支援",
+          "description": "SONUの継続的な開発を支援してください",
+          "button": "コーヒーをおごる"
+        }
+      },
+      "handyCredits": {
+        "title": "Handyをベースに構築",
+        "description": {
+          "title": "Handy.computer",
+          "text": "SONUはCJ Pais氏による優れたオープンソースプロジェクトHandyをベースに構築されています。このプロジェクトを可能にした基盤となる仕事に感謝します。"
+        }
       },
       "acknowledgments": {
         "title": "謝辞",
@@ -408,7 +472,8 @@
     "off": "オフ",
     "yes": "はい",
     "no": "いいえ",
-    "noOptionsFound": "オプションが見つかりません"
+    "noOptionsFound": "オプションが見つかりません",
+    "copy": "コピー"
   },
   "accessibility": {
     "permissionsRequired": "アクセシビリティ権限が必要です",
@@ -417,20 +482,154 @@
     "dismiss": "閉じる"
   },
   "errors": {
-    "loadDirectory": "ディレクトリの読み込みエラー: {{error}}"
+    "loadDirectory": "ディレクトリの読み込みエラー: {{error}}",
+    "boundary_title": "問題が発生しました",
+    "boundary_subtitle": "アプリケーションで予期しないエラーが発生しました",
+    "report_prompt": "問題が解決しない場合は、開発チームに報告してください",
+    "update_check_failed": "アップデートの確認に失敗しました",
+    "update_install_failed": "アップデートのインストールに失敗しました"
   },
   "appLanguage": {
     "title": "アプリケーション言語",
     "description": "Handyインターフェースの言語を変更"
   },
   "overlay": {
-    "transcribing": "文字起こし中..."
+    "transcribing": "文字起こし中...",
+    "listening": "聞き取り中...",
+    "cloudProcessing": "クラウド処理中..."
+  },
+  "home": {
+    "title": "どこでも話せる",
+    "instruction": "このキーを",
+    "instructionEnd": "押し続けて話し、離すとテキストが挿入されます。",
+    "description": "SONUはすべてのアプリで動作します。メール、メッセージ、ドキュメントなど、どこでも試してみてください。",
+    "stats": {
+      "dictationTime": "ディクテーション時間",
+      "wordsDictated": "入力した単語数",
+      "timeSaved": "節約できた時間",
+      "avgSpeed": "平均速度"
+    },
+    "privacy": {
+      "title": "プライバシー",
+      "heading": "あなたのデータはプライベートに保たれます",
+      "description": "音声ディクテーションは完全にプライベートで、データは一切保持されません。デバイスにのみ保存され、他のどこからもアクセスできません。"
+    },
+    "history": {
+      "title": "最近の履歴"
+    },
+    "copied": "クリップボードにコピーしました",
+    "mode": {
+      "cloud": "クラウドモード",
+      "local": "ローカルモード"
+    },
+    "transcriptions": "{{count}}件の文字起こし",
+    "shortcut": {
+      "title": "音声起動",
+      "description": "このキーを押し続けて話し、離すと文字起こしされます。"
+    }
+  },
+  "dictionary": {
+    "title": "辞書",
+    "newWord": "新しい単語",
+    "addWord": "辞書に追加",
+    "placeholder": "新しい単語を追加",
+    "add": "単語を追加",
+    "empty": "辞書に単語がまだありません。「新しい単語」をクリックして追加してください。"
+  },
+  "snippets": {
+    "title": "スニペット",
+    "new": "新しいスニペット",
+    "add": "スニペットを追加",
+    "edit": "スニペットを編集",
+    "titleLabel": "タイトル",
+    "titlePlaceholder": "スニペットのタイトル",
+    "textLabel": "テキスト",
+    "textPlaceholder": "スニペットのテキスト",
+    "empty": "スニペットがまだありません。「新しいスニペット」をクリックして追加してください。"
+  },
+  "notes": {
+    "title": "あとで見返したい思いつきのためのメモ",
+    "placeholder": "マイクをクリックしてメモを音声入力",
+    "listening": "聞き取り中...",
+    "recents": "最近のメモ",
+    "search": "検索",
+    "searchPlaceholder": "メモを検索...",
+    "refresh": "更新",
+    "toggleView": "表示切り替え",
+    "empty": "まだメモがありません。マイクをクリックして開始してください。",
+    "noResults": "メモが見つかりません",
+    "subtitle": "履歴で星のアイコンをクリックすると、文字起こしをメモとして保存できます",
+    "recording": "録音中... マイクをクリックして停止"
   },
   "style": {
+    "title": "スタイル",
+    "personal": "プライベートなメッセージ",
+    "work": "仕事のメッセージ",
+    "email": "メール",
+    "other": "その他",
+    "llmSection": "AI処理",
+    "llmToggle": "LLM後処理を有効化",
+    "llmDescription": "AIモデルで高度なテキスト変換を行います。APIキーが必要です。",
     "contextAwareness": {
       "label": "コンテキスト認識ディクテーション",
       "description": "入力先のアプリに合わせて文体を調整します（例：メッセンジャーではカジュアル、メールではフォーマル）。"
     }
+  },
+  "time": {
+    "justNow": "たった今",
+    "minsAgo": "{{count}}分前",
+    "hoursAgo": "{{count}}時間前",
+    "daysAgo": "{{count}}日前"
+  },
+  "cloud_transcription": {
+    "title": "クラウド文字起こし",
+    "subtitle": "強力なクラウドAPIで、より高速かつ高精度な音声認識を実現。クラウドが利用できない場合は自動的にローカルへフォールバックします",
+    "key_set": "キー設定済み",
+    "api_key": "APIキー",
+    "enter_api_key": "APIキーを入力",
+    "get_free_key_at": "無料のキーの取得先:",
+    "server_endpoint": "サーバーエンドポイント",
+    "api_key_optional": "APIキー（任意）",
+    "optional_placeholder": "不要な場合は空欄のままにしてください",
+    "search_language": "言語を検索...",
+    "enabled_toast": "クラウド文字起こしを有効にしました",
+    "disabled_toast": "クラウド文字起こしを無効にしました",
+    "toggle_error": "クラウド文字起こしの切り替えに失敗しました",
+    "provider_error": "プロバイダーの切り替えに失敗しました",
+    "key_saved": "APIキーを保存しました",
+    "key_error": "APIキーの保存に失敗しました",
+    "endpoint_error": "エンドポイントの保存に失敗しました",
+    "connection_success": "接続に成功しました！",
+    "connection_failed": "接続テストに失敗しました",
+    "loading": "クラウド設定を読み込み中...",
+    "load_error": "クラウド設定の読み込みに失敗しました",
+    "testing": "テスト中...",
+    "test_connection": "接続テスト",
+    "faster_than_local": "ローカルより10倍高速",
+    "encrypted": "エンドツーエンドで暗号化",
+    "auto_fallback": "自動的にローカルへフォールバック",
+    "select_provider": "プロバイダーを選択",
+    "language_title": "言語と翻訳",
+    "transcription_language": "文字起こしの言語",
+    "language_description": "話す言語を選択するか、自動検出を使用してください",
+    "translate_to_english_label": "英語に翻訳",
+    "translate_to_english_desc": "英語以外の音声を自動的に英語に翻訳します",
+    "how_it_works_section": "情報",
+    "how_it_works_title": "クラウド文字起こしの仕組み",
+    "how_it_works_description": "有効にすると、音声がHTTPS経由で選択したプロバイダーへ送信され、処理されます。クラウドモデルは特に高性能なハードウェアを持たないマシンでより高速かつ高精度です。クラウドが利用できない場合、SONUは自動的にローカルモデルへフォールバックします。",
+    "privacy_title": "プライバシーとセキュリティ",
+    "privacy_description": "音声は暗号化されたHTTPSで送信され、処理後にクラウドプロバイダーが保存することはありません。APIキーはデバイス上に安全に保存されます。最大限のプライバシーを重視する場合は、セルフホストオプションをご利用ください。",
+    "cta_title": "文字起こしを強化",
+    "cta_description": "クラウド文字起こしを有効にすると、より高精度で10倍速い結果が得られます。Groqの無料枠を利用でき、クレジットカードも不要です。",
+    "enable_button": "クラウド文字起こしを有効にする",
+    "groq_title": "無料のGroq APIキーの取得方法",
+    "groq_step_1_prefix": "1. ",
+    "groq_url": "console.groq.com",
+    "groq_step_1_suffix": "にアクセスして無料でサインアップ",
+    "groq_step_2": "2. ダッシュボードでAPIキーを作成",
+    "groq_step_3": "3. 上の欄に貼り付け — Groqには充実した無料利用枠があります",
+    "self_hosted_title": "セルフホストサーバー",
+    "self_hosted_description": "完全なプライバシーのために、独自の文字起こしサーバーを実行できます。サーバーはOpenAI Whisper互換のAPIリクエストを受け付けます。"
   },
   "appearance": {
     "title": "外観",
@@ -454,5 +653,49 @@
       "label": "リアルタイム文字起こしプレビュー",
       "description": "話している間、録音オーバーレイにテキストを表示します。ローカルモデルが必要です。"
     }
+  },
+  "buttons": {
+    "try_again": "再試行",
+    "reload_app": "アプリを再読み込み",
+    "view": "表示",
+    "refresh": "更新",
+    "update": "更新",
+    "close": "閉じる"
+  },
+  "model": {
+    "updates_available": "{{count}}件のモデルアップデートがあります",
+    "all_up_to_date": "すべてのモデルが最新です",
+    "update_installed": "モデル{{model}}を更新しました",
+    "checking": "確認中...",
+    "check_updates": "アップデートを確認",
+    "updates_available_title": "モデルのアップデートがあります",
+    "updating": "更新中...",
+    "update_all": "すべて更新",
+    "version_info": "{{current}} → {{latest}}",
+    "required": "必須",
+    "downloading": "ダウンロード中..."
+  },
+  "shortcuts": {
+    "toggle_recording": "録音の開始/停止",
+    "hold_to_record": "押し続けて録音（PTT）",
+    "cancel_recording": "録音をキャンセル",
+    "show_help": "キーボードショートカットを表示",
+    "open_settings": "設定を開く",
+    "open_history": "履歴を開く",
+    "paste_transcription": "最後の文字起こしを貼り付け",
+    "undo": "最後の操作を元に戻す",
+    "close_window": "ウィンドウを閉じる",
+    "quit_app": "アプリケーションを終了",
+    "minimize": "トレイに最小化",
+    "categories": {
+      "all": "すべてのショートカット",
+      "recording": "録音",
+      "navigation": "ナビゲーション",
+      "editing": "テキスト編集",
+      "window": "ウィンドウ"
+    },
+    "title": "キーボードショートカット",
+    "subtitle": "ショートカットを押すとアクションが実行されます",
+    "customize_hint": "これらのショートカットは「設定 > キーボードショートカット」でカスタマイズできます"
   }
 }

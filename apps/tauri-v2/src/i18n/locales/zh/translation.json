@@ -12,7 +12,13 @@
     "history": "历史记录",
     "debug": "调试",
     "about": "关于",
-    "appearance": "外观"
+    "appearance": "外观",
+    "home": "首页",
+    "dictionary": "词典",
+    "snippets": "文本片段",
+    "notes": "笔记",
+    "style": "风格",
+    "cloud": "云端"
   },
   "onboarding": {
     "subtitle": "请选择一个转录模型以开始使用",
@@ -342,6 +348,10 @@
         "appData": "应用数据:",
         "models": "模型:",
         "settings": "设置:"
+      },
+      "showWaveform": {
+        "label": "显示波形",
+        "description": "录音时显示动态波形条"
       }
     },
     "about": {
@@ -370,6 +380,60 @@
           "title": "Whisper.cpp",
           "description": "OpenAI Whisper 自动语音识别模型的高性能推理",
           "details": "Handy 使用 Whisper.cpp 进行快速的本地语音转文字处理。感谢 Georgi Gerganov 和贡献者们的出色工作。"
+        }
+      },
+      "sonuProject": {
+        "title": "SONU 项目",
+        "sourceCode": {
+          "title": "SONU 源代码",
+          "description": "查看 SONU 项目源代码并参与贡献"
+        },
+        "support": {
+          "title": "支持 SONU 开发",
+          "description": "帮助支持 SONU 的持续开发",
+          "button": "请我喝杯咖啡"
+        }
+      },
+      "handyCredits": {
+        "title": "基于 Handy 构建",
+        "description": {
+          "title": "Handy.computer",
+          "text": "SONU 基于 CJ Pais 开发的优秀开源项目 Handy 构建。我们感谢他们做出的奠基性工作,让这个项目得以实现。"
+        }
+      }
+    },
+    "offlineLLM": {
+      "title": "离线后处理",
+      "quality": "质量",
+      "toggle": {
+        "label": "使用离线模型",
+        "description": "使用已下载的 AI 模型在本地处理转写文本,而非调用云端 API。无需联网。"
+      },
+      "modelSelector": {
+        "title": "选择模型",
+        "description": "选择用于后处理的本地 AI 模型。较小的模型速度更快,但质量可能较低。"
+      },
+      "disabledNotice": "在上方启用离线后处理,即可选择并下载模型。",
+      "info": {
+        "title": "关于离线后处理",
+        "description": "离线模型完全在你的设备上运行,确保完全的隐私。非常适合不想使用云端 AI 服务的用户。注意:离线推理需要 llama.cpp 集成(即将推出)。"
+      },
+      "models": {
+        "smollm2-135m": {
+          "name": "SmolLM2 135M",
+          "description": "极速。最适合简单纠错。"
+        },
+        "smollm2-360m": {
+          "name": "SmolLM2 360M",
+          "description": "速度快,质量更好。推荐。"
+        },
+        "smollm2-1.7b": {
+          "name": "SmolLM2 1.7B",
+          "description": "高质量。效果最佳,速度较慢。"
+        },
+        "qwen2.5-0.5b": {
+          "name": "Qwen2.5 0.5B",
+          "description": "快速的替代选择。指令遵循良好。"
         }
       }
     }
@@ -408,7 +472,8 @@
     "off": "关",
     "yes": "是",
     "no": "否",
-    "noOptionsFound": "未找到选项"
+    "noOptionsFound": "未找到选项",
+    "copy": "复制"
   },
   "accessibility": {
     "permissionsRequired": "需要辅助功能权限",
@@ -417,20 +482,35 @@
     "dismiss": "关闭"
   },
   "errors": {
-    "loadDirectory": "加载目录时出错: {{error}}"
+    "loadDirectory": "加载目录时出错: {{error}}",
+    "boundary_title": "出错了",
+    "boundary_subtitle": "应用程序遇到意外错误",
+    "report_prompt": "如果问题持续存在,请向开发团队报告",
+    "update_check_failed": "检查更新失败",
+    "update_install_failed": "安装更新失败"
   },
   "appLanguage": {
     "title": "应用语言",
     "description": "更改 Handy 界面的语言"
   },
   "overlay": {
-    "transcribing": "正在转录..."
+    "transcribing": "正在转录...",
+    "listening": "正在聆听...",
+    "cloudProcessing": "云端..."
   },
   "style": {
     "contextAwareness": {
       "label": "上下文感知听写",
       "description": "根据你正在输入的应用自动调整听写风格（例如在聊天中更随意，在邮件中更正式）。"
-    }
+    },
+    "title": "风格",
+    "personal": "私人消息",
+    "work": "工作消息",
+    "email": "电子邮件",
+    "other": "其他",
+    "llmSection": "AI 处理",
+    "llmToggle": "启用 LLM 后处理",
+    "llmDescription": "使用 AI 模型进行高级文本转换。需要 API 密钥。"
   },
   "appearance": {
     "title": "外观",
@@ -454,5 +534,168 @@
       "label": "实时转写预览",
       "description": "在录音悬浮窗中边说边显示文字。需要本地模型。"
     }
+  },
+  "home": {
+    "title": "随处开口,随时输入",
+    "instruction": "按住",
+    "instructionEnd": "键,说话,然后松开即可插入语音文本。",
+    "description": "SONU 适用于你的所有应用。在邮件、消息、文档或任何地方试试看。",
+    "stats": {
+      "dictationTime": "听写时长",
+      "wordsDictated": "已听写字数",
+      "timeSaved": "节省的时间",
+      "avgSpeed": "平均速度"
+    },
+    "privacy": {
+      "title": "隐私",
+      "heading": "你的数据保持私密",
+      "description": "你的语音听写完全私密,不保留任何数据。它们只存储在你的设备上,无法从其他任何地方访问。"
+    },
+    "history": {
+      "title": "最近"
+    },
+    "copied": "已复制到剪贴板",
+    "mode": {
+      "cloud": "云端模式",
+      "local": "本地模式"
+    },
+    "transcriptions": "{{count}} 条转写",
+    "shortcut": {
+      "title": "语音激活",
+      "description": "按住此键,说话,然后松开即可转写。"
+    }
+  },
+  "dictionary": {
+    "title": "词典",
+    "newWord": "新词语",
+    "addWord": "添加到词库",
+    "placeholder": "添加新词语",
+    "add": "添加词语",
+    "empty": "你的词典还没有词条。点击「新词语」添加一个。"
+  },
+  "snippets": {
+    "title": "文本片段",
+    "new": "新建片段",
+    "add": "添加片段",
+    "edit": "编辑片段",
+    "titleLabel": "标题",
+    "titlePlaceholder": "片段标题",
+    "textLabel": "内容",
+    "textPlaceholder": "片段内容",
+    "empty": "还没有片段。点击「新建片段」添加一个。"
+  },
+  "notes": {
+    "title": "记录稍后想回顾的灵感",
+    "placeholder": "点击麦克风,听写笔记",
+    "listening": "正在聆听...",
+    "recents": "最近",
+    "search": "搜索",
+    "searchPlaceholder": "搜索笔记...",
+    "refresh": "刷新",
+    "toggleView": "切换视图",
+    "empty": "还没有笔记。点击麦克风开始。",
+    "noResults": "未找到笔记",
+    "subtitle": "在历史记录中点击星形图标,将转写保存为笔记",
+    "recording": "录音中... 点击麦克风停止"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minsAgo": "{{count}} 分钟前",
+    "hoursAgo": "{{count}} 小时前",
+    "daysAgo": "{{count}} 天前"
+  },
+  "cloud_transcription": {
+    "title": "云端转写",
+    "subtitle": "使用强大的云端 API 实现更快、更准确的语音识别,并自动回退到本地",
+    "key_set": "已设置密钥",
+    "api_key": "API 密钥",
+    "enter_api_key": "输入你的 API 密钥",
+    "get_free_key_at": "在此获取免费密钥:",
+    "server_endpoint": "服务器端点",
+    "api_key_optional": "API 密钥(可选)",
+    "optional_placeholder": "如非必填可留空",
+    "search_language": "搜索语言...",
+    "enabled_toast": "已启用云端转写",
+    "disabled_toast": "已禁用云端转写",
+    "toggle_error": "切换云端转写失败",
+    "provider_error": "切换服务商失败",
+    "key_saved": "API 密钥保存成功",
+    "key_error": "保存 API 密钥失败",
+    "endpoint_error": "保存端点失败",
+    "connection_success": "连接成功!",
+    "connection_failed": "连接测试失败",
+    "loading": "正在加载云端设置...",
+    "load_error": "加载云端设置失败",
+    "testing": "测试中...",
+    "test_connection": "测试连接",
+    "faster_than_local": "比本地快 10 倍",
+    "encrypted": "端到端加密",
+    "auto_fallback": "自动回退到本地",
+    "select_provider": "选择服务商",
+    "language_title": "语言与翻译",
+    "transcription_language": "转写语言",
+    "language_description": "选择你使用的语言,或使用自动检测",
+    "translate_to_english_label": "翻译成英语",
+    "translate_to_english_desc": "自动将非英语语音翻译成英语",
+    "how_it_works_section": "信息",
+    "how_it_works_title": "云端转写的工作原理",
+    "how_it_works_description": "启用后,你的音频会通过 HTTPS 发送到所选服务商进行处理。云端模型更快、更准确,尤其是没有强大硬件的机器。如果云端不可用,SONU 会自动回退到你的本地模型。",
+    "privacy_title": "隐私与安全",
+    "privacy_description": "音频通过加密的 HTTPS 传输,云服务商在处理完成后不会存储它。你的 API 密钥安全地存储在你的设备上。如需最大程度的隐私,请使用自托管选项。",
+    "cta_title": "让你的转写更上一层楼",
+    "cta_description": "启用云端转写,结果快 10 倍、更准确。Groq 提供免费额度 — 无需信用卡。",
+    "enable_button": "启用云端转写",
+    "groq_title": "获取免费的 Groq API 密钥",
+    "groq_step_1_prefix": "1. 访问",
+    "groq_url": "console.groq.com",
+    "groq_step_1_suffix": "并免费注册",
+    "groq_step_2": "2. 在控制台中创建 API 密钥",
+    "groq_step_3": "3. 粘贴到上方 — Groq 提供慷慨的免费使用额度",
+    "self_hosted_title": "自托管服务器",
+    "self_hosted_description": "运行你自己的转写服务器,实现完全隐私。该服务器接受兼容 OpenAI Whisper 的 API 请求。"
+  },
+  "buttons": {
+    "try_again": "重试",
+    "reload_app": "重新加载应用",
+    "view": "查看",
+    "refresh": "刷新",
+    "update": "更新",
+    "close": "关闭"
+  },
+  "model": {
+    "updates_available": "有 {{count}} 个模型更新可用",
+    "all_up_to_date": "所有模型均为最新",
+    "update_installed": "模型 {{model}} 更新成功",
+    "checking": "检查中...",
+    "check_updates": "检查更新",
+    "updates_available_title": "有可用的模型更新",
+    "updating": "更新中...",
+    "update_all": "全部更新",
+    "version_info": "{{current}} → {{latest}}",
+    "required": "必需",
+    "downloading": "下载中..."
+  },
+  "shortcuts": {
+    "toggle_recording": "开始/停止录音",
+    "hold_to_record": "按住录音(PTT)",
+    "cancel_recording": "取消录音",
+    "show_help": "显示键盘快捷键",
+    "open_settings": "打开设置",
+    "open_history": "打开历史记录",
+    "paste_transcription": "粘贴上一条转写",
+    "undo": "撤销上一步操作",
+    "close_window": "关闭窗口",
+    "quit_app": "退出应用程序",
+    "minimize": "最小化到托盘",
+    "categories": {
+      "all": "所有快捷键",
+      "recording": "录音",
+      "navigation": "导航",
+      "editing": "文本编辑",
+      "window": "窗口"
+    },
+    "title": "键盘快捷键",
+    "subtitle": "按下快捷键即可执行对应操作",
+    "customize_hint": "你可以在 设置 > 键盘快捷键 中自定义这些快捷键"
   }
 }

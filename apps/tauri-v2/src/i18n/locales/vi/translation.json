@@ -1,5 +1,4 @@
 {
-  "_comment": "Vietnamese translation for Handy. Contribute at: https://github.com/cjpais/Handy",
   "tray": {
     "settings": "Cài đặt...",
     "checkUpdates": "Kiểm tra cập nhật...",
@@ -13,7 +12,13 @@
     "history": "Lịch sử",
     "debug": "Gỡ lỗi",
     "about": "Giới thiệu",
-    "appearance": "Giao diện"
+    "appearance": "Giao diện",
+    "home": "Trang chủ",
+    "dictionary": "Từ điển",
+    "snippets": "Snippets",
+    "notes": "Ghi chú",
+    "style": "Phong cách",
+    "cloud": "Đám mây"
   },
   "onboarding": {
     "subtitle": "Để bắt đầu, hãy chọn một mô hình chuyển đổi giọng nói",
@@ -343,6 +348,10 @@
         "appData": "Dữ liệu ứng dụng:",
         "models": "Mô hình:",
         "settings": "Cài đặt:"
+      },
+      "showWaveform": {
+        "label": "Hiện dạng sóng",
+        "description": "Hiển thị thanh dạng sóng động trong khi ghi âm"
       }
     },
     "about": {
@@ -371,6 +380,60 @@
           "title": "Whisper.cpp",
           "description": "Suy luận hiệu suất cao của mô hình nhận dạng giọng nói tự động Whisper của OpenAI",
           "details": "Handy sử dụng Whisper.cpp để xử lý chuyển đổi giọng nói thành văn bản nhanh, cục bộ. Cảm ơn công việc tuyệt vời của Georgi Gerganov và các cộng tác viên."
+        }
+      },
+      "sonuProject": {
+        "title": "Dự án SONU",
+        "sourceCode": {
+          "title": "Mã nguồn SONU",
+          "description": "Xem mã nguồn dự án SONU và đóng góp"
+        },
+        "support": {
+          "title": "Hỗ trợ phát triển SONU",
+          "description": "Giúp duy trì sự phát triển liên tục của SONU",
+          "button": "Mời tôi một ly cà phê"
+        }
+      },
+      "handyCredits": {
+        "title": "Xây dựng trên Handy",
+        "description": {
+          "title": "Handy.computer",
+          "text": "SONU được xây dựng trên dự án mã nguồn mở Handy xuất sắc của CJ Pais. Chúng tôi biết ơn công việc nền tảng của họ đã giúp dự án này thành hiện thực."
+        }
+      }
+    },
+    "offlineLLM": {
+      "title": "Hậu xử lý ngoại tuyến",
+      "quality": "chất lượng",
+      "toggle": {
+        "label": "Dùng mô hình ngoại tuyến",
+        "description": "Xử lý bản ghi âm cục bộ bằng mô hình AI đã tải xuống thay vì API đám mây. Không cần Internet."
+      },
+      "modelSelector": {
+        "title": "Chọn mô hình",
+        "description": "Chọn mô hình AI cục bộ cho hậu xử lý. Mô hình nhỏ hơn nhanh hơn nhưng chất lượng có thể thấp hơn."
+      },
+      "disabledNotice": "Bật hậu xử lý ngoại tuyến ở trên để chọn và tải xuống mô hình.",
+      "info": {
+        "title": "Về hậu xử lý ngoại tuyến",
+        "description": "Mô hình ngoại tuyến chạy hoàn toàn trên thiết bị của bạn, đảm bảo quyền riêng tư tuyệt đối. Phù hợp cho người không muốn dùng dịch vụ AI đám mây. Lưu ý: Suy luận ngoại tuyến cần tích hợp llama.cpp (sắp ra mắt)."
+      },
+      "models": {
+        "smollm2-135m": {
+          "name": "SmolLM2 135M",
+          "description": "Cực nhanh. Tốt nhất cho các sửa lỗi đơn giản."
+        },
+        "smollm2-360m": {
+          "name": "SmolLM2 360M",
+          "description": "Nhanh với chất lượng tốt hơn. Được khuyến nghị."
+        },
+        "smollm2-1.7b": {
+          "name": "SmolLM2 1.7B",
+          "description": "Chất lượng cao. Kết quả tốt nhất, chậm hơn."
+        },
+        "qwen2.5-0.5b": {
+          "name": "Qwen2.5 0.5B",
+          "description": "Lựa chọn thay thế nhanh. Làm theo chỉ dẫn tốt."
         }
       }
     }
@@ -409,7 +472,8 @@
     "off": "Tắt",
     "yes": "Có",
     "no": "Không",
-    "noOptionsFound": "Không tìm thấy tùy chọn"
+    "noOptionsFound": "Không tìm thấy tùy chọn",
+    "copy": "Sao chép"
   },
   "accessibility": {
     "permissionsRequired": "Cần quyền truy cập",
@@ -418,20 +482,35 @@
     "dismiss": "Bỏ qua"
   },
   "errors": {
-    "loadDirectory": "Lỗi khi tải thư mục: {{error}}"
+    "loadDirectory": "Lỗi khi tải thư mục: {{error}}",
+    "boundary_title": "Đã xảy ra lỗi",
+    "boundary_subtitle": "Ứng dụng gặp lỗi không mong muốn",
+    "report_prompt": "Nếu vấn đề vẫn tiếp diễn, vui lòng báo cáo cho nhóm phát triển",
+    "update_check_failed": "Không thể kiểm tra cập nhật",
+    "update_install_failed": "Không thể cài đặt bản cập nhật"
   },
   "appLanguage": {
     "title": "Ngôn ngữ ứng dụng",
     "description": "Thay đổi ngôn ngữ giao diện của Handy"
   },
   "overlay": {
-    "transcribing": "Đang chuyển đổi..."
+    "transcribing": "Đang chuyển đổi...",
+    "listening": "Đang lắng nghe...",
+    "cloudProcessing": "Đám mây..."
   },
   "style": {
     "contextAwareness": {
       "label": "Nhập liệu giọng nói nhận biết ngữ cảnh",
       "description": "Điều chỉnh phong cách nhập liệu theo ứng dụng bạn đang gõ (ví dụ: thân mật trong tin nhắn, trang trọng trong email)."
-    }
+    },
+    "title": "Phong cách",
+    "personal": "Tin nhắn cá nhân",
+    "work": "Tin nhắn công việc",
+    "email": "Email",
+    "other": "Khác",
+    "llmSection": "Xử lý AI",
+    "llmToggle": "Bật hậu xử lý bằng LLM",
+    "llmDescription": "Dùng mô hình AI để chuyển đổi văn bản nâng cao. Cần khóa API."
   },
   "appearance": {
     "title": "Giao diện",
@@ -455,5 +534,168 @@
       "label": "Xem trước phiên âm trực tiếp",
       "description": "Hiển thị văn bản khi bạn đang nói trong lớp phủ ghi âm. Cần mô hình cục bộ."
     }
+  },
+  "home": {
+    "title": "Nói ở mọi nơi",
+    "instruction": "Giữ phím",
+    "instructionEnd": ", nói, rồi thả ra để chèn văn bản đã nói.",
+    "description": "SONU hoạt động trong mọi ứng dụng của bạn. Hãy thử trong email, tin nhắn, tài liệu hoặc bất kỳ đâu khác.",
+    "stats": {
+      "dictationTime": "Thời gian đọc chính tả",
+      "wordsDictated": "Số từ đã đọc",
+      "timeSaved": "Thời gian tiết kiệm",
+      "avgSpeed": "Tốc độ trung bình"
+    },
+    "privacy": {
+      "title": "Quyền riêng tư",
+      "heading": "Dữ liệu của bạn luôn riêng tư",
+      "description": "Bản đọc chính tả của bạn được giữ riêng tư, không lưu trữ dữ liệu nào. Chúng chỉ được lưu trên thiết bị của bạn và không thể truy cập từ nơi khác."
+    },
+    "history": {
+      "title": "Gần đây"
+    },
+    "copied": "Đã sao chép vào khay nhớ tạm",
+    "mode": {
+      "cloud": "Chế độ đám mây",
+      "local": "Chế độ cục bộ"
+    },
+    "transcriptions": "{{count}} bản ghi",
+    "shortcut": {
+      "title": "Kích hoạt bằng giọng nói",
+      "description": "Giữ phím này, nói, rồi thả ra để chuyển đổi thành văn bản."
+    }
+  },
+  "dictionary": {
+    "title": "Từ điển",
+    "newWord": "Từ mới",
+    "addWord": "Thêm vào từ vựng",
+    "placeholder": "Thêm từ mới",
+    "add": "Thêm từ",
+    "empty": "Từ điển của bạn chưa có từ nào. Nhấn \"Từ mới\" để thêm một từ."
+  },
+  "snippets": {
+    "title": "Snippets",
+    "new": "Snippet mới",
+    "add": "Thêm snippet",
+    "edit": "Sửa snippet",
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Tiêu đề snippet",
+    "textLabel": "Nội dung",
+    "textPlaceholder": "Nội dung snippet",
+    "empty": "Chưa có snippet nào. Nhấn \"Snippet mới\" để thêm một mục."
+  },
+  "notes": {
+    "title": "Cho những suy nghĩ nhanh bạn muốn quay lại sau",
+    "placeholder": "Nhấn vào micrô để đọc chính tả ghi chú",
+    "listening": "Đang lắng nghe...",
+    "recents": "Gần đây",
+    "search": "Tìm kiếm",
+    "searchPlaceholder": "Tìm ghi chú...",
+    "refresh": "Làm mới",
+    "toggleView": "Đổi chế độ xem",
+    "empty": "Chưa có ghi chú nào. Nhấn vào micrô để bắt đầu.",
+    "noResults": "Không tìm thấy ghi chú nào",
+    "subtitle": "Lưu bản ghi thành ghi chú bằng cách nhấn vào biểu tượng ngôi sao trong Lịch sử",
+    "recording": "Đang ghi... Nhấn vào micrô để dừng"
+  },
+  "time": {
+    "justNow": "Vừa xong",
+    "minsAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước"
+  },
+  "cloud_transcription": {
+    "title": "Chuyển đổi giọng nói trên đám mây",
+    "subtitle": "Dùng API đám mây mạnh mẽ để nhận dạng giọng nói nhanh hơn, chính xác hơn với phương án dự phòng cục bộ tự động",
+    "key_set": "Đã đặt khóa",
+    "api_key": "Khóa API",
+    "enter_api_key": "Nhập khóa API của bạn",
+    "get_free_key_at": "Nhận khóa miễn phí tại",
+    "server_endpoint": "Điểm cuối máy chủ",
+    "api_key_optional": "Khóa API (không bắt buộc)",
+    "optional_placeholder": "Để trống nếu không cần",
+    "search_language": "Tìm ngôn ngữ...",
+    "enabled_toast": "Đã bật chuyển đổi giọng nói trên đám mây",
+    "disabled_toast": "Đã tắt chuyển đổi giọng nói trên đám mây",
+    "toggle_error": "Không thể bật/tắt chuyển đổi giọng nói trên đám mây",
+    "provider_error": "Không thể chuyển nhà cung cấp",
+    "key_saved": "Đã lưu khóa API thành công",
+    "key_error": "Không thể lưu khóa API",
+    "endpoint_error": "Không thể lưu điểm cuối",
+    "connection_success": "Kết nối thành công!",
+    "connection_failed": "Kiểm tra kết nối thất bại",
+    "loading": "Đang tải cài đặt đám mây...",
+    "load_error": "Không thể tải cài đặt đám mây",
+    "testing": "Đang kiểm tra...",
+    "test_connection": "Kiểm tra kết nối",
+    "faster_than_local": "Nhanh hơn cục bộ 10×",
+    "encrypted": "Mã hóa đầu cuối",
+    "auto_fallback": "Tự động dự phòng về cục bộ",
+    "select_provider": "Chọn nhà cung cấp",
+    "language_title": "Ngôn ngữ & Dịch",
+    "transcription_language": "Ngôn ngữ chuyển đổi",
+    "language_description": "Chọn ngôn ngữ bạn nói, hoặc dùng tự động phát hiện",
+    "translate_to_english_label": "Dịch sang tiếng Anh",
+    "translate_to_english_desc": "Tự động dịch giọng nói không phải tiếng Anh sang tiếng Anh",
+    "how_it_works_section": "Thông tin",
+    "how_it_works_title": "Chuyển đổi giọng nói trên đám mây hoạt động thế nào",
+    "how_it_works_description": "Khi bật, âm thanh của bạn sẽ được gửi qua HTTPS đến nhà cung cấp đã chọn để xử lý. Các mô hình đám mây nhanh hơn và chính xác hơn, đặc biệt trên máy không có phần cứng mạnh. Nếu đám mây không khả dụng, SONU tự động quay về mô hình cục bộ của bạn.",
+    "privacy_title": "Quyền riêng tư & Bảo mật",
+    "privacy_description": "Âm thanh được truyền qua HTTPS mã hóa và không được nhà cung cấp đám mây lưu trữ sau khi xử lý. Khóa API của bạn được lưu an toàn trên thiết bị. Để bảo mật tối đa, hãy dùng tùy chọn tự lưu trữ.",
+    "cta_title": "Nâng tầm bản ghi của bạn",
+    "cta_description": "Bật chuyển đổi giọng nói trên đám mây để có kết quả nhanh hơn 10× với độ chính xác cao hơn. Gói miễn phí có sẵn với Groq — không cần thẻ tín dụng.",
+    "enable_button": "Bật chuyển đổi giọng nói trên đám mây",
+    "groq_title": "Nhận khóa API Groq miễn phí",
+    "groq_step_1_prefix": "1. Truy cập",
+    "groq_url": "console.groq.com",
+    "groq_step_1_suffix": "và đăng ký miễn phí",
+    "groq_step_2": "2. Tạo khóa API trong bảng điều khiển của bạn",
+    "groq_step_3": "3. Dán vào phía trên — Groq có giới hạn sử dụng miễn phí hào phóng",
+    "self_hosted_title": "Máy chủ tự lưu trữ",
+    "self_hosted_description": "Chạy máy chủ chuyển đổi giọng nói riêng để bảo mật tuyệt đối. Máy chủ chấp nhận các yêu cầu API tương thích OpenAI Whisper."
+  },
+  "buttons": {
+    "try_again": "Thử lại",
+    "reload_app": "Tải lại ứng dụng",
+    "view": "Xem",
+    "refresh": "Làm mới",
+    "update": "Cập nhật",
+    "close": "Đóng"
+  },
+  "model": {
+    "updates_available": "Có {{count}} bản cập nhật mô hình",
+    "all_up_to_date": "Tất cả mô hình đều mới nhất",
+    "update_installed": "Đã cập nhật mô hình {{model}} thành công",
+    "checking": "Đang kiểm tra...",
+    "check_updates": "Kiểm tra cập nhật",
+    "updates_available_title": "Có bản cập nhật mô hình",
+    "updating": "Đang cập nhật...",
+    "update_all": "Cập nhật tất cả",
+    "version_info": "{{current}} → {{latest}}",
+    "required": "Bắt buộc",
+    "downloading": "Đang tải xuống..."
+  },
+  "shortcuts": {
+    "toggle_recording": "Bật/tắt ghi âm",
+    "hold_to_record": "Giữ để ghi âm (PTT)",
+    "cancel_recording": "Hủy ghi âm",
+    "show_help": "Xem phím tắt",
+    "open_settings": "Mở cài đặt",
+    "open_history": "Mở lịch sử",
+    "paste_transcription": "Dán bản ghi gần nhất",
+    "undo": "Hoàn tác hành động cuối",
+    "close_window": "Đóng cửa sổ",
+    "quit_app": "Thoát ứng dụng",
+    "minimize": "Thu nhỏ xuống khay hệ thống",
+    "categories": {
+      "all": "Tất cả phím tắt",
+      "recording": "Ghi âm",
+      "navigation": "Điều hướng",
+      "editing": "Chỉnh sửa văn bản",
+      "window": "Cửa sổ"
+    },
+    "title": "Phím tắt",
+    "subtitle": "Nhấn một phím tắt để thực hiện hành động",
+    "customize_hint": "Bạn có thể tùy chỉnh các phím tắt này trong Cài đặt > Phím tắt"
   }
 }

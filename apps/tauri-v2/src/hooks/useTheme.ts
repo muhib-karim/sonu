@@ -18,6 +18,28 @@ const VALID_ACCENTS = new Set(ACCENT_COLORS.map((a) => a.id));
 
 const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
 
+const THEME_STORAGE_KEY = "sonu-theme";
+
+/**
+ * Mirrors the current theme settings to localStorage so the inline script in
+ * index.html can restore the theme before first paint (no dark flash for
+ * light-theme users while the backend settings load).
+ */
+function persistTheme(mode: string | undefined, accent: string | undefined) {
+  try {
+    localStorage.setItem(
+      THEME_STORAGE_KEY,
+      JSON.stringify({
+        theme_mode: mode ?? "dark",
+        accent_color: accent ?? "zinc",
+      }),
+    );
+  } catch {
+    // localStorage may be unavailable; pre-paint restore then just falls
+    // back to the static dark default.
+  }
+}
+
 function resolveTheme(mode: string | undefined): ResolvedTheme {
   if (mode === "light" || mode === "dark") return mode;
   if (mode === "system") return systemDark.matches ? "dark" : "light";
@@ -45,6 +67,7 @@ export function useTheme() {
 
   useEffect(() => {
     applyTheme(resolveTheme(mode), accent);
+    persistTheme(mode, accent);
   }, [mode, accent]);
 
   useEffect(() => {

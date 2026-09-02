@@ -392,3 +392,11 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Subtle grid backdrop (used behind decorative overlays) */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(var(--app-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--app-border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

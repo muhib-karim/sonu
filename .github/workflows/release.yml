@@ -52,7 +52,10 @@ jobs:
           - platform: "macos-15"
             args: "--target x86_64-apple-darwin"
             target: "x86_64-apple-darwin"
-          - platform: "ubuntu-22.04"
+          # ubuntu-22.04 runner images are deprecated (brownouts from Sep 2026);
+          # the deb now builds on 24.04, so it targets Ubuntu 24.04+ (glibc 2.39).
+          # Users on older distros should use the AppImage.
+          - platform: "ubuntu-24.04"
             args: "--bundles deb"
             target: "x86_64-unknown-linux-gnu"
           - platform: "ubuntu-24.04"

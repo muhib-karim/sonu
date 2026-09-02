@@ -69,6 +69,26 @@ export const AppearanceSettings: React.FC = () => {
   const accentColor = settings?.accent_color ?? "zinc";
   const livePreview = settings?.show_live_preview ?? true;
 
+  // Roving-tabindex arrow-key navigation for the theme radiogroup (APG).
+  const handleThemeKeyNav = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (
+      !["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(event.key)
+    )
+      return;
+    event.preventDefault();
+    const idx = THEME_MODES.indexOf(themeMode as (typeof THEME_MODES)[number]);
+    const current = idx === -1 ? 0 : idx;
+    const next =
+      event.key === "ArrowRight" || event.key === "ArrowDown"
+        ? (current + 1) % THEME_MODES.length
+        : (current + THEME_MODES.length - 1) % THEME_MODES.length;
+    const mode = THEME_MODES[next];
+    updateSetting("theme_mode", mode);
+    event.currentTarget
+      .querySelector<HTMLButtonElement>(`[data-testid="theme-mode-${mode}"]`)
+      ?.focus();
+  };
+
   return (
     <div className="flex flex-col gap-6 w-full max-w-2xl pb-6">
       <h1 className="text-2xl font-bold tracking-tight">
@@ -87,6 +107,7 @@ export const AppearanceSettings: React.FC = () => {
             className="grid grid-cols-3 gap-1.5 p-1 rounded-lg bg-muted"
             role="radiogroup"
             aria-label={t("appearance.theme.title", "Theme")}
+            onKeyDown={handleThemeKeyNav}
           >
             {THEME_MODES.map((mode) => {
               const Icon = MODE_ICONS[mode];
@@ -96,6 +117,7 @@ export const AppearanceSettings: React.FC = () => {
                   key={mode}
                   role="radio"
                   aria-checked={active}
+                  tabIndex={active ? 0 : -1}
                   data-testid={`theme-mode-${mode}`}
                   onClick={() => updateSetting("theme_mode", mode)}
                   className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all duration-150 ${

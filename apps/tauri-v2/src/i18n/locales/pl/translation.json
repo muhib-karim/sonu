@@ -12,7 +12,13 @@
     "history": "Historia",
     "debug": "Debugowanie",
     "about": "O programie",
-    "appearance": "Wygląd"
+    "appearance": "Wygląd",
+    "home": "Strona główna",
+    "dictionary": "Słownik",
+    "snippets": "Fragmenty",
+    "notes": "Notatki",
+    "style": "Styl",
+    "cloud": "Chmura"
   },
   "onboarding": {
     "subtitle": "Aby rozpocząć, wybierz model transkrypcji",
@@ -342,6 +348,10 @@
         "appData": "Dane aplikacji:",
         "models": "Modele:",
         "settings": "Ustawienia:"
+      },
+      "showWaveform": {
+        "label": "Pokaż przebieg fali",
+        "description": "Wyświetlaj animowany przebieg fali dźwiękowej podczas nagrywania"
       }
     },
     "about": {
@@ -370,6 +380,60 @@
           "title": "Whisper.cpp",
           "description": "Wydajne wykonywanie modelu rozpoznawania mowy Whisper od OpenAI",
           "details": "Handy używa Whisper.cpp do szybkiego, lokalnego przetwarzania mowy na tekst. Dzięki niesamowitej pracy Georgi Gerganova i współtwórców."
+        }
+      },
+      "sonuProject": {
+        "title": "Projekt SONU",
+        "sourceCode": {
+          "title": "Kod źródłowy SONU",
+          "description": "Zobacz kod źródłowy projektu SONU i współtwórz go"
+        },
+        "support": {
+          "title": "Wesprzyj rozwój SONU",
+          "description": "Pomóż wspierać dalszy rozwój SONU",
+          "button": "Postaw mi kawę"
+        }
+      },
+      "handyCredits": {
+        "title": "Zbudowane na bazie Handy",
+        "description": {
+          "title": "Handy.computer",
+          "text": "SONU powstał w oparciu o znakomity projekt open source Handy autorstwa CJ Pais. Jesteśmy wdzięczni za jego fundamentalną pracę, dzięki której ten projekt mógł powstać."
+        }
+      }
+    },
+    "offlineLLM": {
+      "title": "Postprocess offline",
+      "quality": "jakość",
+      "toggle": {
+        "label": "Używaj modelu offline",
+        "description": "Przetwarzaj transkrypcje lokalnie przy użyciu pobranego modelu AI zamiast API w chmurze. Nie wymaga internetu."
+      },
+      "modelSelector": {
+        "title": "Wybierz model",
+        "description": "Wybierz lokalny model AI do postprocessingu. Mniejsze modele są szybsze, ale mogą dawać wyniki niższej jakości."
+      },
+      "disabledNotice": "Włącz postprocess offline powyżej, aby wybierać i pobierać modele.",
+      "info": {
+        "title": "O postprocessie offline",
+        "description": "Modele offline działają w całości na Twoim urządzeniu, co zapewnia pełną prywatność. Są idealne dla użytkowników, którzy wolą nie korzystać z usług AI w chmurze. Uwaga: wnioskowanie offline wymaga integracji z llama.cpp (już wkrótce)."
+      },
+      "models": {
+        "smollm2-135m": {
+          "name": "SmolLM2 135M",
+          "description": "Niezwykle szybki. Najlepszy do prostych poprawek."
+        },
+        "smollm2-360m": {
+          "name": "SmolLM2 360M",
+          "description": "Szybki, z lepszą jakością. Polecany."
+        },
+        "smollm2-1.7b": {
+          "name": "SmolLM2 1.7B",
+          "description": "Wysoka jakość. Najlepsze rezultaty, wolniejszy."
+        },
+        "qwen2.5-0.5b": {
+          "name": "Qwen2.5 0.5B",
+          "description": "Szybka alternatywa. Dobrze wykonuje polecenia."
         }
       }
     }
@@ -408,7 +472,8 @@
     "off": "Wyłącz",
     "yes": "Tak",
     "no": "Nie",
-    "noOptionsFound": "Nie znaleziono opcji"
+    "noOptionsFound": "Nie znaleziono opcji",
+    "copy": "Kopiuj"
   },
   "accessibility": {
     "permissionsRequired": "Wymagane uprawnienia dostępności",
@@ -417,20 +482,35 @@
     "dismiss": "Zamknij"
   },
   "errors": {
-    "loadDirectory": "Błąd wczytywania katalogu: {{error}}"
+    "loadDirectory": "Błąd wczytywania katalogu: {{error}}",
+    "boundary_title": "Coś poszło nie tak",
+    "boundary_subtitle": "Aplikacja napotkała nieoczekiwany błąd",
+    "report_prompt": "Jeśli problem będzie się powtarzał, zgłoś go zespołowi deweloperów",
+    "update_check_failed": "Nie udało się sprawdzić aktualizacji",
+    "update_install_failed": "Nie udało się zainstalować aktualizacji"
   },
   "appLanguage": {
     "title": "Język aplikacji",
     "description": "Zmień język interfejsu Handy"
   },
   "overlay": {
-    "transcribing": "Transkrypcja..."
+    "transcribing": "Transkrypcja...",
+    "listening": "Słucham...",
+    "cloudProcessing": "Chmura..."
   },
   "style": {
     "contextAwareness": {
       "label": "Dykowanie świadome kontekstu",
       "description": "Dostosowuje styl dyktowania do aplikacji, w której piszesz (np. swobodny w komunikatorach, formalny w e-mailach)."
-    }
+    },
+    "title": "Styl",
+    "personal": "Wiadomości prywatne",
+    "work": "Wiadomości służbowe",
+    "email": "E-mail",
+    "other": "Inne",
+    "llmSection": "Przetwarzanie AI",
+    "llmToggle": "Włącz postprocess LLM",
+    "llmDescription": "Użyj modelu AI do zaawansowanej transformacji tekstu. Wymaga klucza API."
   },
   "appearance": {
     "title": "Wygląd",
@@ -454,5 +534,168 @@
       "label": "Podgląd transkrypcji na żywo",
       "description": "Pokazuje tekst podczas mówienia w nakładce nagrywania. Wymaga modelu lokalnego."
     }
+  },
+  "home": {
+    "title": "Mów wszędzie",
+    "instruction": "Przytrzymaj",
+    "instructionEnd": ", mów i puść, aby wstawić wypowiedziany tekst.",
+    "description": "SONU działa we wszystkich Twoich aplikacjach. Wypróbuj go w e-mailach, wiadomościach, dokumentach i wszędzie indziej.",
+    "stats": {
+      "dictationTime": "Czas dyktowania",
+      "wordsDictated": "Dyktowane słowa",
+      "timeSaved": "Zaoszczędzony czas",
+      "avgSpeed": "Śr. szybkość"
+    },
+    "privacy": {
+      "title": "Prywatność",
+      "heading": "Twoje dane pozostają prywatne",
+      "description": "Twoje dyktowania głosowe są prywatne — żadne dane nie są zatrzymywane. Przechowywane są wyłącznie na Twoim urządzeniu i nie można uzyskać do nich dostępu z żadnego innego miejsca."
+    },
+    "history": {
+      "title": "Ostatnie"
+    },
+    "copied": "Skopiowano do schowka",
+    "mode": {
+      "cloud": "Tryb chmury",
+      "local": "Tryb lokalny"
+    },
+    "transcriptions": "{{count}} transkrypcji",
+    "shortcut": {
+      "title": "Aktywacja głosem",
+      "description": "Przytrzymaj ten klawisz, mów i puść, aby transkrybować."
+    }
+  },
+  "dictionary": {
+    "title": "Słownik",
+    "newWord": "Nowe słowo",
+    "addWord": "Dodaj do słownika",
+    "placeholder": "Dodaj nowe słowo",
+    "add": "Dodaj słowo",
+    "empty": "W Twoim słowniku nie ma jeszcze słów. Kliknij „Nowe słowo”, aby je dodać."
+  },
+  "snippets": {
+    "title": "Fragmenty",
+    "new": "Nowy fragment",
+    "add": "Dodaj fragment",
+    "edit": "Edytuj fragment",
+    "titleLabel": "Tytuł",
+    "titlePlaceholder": "Tytuł fragmentu",
+    "textLabel": "Tekst",
+    "textPlaceholder": "Treść fragmentu",
+    "empty": "Nie masz jeszcze fragmentów. Kliknij „Nowy fragment”, aby dodać pierwszy."
+  },
+  "notes": {
+    "title": "Na szybkie myśli, do których chcesz wrócić",
+    "placeholder": "Kliknij mikrofon, aby dyktować notatki",
+    "listening": "Słucham...",
+    "recents": "Ostatnie",
+    "search": "Szukaj",
+    "searchPlaceholder": "Szukaj notatek...",
+    "refresh": "Odśwież",
+    "toggleView": "Przełącz widok",
+    "empty": "Brak notatek. Kliknij mikrofon, aby zacząć.",
+    "noResults": "Nie znaleziono notatek",
+    "subtitle": "Zapisuj transkrypcje jako notatki, klikając ikonę gwiazdki w historii",
+    "recording": "Nagrywanie... Kliknij mikrofon, aby zatrzymać"
+  },
+  "time": {
+    "justNow": "Właśnie teraz",
+    "minsAgo": "{{count}} min temu",
+    "hoursAgo": "{{count}} godz. temu",
+    "daysAgo": "{{count}} dni temu"
+  },
+  "cloud_transcription": {
+    "title": "Transkrypcja w chmurze",
+    "subtitle": "Korzystaj z wydajnych API w chmurze dla szybszego i dokładniejszego rozpoznawania mowy z automatycznym przejściem na tryb lokalny",
+    "key_set": "Klucz ustawiony",
+    "api_key": "Klucz API",
+    "enter_api_key": "Wprowadź swój klucz API",
+    "get_free_key_at": "Uzyskaj darmowy klucz na",
+    "server_endpoint": "Endpoint serwera",
+    "api_key_optional": "Klucz API (opcjonalny)",
+    "optional_placeholder": "Pozostaw puste, jeśli niewymagany",
+    "search_language": "Szukaj języka...",
+    "enabled_toast": "Transkrypcja w chmurze włączona",
+    "disabled_toast": "Transkrypcja w chmurze wyłączona",
+    "toggle_error": "Nie udało się przełączyć transkrypcji w chmurze",
+    "provider_error": "Nie udało się przełączyć dostawcy",
+    "key_saved": "Klucz API został zapisany",
+    "key_error": "Nie udało się zapisać klucza API",
+    "endpoint_error": "Nie udało się zapisać endpointu",
+    "connection_success": "Połączono pomyślnie!",
+    "connection_failed": "Test połączenia nie powiódł się",
+    "loading": "Wczytywanie ustawień chmury...",
+    "load_error": "Nie udało się wczytać ustawień chmury",
+    "testing": "Testowanie...",
+    "test_connection": "Testuj połączenie",
+    "faster_than_local": "10× szybciej niż lokalnie",
+    "encrypted": "Szyfrowanie end-to-end",
+    "auto_fallback": "Automatyczne przejście na tryb lokalny",
+    "select_provider": "Wybierz dostawcę",
+    "language_title": "Język i tłumaczenie",
+    "transcription_language": "Język transkrypcji",
+    "language_description": "Wybierz język, w którym będziesz mówić, lub użyj automatycznego wykrywania",
+    "translate_to_english_label": "Tłumacz na angielski",
+    "translate_to_english_desc": "Automatycznie tłumacz mowę w innych językach na angielski",
+    "how_it_works_section": "Informacje",
+    "how_it_works_title": "Jak działa transkrypcja w chmurze",
+    "how_it_works_description": "Po włączeniu dźwięk jest wysyłany przez HTTPS do wybranego dostawcy w celu przetworzenia. Modele chmurowe są szybsze i dokładniejsze, zwłaszcza na komputerach bez wydajnego sprzętu. Gdy chmura jest niedostępna, SONU automatycznie przechodzi na Twój model lokalny.",
+    "privacy_title": "Prywatność i bezpieczeństwo",
+    "privacy_description": "Dźwięk jest przesyłany przez szyfrowany protokół HTTPS i nie jest przechowywany przez dostawców chmurowych po przetworzeniu. Twoje klucze API są bezpiecznie przechowywane na Twoim urządzeniu. Aby zapewnić maksymalną prywatność, użyj własnego serwera.",
+    "cta_title": "Przyspiesz swoją transkrypcję",
+    "cta_description": "Włącz transkrypcję w chmurze, aby uzyskiwać wyniki 10× szybciej i z większą dokładnością. Darmowy plan dostępny w Groq — bez karty kredytowej.",
+    "enable_button": "Włącz transkrypcję w chmurze",
+    "groq_title": "Jak uzyskać darmowy klucz API Groq",
+    "groq_step_1_prefix": "1. Przejdź na",
+    "groq_url": "console.groq.com",
+    "groq_step_1_suffix": "i załóż darmowe konto",
+    "groq_step_2": "2. Utwórz klucz API w swoim panelu",
+    "groq_step_3": "3. Wklej go powyżej — Groq oferuje hojne darmowe limity użycia",
+    "self_hosted_title": "Własny serwer",
+    "self_hosted_description": "Uruchom własny serwer transkrypcji, aby zapewnić pełną prywatność. Serwer przyjmuje żądania API zgodne z OpenAI Whisper."
+  },
+  "buttons": {
+    "try_again": "Spróbuj ponownie",
+    "reload_app": "Przeładuj aplikację",
+    "view": "Wyświetl",
+    "refresh": "Odśwież",
+    "update": "Aktualizuj",
+    "close": "Zamknij"
+  },
+  "model": {
+    "updates_available": "Dostępne aktualizacje modeli: {{count}}",
+    "all_up_to_date": "Wszystkie modele są aktualne",
+    "update_installed": "Model {{model}} został zaktualizowany",
+    "checking": "Sprawdzanie...",
+    "check_updates": "Sprawdź aktualizacje",
+    "updates_available_title": "Dostępne aktualizacje modeli",
+    "updating": "Aktualizowanie...",
+    "update_all": "Zaktualizuj wszystkie",
+    "version_info": "{{current}} → {{latest}}",
+    "required": "Wymagana",
+    "downloading": "Pobieranie..."
+  },
+  "shortcuts": {
+    "toggle_recording": "Włącz/wyłącz nagrywanie",
+    "hold_to_record": "Przytrzymaj, aby nagrywać (PTT)",
+    "cancel_recording": "Anuluj nagrywanie",
+    "show_help": "Pokaż skróty klawiaturowe",
+    "open_settings": "Otwórz ustawienia",
+    "open_history": "Otwórz historię",
+    "paste_transcription": "Wklej ostatnią transkrypcję",
+    "undo": "Cofnij ostatnią akcję",
+    "close_window": "Zamknij okno",
+    "quit_app": "Zakończ aplikację",
+    "minimize": "Minimalizuj do zasobnika",
+    "categories": {
+      "all": "Wszystkie skróty",
+      "recording": "Nagrywanie",
+      "navigation": "Nawigacja",
+      "editing": "Edycja tekstu",
+      "window": "Okno"
+    },
+    "title": "Skróty klawiaturowe",
+    "subtitle": "Naciśnij dowolny skrót, aby wykonać akcję",
+    "customize_hint": "Te skróty możesz dostosować w Ustawieniach > Skróty klawiaturowe"
   }
 }
