@@ -169,19 +169,33 @@
 
 /* Preview Text (for live transcription preview) */
 .preview-container {
-  max-width: 150px;
+  max-width: 190px;
   overflow: hidden;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   padding-left: 12px;
   margin-left: 4px;
+  animation: previewIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes previewIn {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .preview-text {
   font-size: 13px;
-  color: #94a3b8;
+  color: #e2e8f0;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+  display: block;
+  letter-spacing: -0.2px;
 }
 
 /* Done State - Checkmark */

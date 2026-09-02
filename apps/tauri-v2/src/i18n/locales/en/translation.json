@@ -17,7 +17,8 @@
     "postProcessing": "Post Process",
     "history": "History",
     "debug": "Debug",
-    "about": "About"
+    "about": "About",
+    "appearance": "Appearance"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -610,5 +611,28 @@
     "groq_step_3": "3. Paste it above — Groq offers generous free usage limits",
     "self_hosted_title": "Self-Hosted Server",
     "self_hosted_description": "Run your own transcription server for complete privacy. The server accepts OpenAI Whisper-compatible API requests."
+  },
+  "appearance": {
+    "title": "Appearance",
+    "theme": {
+      "title": "Theme",
+      "description": "Choose how SONU looks. System follows your OS setting.",
+      "modes": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      }
+    },
+    "accent": {
+      "title": "Accent color",
+      "description": "Used for highlights, focus rings, and the active states."
+    },
+    "recording": {
+      "title": "Recording"
+    },
+    "livePreview": {
+      "label": "Live transcription preview",
+      "description": "Show text while you speak in the recording overlay. Requires a local model."
+    }
   }
 }

@@ -11,7 +11,8 @@
     "postProcessing": "Post-Elaborazione",
     "history": "Cronologia",
     "debug": "Debug",
-    "about": "Informazioni"
+    "about": "Informazioni",
+    "appearance": "Aspetto"
   },
   "onboarding": {
     "subtitle": "Per cominciare, scegli un modello di riconoscimento vocale",
@@ -429,6 +430,29 @@
     "contextAwareness": {
       "label": "Dettatura contestuale",
       "description": "Adatta lo stile del dettato all'app in cui stai scrivendo (ad esempio informale nella messaggistica, formale nell'e-mail)."
+    }
+  },
+  "appearance": {
+    "title": "Aspetto",
+    "theme": {
+      "title": "Tema",
+      "description": "Scegli l'aspetto di SONU. Sistema segue l'impostazione del tuo OS.",
+      "modes": {
+        "light": "Chiaro",
+        "dark": "Scuro",
+        "system": "Sistema"
+      }
+    },
+    "accent": {
+      "title": "Colore di accento",
+      "description": "Usato per evidenziazioni, anelli di messa a fuoco e stati attivi."
+    },
+    "recording": {
+      "title": "Registrazione"
+    },
+    "livePreview": {
+      "label": "Anteprima trascrizione in tempo reale",
+      "description": "Mostra il testo mentre parli nell'overlay di registrazione. Richiede un modello locale."
     }
   }
 }

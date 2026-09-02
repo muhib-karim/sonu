@@ -17,6 +17,7 @@ test.describe("SONU App", () => {
       "Notes",
       "Style",
       "Settings",
+      "Appearance",
       "Advanced",
       "Cloud",
       "History",
@@ -53,6 +54,32 @@ test.describe("SONU App", () => {
       page.getByText("Words dictated", { exact: true }),
     ).toBeVisible();
     await expect(page.getByText("Time saved", { exact: true })).toBeVisible();
+  });
+
+  test("should render appearance controls", async ({ page }) => {
+    await page.getByText("Appearance", { exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Appearance" }),
+    ).toBeVisible();
+
+    // Theme mode segmented control (dark is the default)
+    for (const mode of ["light", "dark", "system"]) {
+      await expect(
+        page.locator(`[data-testid="theme-mode-${mode}"]`),
+      ).toBeVisible();
+    }
+
+    // Accent swatches render
+    for (const accent of ["zinc", "violet", "blue", "green", "amber", "rose"]) {
+      await expect(
+        page.locator(`[data-testid="accent-${accent}"]`),
+      ).toBeVisible();
+    }
+
+    // Live preview toggle is present
+    await expect(
+      page.getByText("Live transcription preview", { exact: true }),
+    ).toBeVisible();
   });
 
   test("should show version in footer", async ({ page }) => {

@@ -11,7 +11,8 @@
     "postProcessing": "Nachbearbeitung",
     "history": "Verlauf",
     "debug": "Debug",
-    "about": "Info"
+    "about": "Info",
+    "appearance": "Erscheinungsbild"
   },
   "onboarding": {
     "subtitle": "Wähle ein Transkriptionsmodell, um loszulegen",
@@ -429,6 +430,29 @@
     "contextAwareness": {
       "label": "Kontextbewusstes Diktieren",
       "description": "Passt deinen Diktierstil an die App an, in der du tippst (z. B. locker in Messengern, formell in E-Mails)."
+    }
+  },
+  "appearance": {
+    "title": "Erscheinungsbild",
+    "theme": {
+      "title": "Design",
+      "description": "Wähle das Aussehen von SONU. „System“ folgt deiner OS-Einstellung.",
+      "modes": {
+        "light": "Hell",
+        "dark": "Dunkel",
+        "system": "System"
+      }
+    },
+    "accent": {
+      "title": "Akzentfarbe",
+      "description": "Wird für Hervorhebungen, Fokusringe und aktive Zustände verwendet."
+    },
+    "recording": {
+      "title": "Aufnahme"
+    },
+    "livePreview": {
+      "label": "Live-Transkriptionsvorschau",
+      "description": "Zeigt Text bereits während des Sprechens im Aufnahme-Overlay. Erfordert ein lokales Modell."
     }
   }
 }

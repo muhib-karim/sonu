@@ -107,7 +107,7 @@ const StatusDot: React.FC<{ active: boolean; color?: string }> = ({
       />
     )}
     <span
-      className={`relative inline-flex rounded-full h-2.5 w-2.5 ${active ? color : "bg-zinc-600"}`}
+      className={`relative inline-flex rounded-full h-2.5 w-2.5 ${active ? color : "bg-muted"}`}
     />
   </span>
 );
@@ -146,7 +146,7 @@ const ProviderCard: React.FC<{
         "group relative rounded-xl border transition-all duration-300 cursor-pointer overflow-hidden",
         isSelected
           ? `${meta.border} ${meta.bg} ring-1 ring-white/5`
-          : "border-white/[0.06] hover:border-white/[0.14] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20",
+          : "border-border hover:border-border-hover hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20",
       )}
       onClick={() => !isSelected && onSelect()}
     >
@@ -188,7 +188,7 @@ const ProviderCard: React.FC<{
         {meta.features.map((feat) => (
           <span
             key={feat}
-            className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] text-text/40 border border-white/[0.04]"
+            className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-text/40 border border-border"
           >
             {feat}
           </span>
@@ -204,7 +204,7 @@ const ProviderCard: React.FC<{
       {/* Expanded config panel (only for selected provider) */}
       {isSelected && (
         <div
-          className="border-t border-white/[0.06] px-4 py-3 space-y-3"
+          className="border-t border-border px-4 py-3 space-y-3"
           onClick={(e) => e.stopPropagation()}
         >
           {/* API Key field */}
@@ -228,7 +228,7 @@ const ProviderCard: React.FC<{
                         ? "••••••••••••••••"
                         : t("cloud_transcription.enter_api_key")
                     }
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text placeholder:text-text/20 focus:outline-none focus:border-white/[0.16] focus:ring-1 focus:ring-white/[0.08] transition-all font-mono"
+                    className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text/20 focus:outline-none focus:border-border-hover focus:ring-1 focus:ring-border-focus transition-all font-mono"
                   />
                   <button
                     onClick={() => setShowKey(!showKey)}
@@ -275,7 +275,7 @@ const ProviderCard: React.FC<{
                     if (e.key === "Enter") onEndpointChange?.(endpointInput);
                   }}
                   placeholder="http://localhost:8000/v1/audio/transcriptions"
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text placeholder:text-text/20 focus:outline-none focus:border-white/[0.16] focus:ring-1 focus:ring-white/[0.08] transition-all font-mono"
+                  className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text/20 focus:outline-none focus:border-border-hover focus:ring-1 focus:ring-border-focus transition-all font-mono"
                 />
               </div>
               <div>
@@ -291,7 +291,7 @@ const ProviderCard: React.FC<{
                     if (e.key === "Enter") onApiKeyChange(apiKeyInput);
                   }}
                   placeholder={t("cloud_transcription.optional_placeholder")}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text placeholder:text-text/20 focus:outline-none focus:border-white/[0.16] focus:ring-1 focus:ring-white/[0.08] transition-all font-mono"
+                  className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm text-text placeholder:text-text/20 focus:outline-none focus:border-border-hover focus:ring-1 focus:ring-border-focus transition-all font-mono"
                 />
               </div>
             </>
@@ -341,7 +341,7 @@ const CloudLanguageSelector: React.FC<{
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text hover:border-white/[0.16] transition-all min-w-[180px] justify-between"
+        className="flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2 text-sm text-text hover:border-border-hover transition-all min-w-[180px] justify-between"
         type="button"
       >
         <div className="flex items-center gap-2">
@@ -354,14 +354,14 @@ const CloudLanguageSelector: React.FC<{
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-surface border border-white/[0.08] rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute top-full left-0 mt-1 w-64 bg-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden">
           <div className="p-2">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("cloud_transcription.search_language")}
-              className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5 text-sm text-text placeholder:text-text/30 focus:outline-none"
+              className="w-full bg-muted border border-border rounded-lg px-3 py-1.5 text-sm text-text placeholder:text-text/30 focus:outline-none"
               autoFocus
             />
           </div>
@@ -374,10 +374,8 @@ const CloudLanguageSelector: React.FC<{
                   setIsOpen(false);
                   setSearch("");
                 }}
-                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-white/[0.04] transition-colors flex items-center justify-between ${
-                  lang.value === value
-                    ? "text-text bg-white/[0.04]"
-                    : "text-text/70"
+                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-surface-hover transition-colors flex items-center justify-between ${
+                  lang.value === value ? "text-text bg-muted" : "text-text/70"
                 }`}
                 type="button"
               >
@@ -604,7 +602,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
           "relative overflow-hidden rounded-xl border transition-all duration-500",
           isEnabled
             ? "border-indigo-500/30 bg-gradient-to-br from-indigo-500/[0.06] to-purple-500/[0.03] shadow-lg shadow-indigo-500/5"
-            : "border-white/[0.06] bg-surface",
+            : "border-border bg-surface",
         )}
       >
         {/* Subtle gradient decoration */}
@@ -619,7 +617,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
                 "flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-500",
                 isEnabled
                   ? "bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25 scale-100"
-                  : "bg-white/[0.04] scale-95",
+                  : "bg-muted scale-95",
               )}
             >
               {isEnabled ? (
@@ -649,23 +647,23 @@ export const CloudTranscriptionSettings: React.FC = () => {
               checked={isEnabled}
               onChange={(e) => handleToggle(e.target.checked)}
             />
-            <div className="w-12 h-7 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:shadow-md after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-indigo-500 peer-checked:to-purple-600" />
+            <div className="w-12 h-7 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:shadow-md after:transition-all peer-checked:bg-accent" />
           </label>
         </div>
 
         {/* Quick stats bar when enabled and configured */}
         {isEnabled && hasValidConfig && (
-          <div className="border-t border-white/[0.04] px-5 py-2.5 flex items-center gap-4">
+          <div className="border-t border-border px-5 py-2.5 flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-[11px] text-text/40">
               <Gauge className="w-3 h-3" />
               <span>{t("cloud_transcription.faster_than_local")}</span>
             </div>
-            <div className="w-px h-3 bg-white/[0.06]" />
+            <div className="w-px h-3 bg-muted" />
             <div className="flex items-center gap-1.5 text-[11px] text-text/40">
               <Shield className="w-3 h-3" />
               <span>{t("cloud_transcription.encrypted")}</span>
             </div>
-            <div className="w-px h-3 bg-white/[0.06]" />
+            <div className="w-px h-3 bg-muted" />
             <div className="flex items-center gap-1.5 text-[11px] text-text/40">
               <Clock className="w-3 h-3" />
               <span>{t("cloud_transcription.auto_fallback")}</span>
@@ -679,7 +677,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
           {/* ── Provider Selection ────────────────────────────────────────── */}
           <div className="space-y-2">
             <div className="px-1">
-              <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                 {t("cloud_transcription.select_provider")}
               </h3>
             </div>
@@ -718,8 +716,8 @@ export const CloudTranscriptionSettings: React.FC = () => {
                   className={cn(
                     "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                     isTesting
-                      ? "bg-white/[0.04] text-text/40 cursor-wait"
-                      : "bg-white/[0.06] hover:bg-white/[0.1] text-text border border-white/[0.08] hover:border-white/[0.16] active:scale-[0.98]",
+                      ? "bg-muted text-text/40 cursor-wait"
+                      : "bg-muted hover:bg-surface-pressed text-text border border-border hover:border-border-hover active:scale-[0.98]",
                   )}
                   type="button"
                 >
@@ -777,7 +775,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
                 />
               </div>
 
-              <div className="h-px bg-white/[0.04]" />
+              <div className="h-px bg-muted" />
 
               <div className="flex items-center justify-between">
                 <div>
@@ -795,7 +793,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
                     checked={translateToEnglish}
                     onChange={(e) => setTranslateToEnglish(e.target.checked)}
                   />
-                  <div className="w-10 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-md after:transition-all peer-checked:bg-indigo-500" />
+                  <div className="w-10 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-md after:transition-all peer-checked:bg-accent" />
                 </label>
               </div>
             </div>
@@ -804,14 +802,14 @@ export const CloudTranscriptionSettings: React.FC = () => {
           {/* ── How It Works / Info Section ───────────────────────────────── */}
           <div className="space-y-2">
             <div className="px-1">
-              <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+              <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                 {t("cloud_transcription.how_it_works_section")}
               </h3>
             </div>
 
             <div className="grid grid-cols-1 gap-3">
               {/* How it works */}
-              <div className="group flex items-start gap-3 p-4 rounded-xl bg-surface border border-white/[0.06] hover:border-indigo-500/20 transition-all duration-300">
+              <div className="group flex items-start gap-3 p-4 rounded-xl bg-surface border border-border hover:border-indigo-500/20 transition-all duration-300">
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 shrink-0 group-hover:bg-indigo-500/15 transition-colors duration-300">
                   <Sparkles className="w-4 h-4" />
                 </div>
@@ -826,7 +824,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
               </div>
 
               {/* Privacy */}
-              <div className="group flex items-start gap-3 p-4 rounded-xl bg-surface border border-white/[0.06] hover:border-emerald-500/20 transition-all duration-300">
+              <div className="group flex items-start gap-3 p-4 rounded-xl bg-surface border border-border hover:border-emerald-500/20 transition-all duration-300">
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0 group-hover:bg-emerald-500/15 transition-colors duration-300">
                   <Shield className="w-4 h-4" />
                 </div>
@@ -846,7 +844,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
 
       {/* ── Disabled State CTA ───────────────────────────────────────────── */}
       {!isEnabled && (
-        <div className="rounded-xl border border-white/[0.04] bg-white/[0.01] p-6">
+        <div className="rounded-xl border border-border bg-transparent p-6">
           <div className="flex flex-col items-center text-center gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/10">

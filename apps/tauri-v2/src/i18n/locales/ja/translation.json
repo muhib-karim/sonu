@@ -11,7 +11,8 @@
     "postProcessing": "後処理",
     "history": "履歴",
     "debug": "デバッグ",
-    "about": "概要"
+    "about": "概要",
+    "appearance": "外観"
   },
   "onboarding": {
     "subtitle": "開始するには、文字起こしモデルを選択してください",
@@ -429,6 +430,29 @@
     "contextAwareness": {
       "label": "コンテキスト認識ディクテーション",
       "description": "入力先のアプリに合わせて文体を調整します（例：メッセンジャーではカジュアル、メールではフォーマル）。"
+    }
+  },
+  "appearance": {
+    "title": "外観",
+    "theme": {
+      "title": "テーマ",
+      "description": "SONUの外観を選択します。「システム」はOSの設定に従います。",
+      "modes": {
+        "light": "ライト",
+        "dark": "ダーク",
+        "system": "システム"
+      }
+    },
+    "accent": {
+      "title": "アクセントカラー",
+      "description": "ハイライト、フォーカスリング、アクティブな状態に使用されます。"
+    },
+    "recording": {
+      "title": "録音"
+    },
+    "livePreview": {
+      "label": "リアルタイム文字起こしプレビュー",
+      "description": "話している間、録音オーバーレイにテキストを表示します。ローカルモデルが必要です。"
     }
   }
 }

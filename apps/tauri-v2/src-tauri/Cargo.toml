@@ -1,6 +1,6 @@
 [package]
 name = "sonu-desktop"
-version = "2.3.0"
+version = "2.4.0"
 description = "SONU - Offline Voice Typing"
 authors = ["cjpais"]
 edition = "2021"

@@ -13,6 +13,7 @@ import {
   Sparkles,
   Sliders,
   Cloud,
+  Paintbrush,
 } from "lucide-react";
 import SonuLogo from "./icons/SonuLogo";
 import { useSettings } from "../hooks/useSettings";
@@ -24,6 +25,7 @@ import {
   AboutSettings,
   PostProcessingSettings,
   HomeSettings,
+  AppearanceSettings,
   DictionarySettings,
   SnippetsSettings,
   NotesSettings,
@@ -83,6 +85,12 @@ const SECTIONS_CONFIG: Record<string, SectionConfig> = {
     labelKey: "sidebar.general",
     icon: Settings,
     component: GeneralSettings,
+    enabled: () => true,
+  },
+  appearance: {
+    labelKey: "sidebar.appearance",
+    icon: Paintbrush,
+    component: AppearanceSettings,
     enabled: () => true,
   },
   advanced: {
@@ -160,16 +168,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <React.Fragment key={section.id}>
               <div
-                className={`flex gap-3 items-center px-3 py-2.5 w-full rounded-lg cursor-pointer transition-all duration-200 ${
+                className={`flex gap-3 items-center px-3 py-2 w-full rounded-lg cursor-pointer transition-all duration-200 ${
                   isActive
-                    ? "bg-zinc-800 text-zinc-100 border-l-2 border-zinc-400"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                    ? "bg-accent-soft text-text"
+                    : "text-text-muted hover:text-text hover:bg-surface-hover"
                 }`}
                 onClick={() => onSectionChange(section.id)}
               >
                 <Icon
                   size={18}
-                  className={`shrink-0 ${isActive ? "text-zinc-100" : ""}`}
+                  className={`shrink-0 ${isActive ? "text-accent" : ""}`}
                 />
                 <p
                   className="text-sm font-medium truncate"
@@ -178,9 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {t(section.labelKey)}
                 </p>
               </div>
-              {showDivider && (
-                <div className="w-full h-px bg-zinc-700/50 my-3" />
-              )}
+              {showDivider && <div className="w-full h-px bg-border my-3" />}
             </React.Fragment>
           );
         })}

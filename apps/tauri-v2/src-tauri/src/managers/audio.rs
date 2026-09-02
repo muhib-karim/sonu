@@ -4,8 +4,9 @@ use crate::settings::{get_settings, AppSettings};
 use crate::utils;
 use log::{debug, error, info, warn};
 use std::sync::{Arc, Mutex, PoisonError};
-use std::time::Instant;
-use tauri::Manager;
+use std::thread;
+use std::time::{Duration, Instant};
+use tauri::{Emitter, Manager};
 
 /// Errors that can occur in audio recording operations
 #[derive(Debug, thiserror::Error)]
@@ -470,6 +471,8 @@ impl AudioRecordingManager {
                     binding_id: binding_id.to_string(),
                 };
                 debug!("Recording started for binding {binding_id}");
+                drop(state);
+                self.spawn_preview_ticker();
                 return true;
             }
             error!("Recorder not available");
@@ -572,6 +575,78 @@ impl AudioRecordingManager {
                 false
             }
         }
+    }
+
+    /// Returns a clone of the samples buffered since recording started,
+    /// capped to the last `max_seconds` of audio. `None` when not recording.
+    pub fn peek_samples(&self, max_seconds: u32) -> Option<Vec<f32>> {
+        if !self.is_recording() {
+            return None;
+        }
+        let guard = self.safe_lock(&self.recorder).ok()?;
+        let rec = guard.as_ref()?;
+        let buf = rec.peek().ok()?;
+        let max_len = WHISPER_SAMPLE_RATE * max_seconds.max(1) as usize;
+        if buf.len() > max_len {
+            Some(buf[buf.len() - max_len..].to_vec())
+        } else {
+            Some(buf)
+        }
+    }
+
+    /// Background loop that periodically transcribes the in-flight buffer and
+    /// emits `preview-text` so the overlay can show a live transcription while
+    /// the user is still speaking. Exits automatically when recording stops.
+    fn spawn_preview_ticker(&self) {
+        let manager = self.clone();
+
+        thread::spawn(move || {
+            const TICK_INTERVAL: Duration = Duration::from_millis(1200);
+            const PREVIEW_WINDOW_SECONDS: u32 = 30;
+            const MIN_SAMPLES: usize = WHISPER_SAMPLE_RATE / 2; // 0.5s of audio
+
+            loop {
+                thread::sleep(TICK_INTERVAL);
+
+                if !manager.is_recording() {
+                    break;
+                }
+
+                let settings = get_settings(&manager.app_handle);
+                if !settings.show_live_preview || settings.cloud_transcription.enabled {
+                    continue;
+                }
+
+                let Some(samples) = manager.peek_samples(PREVIEW_WINDOW_SECONDS) else {
+                    break;
+                };
+                if samples.len() < MIN_SAMPLES {
+                    continue;
+                }
+
+                let tm = manager
+                    .app_handle
+                    .try_state::<std::sync::Arc<crate::managers::transcription::TranscriptionManager>>();
+                let Some(tm) = tm else { break };
+
+                match tm.transcribe(samples) {
+                    Ok(text) if !text.trim().is_empty() => {
+                        if !manager.is_recording() {
+                            break;
+                        }
+                        if let Err(e) = manager.app_handle.emit("preview-text", text) {
+                            error!("Failed to emit preview-text: {}", e);
+                        }
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        // Model not loaded yet or transient failure: stay quiet.
+                        debug!("Preview transcription skipped: {}", e);
+                    }
+                }
+            }
+            debug!("Preview ticker exited");
+        });
     }
 
     /// Cancel any ongoing recording without returning audio samples

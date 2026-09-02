@@ -330,6 +330,13 @@ pub struct AppSettings {
     pub context_awareness_enabled: bool,
     #[serde(default)]
     pub style_selection: HashMap<String, String>,
+    // Appearance settings
+    #[serde(default = "default_theme_mode")]
+    pub theme_mode: String,
+    #[serde(default = "default_accent_color")]
+    pub accent_color: String,
+    #[serde(default = "default_show_live_preview")]
+    pub show_live_preview: bool,
     // Cloud transcription settings
     #[serde(default = "default_cloud_transcription_settings")]
     pub cloud_transcription: CloudTranscriptionSettings,
@@ -340,6 +347,18 @@ fn default_show_waveform() -> bool {
 }
 
 fn default_context_awareness_enabled() -> bool {
+    true
+}
+
+fn default_theme_mode() -> String {
+    "dark".to_string()
+}
+
+fn default_accent_color() -> String {
+    "zinc".to_string()
+}
+
+fn default_show_live_preview() -> bool {
     true
 }
 
@@ -687,6 +706,9 @@ pub fn get_default_settings() -> AppSettings {
         offline_llm_model: String::new(),
         context_awareness_enabled: default_context_awareness_enabled(),
         style_selection: HashMap::new(),
+        theme_mode: default_theme_mode(),
+        accent_color: default_accent_color(),
+        show_live_preview: default_show_live_preview(),
         cloud_transcription: default_cloud_transcription_settings(),
     }
 }
@@ -928,4 +950,34 @@ pub fn get_history_limit(app: &AppHandle) -> usize {
 pub fn get_recording_retention_period(app: &AppHandle) -> RecordingRetentionPeriod {
     let settings = get_settings(app);
     settings.recording_retention_period
+}
+
+#[cfg(test)]
+mod appearance_tests {
+    use super::*;
+
+    #[test]
+    fn appearance_defaults_match_previous_behavior() {
+        let settings = get_default_settings();
+        assert_eq!(settings.theme_mode, "dark");
+        assert_eq!(settings.accent_color, "zinc");
+        assert!(settings.show_live_preview);
+        assert!(settings.context_awareness_enabled);
+    }
+
+    #[test]
+    fn appearance_settings_deserialize_from_legacy_file() {
+        // Simulate a settings file written before the appearance keys existed.
+        let defaults = get_default_settings();
+        let mut value = serde_json::to_value(&defaults).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.remove("theme_mode");
+        obj.remove("accent_color");
+        obj.remove("show_live_preview");
+
+        let parsed: AppSettings = serde_json::from_value(value).unwrap();
+        assert_eq!(parsed.theme_mode, "dark");
+        assert_eq!(parsed.accent_color, "zinc");
+        assert!(parsed.show_live_preview);
+    }
 }

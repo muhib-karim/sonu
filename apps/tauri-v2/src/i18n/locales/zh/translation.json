@@ -11,7 +11,8 @@
     "postProcessing": "后处理",
     "history": "历史记录",
     "debug": "调试",
-    "about": "关于"
+    "about": "关于",
+    "appearance": "外观"
   },
   "onboarding": {
     "subtitle": "请选择一个转录模型以开始使用",
@@ -429,6 +430,29 @@
     "contextAwareness": {
       "label": "上下文感知听写",
       "description": "根据你正在输入的应用自动调整听写风格（例如在聊天中更随意，在邮件中更正式）。"
+    }
+  },
+  "appearance": {
+    "title": "外观",
+    "theme": {
+      "title": "主题",
+      "description": "选择 SONU 的外观。“跟随系统”会使用操作系统的设置。",
+      "modes": {
+        "light": "浅色",
+        "dark": "深色",
+        "system": "跟随系统"
+      }
+    },
+    "accent": {
+      "title": "强调色",
+      "description": "用于高亮、焦点环和激活状态。"
+    },
+    "recording": {
+      "title": "录音"
+    },
+    "livePreview": {
+      "label": "实时转写预览",
+      "description": "在录音悬浮窗中边说边显示文字。需要本地模型。"
     }
   }
 }

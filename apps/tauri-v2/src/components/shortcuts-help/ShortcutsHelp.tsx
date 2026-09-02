@@ -201,7 +201,7 @@ export const ShortcutsHelp: React.FC<ShortcutsHelpProps> = ({
               onClick={() => setActiveCategory(cat.id)}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                 activeCategory === cat.id
-                  ? "bg-primary text-white"
+                  ? "bg-accent text-accent-foreground"
                   : "text-text-secondary hover:text-text hover:bg-background"
               }`}
             >

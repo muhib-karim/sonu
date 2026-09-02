@@ -4,10 +4,41 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme {
-  /* SONU Design System - Professional Zinc Theme */
+/* Bundled Geist fonts */
+@font-face {
+  font-family: "Geist";
+  src: url("./assets/fonts/Geist-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist";
+  src: url("./assets/fonts/Geist-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist";
+  src: url("./assets/fonts/Geist-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("./assets/fonts/GeistMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
-  /* Brand Colors */
+/* SONU Design System - theme-reactive tokens.
+   Semantic colors resolve from scope variables set on <html>
+   (.dark default, .light override, [data-accent] accent). */
+@theme inline {
+  /* Brand Colors (static ramp) */
   --color-brand-50: #fafafa;
   --color-brand-100: #f4f4f5;
   --color-brand-200: #e4e4e7;
@@ -20,39 +51,39 @@
   --color-brand-900: #18181b;
   --color-brand-950: #09090b;
 
-  /* Semantic Colors */
-  --color-text: var(--color-brand-50);
-  --color-text-muted: var(--color-brand-400);
-  --color-text-disabled: var(--color-brand-600);
+  /* Semantic Colors (theme-reactive) */
+  --color-text: var(--app-text);
+  --color-text-muted: var(--app-text-muted);
+  --color-text-disabled: var(--app-text-disabled);
 
-  --color-background: var(--color-brand-950);
-  --color-background-elevated: var(--color-brand-900);
-  --color-background-pressed: var(--color-brand-800);
+  --color-background: var(--app-background);
+  --color-background-elevated: var(--app-background-elevated);
+  --color-background-pressed: var(--app-background-pressed);
 
-  --color-foreground: var(--color-brand-50);
-  --color-primary: var(--color-brand-400);
-  --color-primary-hover: var(--color-brand-300);
-  --color-primary-pressed: var(--color-brand-500);
+  --color-foreground: var(--app-text);
+  --color-primary: var(--app-primary);
+  --color-primary-hover: var(--app-primary-hover);
+  --color-primary-pressed: var(--app-primary-pressed);
 
-  --color-secondary: var(--color-brand-700);
-  --color-secondary-hover: var(--color-brand-600);
-  --color-secondary-pressed: var(--color-brand-800);
+  --color-secondary: var(--app-secondary);
+  --color-secondary-hover: var(--app-secondary-hover);
+  --color-secondary-pressed: var(--app-secondary-pressed);
 
-  /* Surface Colors */
-  --color-surface: #0e0e10;
-  --color-surface-hover: #18181a;
-  --color-surface-pressed: #1f1f22;
-  --color-card: #141416;
-  --color-card-hover: #1a1a1c;
-  --color-sidebar: #0c0c0e;
-  --color-popover: #0e0e10;
-  --color-popover-foreground: var(--color-brand-50);
+  /* Surface Colors (theme-reactive) */
+  --color-surface: var(--app-surface);
+  --color-surface-hover: var(--app-surface-hover);
+  --color-surface-pressed: var(--app-surface-pressed);
+  --color-card: var(--app-card);
+  --color-card-hover: var(--app-card-hover);
+  --color-sidebar: var(--app-sidebar);
+  --color-popover: var(--app-surface);
+  --color-popover-foreground: var(--app-text);
 
-  /* Border Colors */
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-hover: rgba(255, 255, 255, 0.12);
-  --color-border-focus: rgba(255, 255, 255, 0.2);
-  --color-ring: var(--color-brand-400);
+  /* Border Colors (theme-reactive) */
+  --color-border: var(--app-border);
+  --color-border-hover: var(--app-border-hover);
+  --color-border-focus: var(--app-border-focus);
+  --color-ring: var(--app-accent);
 
   /* Status Colors */
   --color-success: #22c55e;
@@ -64,17 +95,19 @@
   --color-info: #3b82f6;
   --color-info-hover: #2563eb;
 
-  /* Accent Colors */
-  --color-accent: var(--color-brand-400);
-  --color-accent-foreground: var(--color-brand-950);
-  --color-muted: var(--color-brand-800);
-  --color-muted-foreground: var(--color-brand-400);
+  /* Accent Colors (theme-reactive) */
+  --color-accent: var(--app-accent);
+  --color-accent-foreground: var(--app-accent-foreground);
+  --color-accent-soft: var(--app-accent-soft);
+  --color-muted: var(--app-muted);
+  --color-muted-foreground: var(--app-text-muted);
+  --color-mid-gray: var(--app-border-hover);
 
   /* Logo Specific Colors */
-  --color-logo-primary: var(--color-brand-400);
-  --color-logo-secondary: var(--color-brand-500);
-  --color-logo-stroke: var(--color-brand-600);
-  --color-logo-background: var(--color-brand-800);
+  --color-logo-primary: var(--app-accent);
+  --color-logo-secondary: var(--app-logo-secondary);
+  --color-logo-stroke: var(--app-logo-stroke);
+  --color-logo-background: var(--app-logo-background);
 
   /* Radius - Modern Subtle */
   --radius: 0.5rem;
@@ -112,12 +145,127 @@
   --animate-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* ---------- Dark theme (default) ---------- */
+:root,
+.dark {
+  --app-text: #fafafa;
+  --app-text-muted: #a1a1aa;
+  --app-text-disabled: #52525b;
+
+  --app-background: #0d0d0f;
+  --app-background-elevated: #18181b;
+  --app-background-pressed: #27272a;
+
+  --app-primary: #d4d4d8;
+  --app-primary-hover: #e4e4e7;
+  --app-primary-pressed: #a1a1aa;
+
+  --app-secondary: #3f3f46;
+  --app-secondary-hover: #52525b;
+  --app-secondary-pressed: #27272a;
+
+  --app-surface: #131316;
+  --app-surface-hover: #1c1c1f;
+  --app-surface-pressed: #232327;
+  --app-card: #17171a;
+  --app-card-hover: #1e1e22;
+  --app-sidebar: #101012;
+
+  --app-border: rgba(255, 255, 255, 0.08);
+  --app-border-hover: rgba(255, 255, 255, 0.14);
+  --app-border-focus: rgba(255, 255, 255, 0.22);
+
+  --app-muted: #27272a;
+
+  --app-logo-secondary: #71717a;
+  --app-logo-stroke: #52525b;
+  --app-logo-background: #27272a;
+
+  color-scheme: dark;
+}
+
+/* ---------- Light theme ---------- */
+.light {
+  --app-text: #18181b;
+  --app-text-muted: #52525b;
+  --app-text-disabled: #a1a1aa;
+
+  --app-background: #ececee;
+  --app-background-elevated: #f4f4f5;
+  --app-background-pressed: #e4e4e7;
+
+  --app-primary: #3f3f46;
+  --app-primary-hover: #27272a;
+  --app-primary-pressed: #52525b;
+
+  --app-secondary: #e4e4e7;
+  --app-secondary-hover: #d4d4d8;
+  --app-secondary-pressed: #e4e4e7;
+
+  --app-surface: #ffffff;
+  --app-surface-hover: #f4f4f5;
+  --app-surface-pressed: #e9e9ec;
+  --app-card: #ffffff;
+  --app-card-hover: #fafafa;
+  --app-sidebar: #f4f4f5;
+
+  --app-border: rgba(0, 0, 0, 0.08);
+  --app-border-hover: rgba(0, 0, 0, 0.14);
+  --app-border-focus: rgba(0, 0, 0, 0.22);
+
+  --app-muted: #e4e4e7;
+
+  --app-logo-secondary: #a1a1aa;
+  --app-logo-stroke: #d4d4d8;
+  --app-logo-background: #e4e4e7;
+
+  color-scheme: light;
+}
+
+/* ---------- Accent presets ---------- */
+[data-accent="zinc"] {
+  --app-accent: #a1a1aa;
+  --app-accent-foreground: #09090b;
+  --app-accent-soft: rgba(161, 161, 170, 0.16);
+}
+[data-accent="violet"] {
+  --app-accent: #8b5cf6;
+  --app-accent-foreground: #ffffff;
+  --app-accent-soft: rgba(139, 92, 246, 0.16);
+}
+[data-accent="blue"] {
+  --app-accent: #3b82f6;
+  --app-accent-foreground: #ffffff;
+  --app-accent-soft: rgba(59, 130, 246, 0.16);
+}
+[data-accent="green"] {
+  --app-accent: #22c55e;
+  --app-accent-foreground: #052e16;
+  --app-accent-soft: rgba(34, 197, 94, 0.16);
+}
+[data-accent="amber"] {
+  --app-accent: #f59e0b;
+  --app-accent-foreground: #451a03;
+  --app-accent-soft: rgba(245, 158, 11, 0.16);
+}
+[data-accent="rose"] {
+  --app-accent: #f43f5e;
+  --app-accent-foreground: #ffffff;
+  --app-accent-soft: rgba(244, 63, 94, 0.16);
+}
+/* Default accent if unset */
+:root:not([data-accent]) {
+  --app-accent: #a1a1aa;
+  --app-accent-foreground: #09090b;
+  --app-accent-soft: rgba(161, 161, 170, 0.16);
+}
+
 :root {
   /* Typography */
   font-size: 14px;
   line-height: 1.5;
   font-weight: 400;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
 
   /* Typography settings */
   font-synthesis: none;
@@ -126,37 +274,35 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
-  /* Colors - Dark theme by default */
   color: var(--color-text);
-  background-color: var(--color-background);
-
-  /* Scrollbar styling */
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-brand-700) var(--color-brand-900);
 }
 
-/* Custom Scrollbar for Webkit browsers */
+body {
+  background-color: var(--app-background);
+}
+
+/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-brand-900);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-brand-700);
+  background: var(--app-border-hover);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-brand-600);
+  background: var(--app-text-disabled);
 }
 
 /* Selection styling */
 ::selection {
-  background: var(--color-brand-700);
+  background: var(--app-accent-soft);
   color: var(--color-text);
 }
 

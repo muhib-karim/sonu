@@ -11,7 +11,8 @@
     "postProcessing": "Post Proceso",
     "history": "Historial",
     "debug": "Depuración",
-    "about": "Acerca de"
+    "about": "Acerca de",
+    "appearance": "Apariencia"
   },
   "onboarding": {
     "subtitle": "Para comenzar, elige un modelo de transcripción",
@@ -429,6 +430,29 @@
     "contextAwareness": {
       "label": "Dictado contextual",
       "description": "Adapta el estilo del dictado a la aplicación en la que escribes (por ejemplo, informal en mensajería, formal en correo)."
+    }
+  },
+  "appearance": {
+    "title": "Apariencia",
+    "theme": {
+      "title": "Tema",
+      "description": "Elige cómo se ve SONU. Sistema sigue la configuración de tu SO.",
+      "modes": {
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Sistema"
+      }
+    },
+    "accent": {
+      "title": "Color de acento",
+      "description": "Se usa para resaltados, anillos de foco y estados activos."
+    },
+    "recording": {
+      "title": "Grabación"
+    },
+    "livePreview": {
+      "label": "Vista previa de transcripción en vivo",
+      "description": "Muestra texto mientras hablas en la superposición de grabación. Requiere un modelo local."
     }
   }
 }

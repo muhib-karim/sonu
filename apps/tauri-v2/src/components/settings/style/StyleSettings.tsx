@@ -173,15 +173,15 @@ export const StyleSettings: React.FC = () => {
       <ContextAwarenessToggle grouped={false} />
 
       {/* Category Tabs */}
-      <div className="flex gap-6 border-b border-zinc-700 pb-3">
+      <div className="flex gap-6 border-b border-border pb-3">
         {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
             className={`text-sm font-medium pb-3 border-b-2 transition-colors ${
               activeCategory === cat.id
-                ? "border-zinc-400 text-zinc-100"
-                : "border-transparent text-zinc-500 hover:text-zinc-300"
+                ? "border-accent text-text"
+                : "border-transparent text-text-muted hover:text-text"
             }`}
           >
             {cat.label}
@@ -203,20 +203,20 @@ export const StyleSettings: React.FC = () => {
             onClick={() => selectStyle(style.id)}
             className={`p-4 border rounded-xl cursor-pointer transition-all ${
               selectedStyles[activeCategory] === style.id
-                ? "border-zinc-500 bg-zinc-800/50 shadow-sm"
-                : "border-zinc-700 hover:border-zinc-600"
+                ? "border-border-hover bg-surface-hover shadow-sm"
+                : "border-border hover:border-border"
             }`}
           >
             <div className="flex items-start justify-between mb-2">
               <div>
                 <h3 className="text-sm font-semibold">{style.name}</h3>
-                <p className="text-xs text-zinc-500">{style.description}</p>
+                <p className="text-xs text-text-muted">{style.description}</p>
               </div>
               <div
                 className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                   selectedStyles[activeCategory] === style.id
-                    ? "border-zinc-400 bg-zinc-400"
-                    : "border-zinc-600"
+                    ? "border-accent bg-accent"
+                    : "border-border"
                 }`}
               >
                 {selectedStyles[activeCategory] === style.id && (
@@ -224,7 +224,7 @@ export const StyleSettings: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="mt-3 p-3 bg-zinc-800/50 rounded-lg">
+            <div className="mt-3 p-3 bg-surface-hover rounded-lg">
               <p className="text-sm whitespace-pre-wrap">{style.example}</p>
             </div>
           </div>

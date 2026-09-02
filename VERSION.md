@@ -2,9 +2,9 @@
 
 ## Current Versions
 
-| Component | Version | Status |
-|-----------|---------|--------|
-| **Desktop v2 (Tauri)** | 2.3.0 | Stable |
+| Component              | Version | Status |
+| ---------------------- | ------- | ------ |
+| **Desktop v2 (Tauri)** | 2.4.0   | Stable |
 
 **Last Updated**: 2026-09-02
 
@@ -12,7 +12,17 @@
 
 ### Desktop v2 (Tauri)
 
-#### Version 2.3.0 (Current)
+#### Version 2.4.0 (Current)
+
+- Deep visual overhaul with bundled Geist Sans typography
+- Light, dark, and system themes with six accent color presets
+- New Appearance settings page with live preview and recording controls
+- Live local transcription preview while recording
+- Theme-reactive sidebar, settings groups, toggles, onboarding, and footer
+- E2E coverage for Appearance controls and navigation
+
+#### Version 2.3.0
+
 - Context-aware dictation: adapts LLM post-processing tone to the focused app
 - Command Mode: voice-rewrite selected text via global shortcut
 - Style settings persisted in the backend settings store and wired into the LLM pipeline
@@ -21,12 +31,14 @@
 - Documentation refresh: README, AI_FEATURES, stale-reference cleanup
 
 #### Version 2.2.1
+
 - Notes mic button: click-to-record with visual recording state
 - GitHub Actions: 3 clean workflows replacing 13 broken ones (CI, Build, Release)
 - Documentation overhaul: 35+ stale files removed, essential docs rewritten for Tauri v2
 - Legacy cleanup: removed Electron-era scripts, runtime artifacts, and stale feature flags
 
 #### Version 2.2.0
+
 - Cloud transcription feature with OpenAI, Groq, and custom provider support
 - Professional UI redesign (HomeSettings, CloudTranscriptionSettings, RecordingOverlay)
 - Utility class `cn()` for conditional Tailwind CSS merging
@@ -36,11 +48,13 @@
 - Graceful error handling for AppDataDirectory and model loading
 
 #### Version 2.1.0
+
 - Parakeet ASR engine integration
 - Offline LLM manager for local text processing
 - Full settings architecture with per-key updaters
 
 #### Version 2.0.0
+
 - Complete rewrite from Electron to Tauri + Rust
 - React 18 frontend with TypeScript, Tailwind CSS 4, Zustand
 - Specta-generated type-safe Tauri bindings
@@ -62,11 +76,11 @@ SONU follows [Semantic Versioning](https://semver.org/) (SemVer):
 
 ### Tauri App (v2)
 
-| File | Location |
-|------|----------|
-| `apps/tauri-v2/package.json` | `"version": "2.3.0"` |
-| `apps/tauri-v2/src-tauri/Cargo.toml` | `version = "2.3.0"` |
-| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.3.0"` |
+| File                                      | Location             |
+| ----------------------------------------- | -------------------- |
+| `apps/tauri-v2/package.json`              | `"version": "2.4.0"` |
+| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.4.0"`  |
+| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.4.0"` |
 
 ### Desktop App (Electron) — Removed
 
@@ -79,16 +93,16 @@ The Electron app no longer exists in this repository.
 3. **Version Bump**: Update version in all locations listed above
 4. **Changelog**: Document all changes in CHANGELOG.md
 5. **Commit**: Commit version changes
-6. **Tag**: Create git tag: `git tag v2.3.0`
+6. **Tag**: Create git tag: `git tag v2.4.0`
 7. **Build**: Build release: `bun run tauri build`
 8. **Release**: Push tag and create GitHub release
 
 ## Build Information
 
 ### Tauri v2
+
 - **Tauri**: 2.9.1
 - **Rust**: Edition 2021
 - **React**: 18.3.x
 - **TypeScript**: 5.6.x
 - **Bun**: Package manager
-

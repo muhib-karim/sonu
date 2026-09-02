@@ -12,7 +12,8 @@
     "postProcessing": "Xử lý sau",
     "history": "Lịch sử",
     "debug": "Gỡ lỗi",
-    "about": "Giới thiệu"
+    "about": "Giới thiệu",
+    "appearance": "Giao diện"
   },
   "onboarding": {
     "subtitle": "Để bắt đầu, hãy chọn một mô hình chuyển đổi giọng nói",
@@ -430,6 +431,29 @@
     "contextAwareness": {
       "label": "Nhập liệu giọng nói nhận biết ngữ cảnh",
       "description": "Điều chỉnh phong cách nhập liệu theo ứng dụng bạn đang gõ (ví dụ: thân mật trong tin nhắn, trang trọng trong email)."
+    }
+  },
+  "appearance": {
+    "title": "Giao diện",
+    "theme": {
+      "title": "Chủ đề",
+      "description": "Chọn giao diện của SONU. Hệ thống làm theo cài đặt hệ điều hành.",
+      "modes": {
+        "light": "Sáng",
+        "dark": "Tối",
+        "system": "Hệ thống"
+      }
+    },
+    "accent": {
+      "title": "Màu nhấn",
+      "description": "Dùng cho phần nổi bật, vòng focus và trạng thái hoạt động."
+    },
+    "recording": {
+      "title": "Ghi âm"
+    },
+    "livePreview": {
+      "label": "Xem trước phiên âm trực tiếp",
+      "description": "Hiển thị văn bản khi bạn đang nói trong lớp phủ ghi âm. Cần mô hình cục bộ."
     }
   }
 }

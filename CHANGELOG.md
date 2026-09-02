@@ -7,11 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-09-02
+
+### Added
+
+- Deep visual overhaul with bundled Geist Sans and Geist Mono fonts.
+- Light, dark, and system theme modes.
+- Six accent color presets: zinc, violet, blue, green, amber, and rose.
+- New Appearance settings page with theme preview and live-preview toggle.
+- Live local transcription preview in the recording overlay while speaking.
+- Incremental recorder peek path that does not stop or interrupt the final recording.
+- Theme-aware sidebar, settings groups, toggles, onboarding, and footer. The
+  recording overlay intentionally stays dark for contrast against any app.
+- E2E coverage for appearance controls and navigation.
+
+### Changed
+
+- Replaced hardcoded dark-only styling with semantic theme tokens.
+- Replaced mono-first application typography with bundled Geist Sans.
+- Kept cloud transcription out of live preview to avoid unexpected API usage;
+  cloud-only mode continues to show the waveform while recording.
+
+### Fixed
+
+- Legacy hardcoded surfaces and controls now follow the selected theme.
+
+---
+
 ## [2.3.0] - 2026-09-02
 
 ### Tauri App - Context-Aware Dictation & Command Mode
 
 ### Added
+
 - **Context-aware dictation**: SONU detects the focused application and adapts
   LLM post-processing tone accordingly (casual in messengers, professional in
   work chat, formal in email). Per-category styles from the Style settings are
@@ -28,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   support for all 12 languages.
 
 ### Changed
+
 - **Licensing WIP removed**: the repository remains 100% free and open-source;
   an unmerged paid-license experiment was fully reverted.
 - Project branding hygiene: outgoing LLM HTTP headers now identify as SONU.
@@ -35,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deleted Electron app, self-hosted server, and legacy plan folders.
 
 ### Fixed
+
 - `prettier --check` failed locally on Windows due to CRLF line endings
   (`.prettierrc` now uses `endOfLine: "auto"`, matching CI behavior).
 - `.prettierignore` now excludes alternate cargo target directories.
@@ -46,18 +76,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tauri App - CI/CD & Documentation Cleanup
 
 ### Added
+
 - **Notes mic button**: Click-to-record with visual recording state (red pulse animation), uses typed `commands` API
 - **CI workflow** (`.github/workflows/ci.yml`): Lint, format, typecheck, Vitest, cargo fmt/clippy on push/PR
 - **Build workflow** (`.github/workflows/build.yml`): Reusable multi-platform Tauri build (6 targets, Vulkan SDK, code signing, AppImage patching)
 - **Release workflow** (`.github/workflows/release.yml`): Manual dispatch → draft release → 6-platform build → update manifest → publish
 
 ### Removed
+
 - **13 broken GitHub Actions workflows**: All used non-existent `dtolnay/rust-action`, wrong Tauri v1 libs, dead paths, deprecated actions, invalid CodeQL, or massive redundancy
 - **35+ stale documentation files**: Legacy Electron-era reports, completion docs, strategy docs, implementation guides
 - **Legacy scripts**: `auto_screenshot.js`, `verify_downloader.js`, `model_downloader.py`, `check_llm.py`, `translation_service.py`, `run_sonu.bat`
 - **Runtime artifacts**: `logs/`, `plans/`, `custom_models_test/`, `config.json`, `history.json`
 
 ### Changed
+
 - **ARCHITECTURE.md**: Rewritten for Tauri v2 (Rust + React architecture diagram)
 - **INSTALL.md**: Rewritten with 6-platform download table and build-from-source instructions
 - **CONTRIBUTING.md**: Rewritten with Bun/Vitest/Cargo dev setup
@@ -71,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tauri App - Cloud Transcription & UI Polish Release
 
 ### Added
+
 - **Cloud Transcription**: Full cloud transcription feature with provider support
   - OpenAI Whisper API integration
   - Groq (Whisper Large v3) integration
@@ -83,12 +117,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Graceful error handling**: AppDataDirectory and model loading show friendly messages instead of raw errors
 
 ### Changed
+
 - **HomeSettings**: Gradient text hero, animated mode badge with pulse dot, hover lift on stat cards, corner glow effects
 - **RecordingOverlay**: Smooth entrance animation, refined cancel button states, checkmark glow, cloud indicator gradient
 - **Version sync**: All version files (package.json, Cargo.toml, tauri.conf.json) now consistently at 2.2.0
 - **Footer**: Correct fallback version display (2.2.0)
 
 ### Fixed
+
 - **App.tsx blank screen**: Restored missing state declarations (`useState`, `useShortcutsHelp` hook) that were replaced with placeholder comments
 - **`write_settings` signature**: Fixed ownership semantics across 41 call sites (`&mut AppSettings` → `mut settings: AppSettings`)
 - **Test infrastructure**: Updated test mocks to use real Tauri command names (`getAppSettings`, per-key updaters) with proper Result wrappers
@@ -104,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Desktop App (Electron) - Security & Maintenance Release
 
 ### Security
+
 - **CRITICAL**: Implemented comprehensive input validation module (`src/utils/validation.js`)
   - Model ID whitelist validation prevents injection attacks
   - Path traversal protection blocks `../` and control characters
@@ -120,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HIGH**: ESLint security rules block dangerous functions (`eval`, `exec`, `new Function`)
 
 ### Added
+
 - ESLint configuration with 100+ rules for code quality and security
 - Window state persistence service (`src/services/windowState.js`)
   - Saves and restores window position and size
@@ -129,12 +167,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - npm scripts: `lint` and `lint:fix`
 
 ### Changed
+
 - Consolidated to single entry point (removed duplicate `src/main/index.js`)
 - Updated `src/utils/index.js` to export errorHandler and validation modules
 - Extended constants with timeout values for various operations
 - Pre-commit hook now runs linting before tests
 
 ### Removed
+
 - **40+ debug and test files** from repository:
   - All `test*.js` files
   - All `debug*.js` files
@@ -145,6 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Personal information from repository (paths, usernames)
 
 ### Fixed
+
 - Python process spawning now has proper try/catch error handling
 - Global shortcut registration checks return values
 - Window manager consolidated (removed duplicate implementations)
@@ -156,6 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tauri App - Testing & Quality Release
 
 ### Added
+
 - Comprehensive Rust unit tests for transcription manager (`transcription_tests.rs`)
   - Model state tracking tests (8 test cases)
   - Transcription options validation tests
@@ -170,6 +212,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Total: 500+ lines of test code
 
 ### Security
+
 - Input validation for all model IDs (whitelist approach)
 - Path traversal protection in model loading
 - Settings range validation

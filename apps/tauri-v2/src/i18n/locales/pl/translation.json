@@ -11,7 +11,8 @@
     "postProcessing": "Postproces",
     "history": "Historia",
     "debug": "Debugowanie",
-    "about": "O programie"
+    "about": "O programie",
+    "appearance": "Wygląd"
   },
   "onboarding": {
     "subtitle": "Aby rozpocząć, wybierz model transkrypcji",
@@ -429,6 +430,29 @@
     "contextAwareness": {
       "label": "Dykowanie świadome kontekstu",
       "description": "Dostosowuje styl dyktowania do aplikacji, w której piszesz (np. swobodny w komunikatorach, formalny w e-mailach)."
+    }
+  },
+  "appearance": {
+    "title": "Wygląd",
+    "theme": {
+      "title": "Motyw",
+      "description": "Wybierz wygląd SONU. Systemowy stosuje się do ustawień systemu operacyjnego.",
+      "modes": {
+        "light": "Jasny",
+        "dark": "Ciemny",
+        "system": "Systemowy"
+      }
+    },
+    "accent": {
+      "title": "Kolor akcentu",
+      "description": "Używany do wyróżnień, obwódek fokusu i stanów aktywnych."
+    },
+    "recording": {
+      "title": "Nagrywanie"
+    },
+    "livePreview": {
+      "label": "Podgląd transkrypcji na żywo",
+      "description": "Pokazuje tekst podczas mówienia w nakładce nagrywania. Wymaga modelu lokalnego."
     }
   }
 }

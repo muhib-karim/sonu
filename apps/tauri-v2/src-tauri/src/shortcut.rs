@@ -382,6 +382,42 @@ pub fn change_context_awareness_setting(app: AppHandle, enabled: bool) -> Result
     Ok(())
 }
 
+const VALID_THEME_MODES: &[&str] = &["light", "dark", "system"];
+const VALID_ACCENT_COLORS: &[&str] = &["zinc", "violet", "blue", "green", "amber", "rose"];
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_theme_mode_setting(app: AppHandle, mode: String) -> Result<(), String> {
+    if !VALID_THEME_MODES.contains(&mode.as_str()) {
+        return Err(format!("Invalid theme mode '{}'", mode));
+    }
+    let mut settings = settings::get_settings(&app);
+    settings.theme_mode = mode;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_accent_color_setting(app: AppHandle, color: String) -> Result<(), String> {
+    if !VALID_ACCENT_COLORS.contains(&color.as_str()) {
+        return Err(format!("Invalid accent color '{}'", color));
+    }
+    let mut settings = settings::get_settings(&app);
+    settings.accent_color = color;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_show_live_preview_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.show_live_preview = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn set_style_selection(

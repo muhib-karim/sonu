@@ -11,6 +11,7 @@ import Footer from "./components/footer";
 import Onboarding from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { useSettings } from "./hooks/useSettings";
+import { useTheme, resolvedTheme } from "./hooks/useTheme";
 import { commands } from "@/bindings";
 
 const renderSettingsContent = (section: SidebarSection) => {
@@ -27,6 +28,9 @@ function App() {
     useShortcutsHelp();
   const { settings } = useSettings();
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useTheme();
+  const theme = resolvedTheme(settings?.theme_mode);
 
   // Check if onboarding is needed
   useEffect(() => {
@@ -56,8 +60,8 @@ function App() {
   if (showOnboarding) {
     return (
       <ErrorBoundary>
-        <div className="dark h-screen flex flex-col select-none cursor-default bg-transparent">
-          <Toaster theme="dark" />
+        <div className="h-screen flex flex-col select-none cursor-default bg-background">
+          <Toaster theme={theme} />
           <Onboarding onModelSelected={() => setShowOnboarding(false)} />
         </div>
       </ErrorBoundary>
@@ -66,7 +70,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="dark h-screen flex flex-col select-none cursor-default bg-transparent">
+      <div className="h-screen flex flex-col select-none cursor-default bg-background">
         {/* Custom Drag Region / Title Bar Overlay */}
         <div
           className="fixed top-0 left-0 w-full h-8 z-50 bg-transparent"
@@ -75,12 +79,12 @@ function App() {
         />
 
         <Toaster
-          theme="dark"
+          theme={theme}
           toastOptions={{
             unstyled: true,
             classNames: {
               toast:
-                "bg-surface/90 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 text-sm text-text",
+                "bg-surface/90 backdrop-blur-md border border-border rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 text-sm text-text",
               title: "font-medium",
               description: "text-mid-gray",
             },
@@ -94,7 +98,7 @@ function App() {
         />
 
         {/* Main content area */}
-        <div className="flex-1 flex overflow-hidden rounded-xl border border-white/[0.08] bg-background/80 backdrop-blur-xl m-2 shadow-2xl relative">
+        <div className="flex-1 flex overflow-hidden rounded-xl border border-border bg-background/80 backdrop-blur-xl m-2 shadow-2xl relative">
           <Sidebar
             activeSection={currentSection}
             onSectionChange={setCurrentSection}

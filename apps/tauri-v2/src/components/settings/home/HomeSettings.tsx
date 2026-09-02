@@ -32,7 +32,7 @@ const StatCard: React.FC<{
   value: string;
   gradient: string;
 }> = ({ icon, label, value, gradient }) => (
-  <div className="group relative flex flex-col gap-2.5 p-4 bg-surface rounded-xl border border-white/[0.06] hover:border-white/[0.14] transition-all duration-300 min-w-[130px] flex-1 overflow-hidden hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20">
+  <div className="group relative flex flex-col gap-2.5 p-4 bg-surface rounded-xl border border-border hover:border-border-hover transition-all duration-300 min-w-[130px] flex-1 overflow-hidden hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20">
     {/* Top gradient accent — always visible at low opacity, full on hover */}
     <div
       className={cn(
@@ -155,7 +155,7 @@ export const HomeSettings: React.FC = () => {
   return (
     <div className="flex flex-col gap-5 w-full max-w-3xl">
       {/* ── Hero Section ──────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-gradient-to-br from-indigo-500/[0.06] via-surface to-purple-500/[0.04] p-6">
+      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-indigo-500/[0.06] via-surface to-purple-500/[0.04] p-6">
         {/* Background decoration */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-500/[0.08] to-transparent rounded-full blur-3xl -translate-y-1/3 translate-x-1/4 pointer-events-none animate-pulse" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-500/[0.06] to-transparent rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
@@ -258,7 +258,7 @@ export const HomeSettings: React.FC = () => {
       </SettingsGroup>
 
       {/* ── Privacy Card ──────────────────────────────────────────────── */}
-      <div className="group flex items-start gap-3 p-4 rounded-xl bg-surface border border-white/[0.06] hover:border-emerald-500/20 transition-all duration-300">
+      <div className="group flex items-start gap-3 p-4 rounded-xl bg-surface border border-border hover:border-emerald-500/20 transition-all duration-300">
         <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0 group-hover:bg-emerald-500/15 transition-colors duration-300">
           <Shield className="w-4.5 h-4.5" />
         </div>
@@ -279,18 +279,18 @@ export const HomeSettings: React.FC = () => {
       {history.length > 0 && (
         <div className="space-y-2">
           <div className="px-1 flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
               {t("home.history.title", "Recent")}
             </h3>
             <span className="text-[10px] text-text/20 tabular-nums">
               {history.length} {history.length === 1 ? "entry" : "entries"}
             </span>
           </div>
-          <div className="rounded-xl border border-white/[0.06] bg-surface overflow-hidden divide-y divide-white/[0.04]">
+          <div className="rounded-xl border border-border bg-surface overflow-hidden divide-y divide-border">
             {history.slice(0, 5).map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-start gap-4 py-3 px-4 hover:bg-white/[0.03] cursor-pointer group transition-all duration-200 active:bg-white/[0.05]"
+                className="flex items-start gap-4 py-3 px-4 hover:bg-surface-hover cursor-pointer group transition-all duration-200 active:bg-surface-pressed"
                 onClick={() => copyToClipboard(entry.transcription_text)}
               >
                 <span className="text-[11px] text-text/30 min-w-[52px] mt-0.5 font-mono tabular-nums">

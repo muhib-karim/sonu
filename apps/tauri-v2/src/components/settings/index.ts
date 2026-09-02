@@ -10,6 +10,7 @@ export { CloudTranscriptionSettings } from "./cloud-transcription/CloudTranscrip
 
 // SONU custom pages
 export { HomeSettings } from "./home/HomeSettings";
+export { AppearanceSettings } from "./appearance/AppearanceSettings";
 export { DictionarySettings } from "./dictionary/DictionarySettings";
 export { SnippetsSettings } from "./snippets/SnippetsSettings";
 export { NotesSettings } from "./notes/NotesSettings";

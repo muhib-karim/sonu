@@ -8,7 +8,7 @@
 
 **Type at the speed of thought. Fully offline. Fully private.**
 
-[![Latest Release](https://img.shields.io/badge/Latest-v2.2.1-6366f1?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases/latest)
+[![Latest Release](https://img.shields.io/badge/Latest-v2.4.0-6366f1?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/muhib-karim/sonu/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/muhib-karim/sonu?style=for-the-badge&color=f59e0b)](https://github.com/muhib-karim/sonu)
@@ -24,7 +24,7 @@
 
 <div align="center">
 
-**Built with Tauri v2 (Rust) + React** — *Dictate anywhere, your words appear instantly in any application.*
+**Built with Tauri v2 (Rust) + React** — _Dictate anywhere, your words appear instantly in any application._
 
 </div>
 
@@ -37,12 +37,14 @@
 <td width="50%">
 
 ### 🔒 100% Offline & Private
+
 All transcription runs **locally on your device**. No audio ever leaves your machine. No accounts, no cloud, no subscriptions. Your voice stays yours.
 
 </td>
 <td width="50%">
 
 ### ⚡ Real-Time Transcription
+
 Powered by optimized **whisper.cpp** and **Parakeet** engines for blazing-fast, real-time voice-to-text. Start speaking and see words appear instantly.
 
 </td>
@@ -51,12 +53,14 @@ Powered by optimized **whisper.cpp** and **Parakeet** engines for blazing-fast, 
 <td width="50%">
 
 ### 🤖 AI Text Enhancement
+
 Optional **LLM post-processing** cleans up filler words, fixes grammar, and formats your text — all locally with offline models, or via cloud providers.
 
 </td>
 <td width="50%">
 
 ### 🌍 50+ Languages
+
 Transcribe in over 50 languages with automatic language detection. Switch languages on the fly or lock to a specific one.
 
 </td>
@@ -65,12 +69,14 @@ Transcribe in over 50 languages with automatic language detection. Switch langua
 <td width="50%">
 
 ### ⌨️ Universal Auto-Type
+
 SONU types directly into **any application** — your browser, IDE, email client, Slack, Discord, Word — anywhere you can type.
 
 </td>
 <td width="50%">
 
 ### 🧠 Context-Aware Dictation
+
 SONU detects the **app you're typing in** and adapts tone and formatting automatically — casual in messengers, formal in email, code-safe in your IDE.
 
 </td>
@@ -79,12 +85,14 @@ SONU detects the **app you're typing in** and adapts tone and formatting automat
 <td width="50%">
 
 ### ✨ Command Mode
-Select any text, press the Command Mode shortcut, and speak an instruction like *"make this more concise"* — your voice-driven AI rewrites it in place.
+
+Select any text, press the Command Mode shortcut, and speak an instruction like _"make this more concise"_ — your voice-driven AI rewrites it in place.
 
 </td>
 <td width="50%">
 
 ### ☁️ Cloud Transcription (Optional)
+
 Connect to **Groq**, **Deepgram**, or any **custom API endpoint** for cloud-powered transcription when you want maximum accuracy.
 
 </td>
@@ -93,12 +101,14 @@ Connect to **Groq**, **Deepgram**, or any **custom API endpoint** for cloud-powe
 <td width="50%">
 
 ### 📚 Smart Dictionary
+
 Custom word corrections automatically fix domain-specific terms, names, and jargon that the model might mishear.
 
 </td>
 <td width="50%">
 
 ### 📝 Snippets & Text Expansion
+
 Define shorthand codes that expand into full text blocks — perfect for emails, code comments, addresses, and common phrases.
 
 </td>
@@ -111,7 +121,19 @@ Define shorthand codes that expand into full text blocks — perfect for emails,
 
 <div align="center">
 
-> **SONU v2.2.0** — Built with Tauri v2 (Rust + React). Lightweight, native, and fast.
+> **SONU v2.4.0** — Built with Tauri v2 (Rust + React). Lightweight, native, and fast.
+
+### Appearance & responsiveness
+
+SONU ships with bundled Geist typography, light/dark/system themes, six accent
+presets, semantic design tokens, and a low-latency floating recording overlay.
+The local live preview begins showing text while you speak; the final pass keeps
+full accuracy and existing AI enhancement behavior.
+
+![SONU dark theme dashboard](apps/tauri-v2/shot-dark-home.png)
+
+> The screenshot above is captured from the Windows Tauri v2 app. More theme
+> screenshots will be added as part of the cross-platform visual QA pass.
 
 ### 🏠 Home Dashboard
 
@@ -127,7 +149,7 @@ Voice-powered sticky notes with **color-coded cards** (6 colors), **search**, **
 
 ### 🎨 Style
 
-Choose AI dictation style presets organized by category: *Personal*, *Work*, *Email*, *Other*. Each style (Casual, Professional, Technical, Creative, etc.) transforms your raw transcription with LLM post-processing.
+Choose AI dictation style presets organized by category: _Personal_, _Work_, _Email_, _Other_. Each style (Casual, Professional, Technical, Creative, etc.) transforms your raw transcription with LLM post-processing.
 
 ### ⚙️ Settings
 
@@ -147,26 +169,26 @@ Choose AI dictation style presets organized by category: *Personal*, *Work*, *Em
 
 ## 🏆 How SONU Compares
 
-| Feature | SONU | Wispr Flow | Superwhisper | macOS Dictation |
-|---------|:----:|:----------:|:------------:|:---------------:|
-| **Fully offline** | ✅ | ❌ | ✅ | Partial |
-| **Open source** | ✅ | ❌ | ❌ | ❌ |
-| **Free forever** | ✅ | ❌ ($10/mo) | ❌ ($8/mo) | ✅ |
-| **Windows + macOS + Linux** | ✅ | macOS only | macOS only | macOS only |
-| **50+ languages** | ✅ | ✅ | ✅ | ✅ |
-| **Custom dictionary** | ✅ | ❌ | ❌ | ❌ |
-| **Text snippets** | ✅ | ❌ | ❌ | ❌ |
-| **AI text enhancement** | ✅ | ✅ | ✅ | ❌ |
-| **Offline LLM support** | ✅ | ❌ | ❌ | ❌ |
-| **Context-aware dictation** | ✅ | ❌ | ✅ | ❌ |
-| **Command Mode (voice rewrite)** | ✅ | ❌ | ❌ | ❌ |
-| **Cloud transcription option** | ✅ | ✅ | ✅ | ✅ |
-| **Custom API endpoint / self-hosted** | ✅ | ❌ | ❌ | ❌ |
-| **Voice notes** | ✅ | ❌ | ✅ | ❌ |
-| **Push-to-talk + toggle** | ✅ | ✅ | ✅ | ✅ |
-| **Auto-type into any app** | ✅ | ✅ | ✅ | ✅ |
-| **Multiple Whisper models** | ✅ (tiny → large-v3) | ❌ | ✅ | ❌ |
-| **Themes & customization** | ✅ | Limited | Limited | ❌ |
+| Feature                               |         SONU         | Wispr Flow  | Superwhisper | macOS Dictation |
+| ------------------------------------- | :------------------: | :---------: | :----------: | :-------------: |
+| **Fully offline**                     |          ✅          |     ❌      |      ✅      |     Partial     |
+| **Open source**                       |          ✅          |     ❌      |      ❌      |       ❌        |
+| **Free forever**                      |          ✅          | ❌ ($10/mo) |  ❌ ($8/mo)  |       ✅        |
+| **Windows + macOS + Linux**           |          ✅          | macOS only  |  macOS only  |   macOS only    |
+| **50+ languages**                     |          ✅          |     ✅      |      ✅      |       ✅        |
+| **Custom dictionary**                 |          ✅          |     ❌      |      ❌      |       ❌        |
+| **Text snippets**                     |          ✅          |     ❌      |      ❌      |       ❌        |
+| **AI text enhancement**               |          ✅          |     ✅      |      ✅      |       ❌        |
+| **Offline LLM support**               |          ✅          |     ❌      |      ❌      |       ❌        |
+| **Context-aware dictation**           |          ✅          |     ❌      |      ✅      |       ❌        |
+| **Command Mode (voice rewrite)**      |          ✅          |     ❌      |      ❌      |       ❌        |
+| **Cloud transcription option**        |          ✅          |     ✅      |      ✅      |       ✅        |
+| **Custom API endpoint / self-hosted** |          ✅          |     ❌      |      ❌      |       ❌        |
+| **Voice notes**                       |          ✅          |     ❌      |      ✅      |       ❌        |
+| **Push-to-talk + toggle**             |          ✅          |     ✅      |      ✅      |       ✅        |
+| **Auto-type into any app**            |          ✅          |     ✅      |      ✅      |       ✅        |
+| **Multiple Whisper models**           | ✅ (tiny → large-v3) |     ❌      |      ✅      |       ❌        |
+| **Themes & customization**            |          ✅          |   Limited   |   Limited    |       ❌        |
 
 ---
 
@@ -176,11 +198,11 @@ Choose AI dictation style presets organized by category: *Personal*, *Work*, *Em
 
 ### Get SONU for your platform
 
-| Platform | Download | Architecture |
-|:--------:|:--------:|:------------:|
-| <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" /> | **[Download Installer (.exe)](https://github.com/muhib-karim/sonu/releases/latest)** | x64, ARM64 |
-| <img src="https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white" /> | **[Download DMG](https://github.com/muhib-karim/sonu/releases/latest)** | Intel (x64) + Apple Silicon (ARM64) |
-| <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" /> | **[Download AppImage / .deb / .rpm](https://github.com/muhib-karim/sonu/releases/latest)** | x64 |
+|                                                 Platform                                                 |                                          Download                                          |            Architecture             |
+| :------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------: | :---------------------------------: |
+| <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" /> |    **[Download Installer (.exe)](https://github.com/muhib-karim/sonu/releases/latest)**    |             x64, ARM64              |
+|   <img src="https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white" />   |          **[Download DMG](https://github.com/muhib-karim/sonu/releases/latest)**           | Intel (x64) + Apple Silicon (ARM64) |
+|   <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" />   | **[Download AppImage / .deb / .rpm](https://github.com/muhib-karim/sonu/releases/latest)** |                 x64                 |
 
 [![Download Latest](https://img.shields.io/github/v/release/muhib-karim/sonu?style=for-the-badge&label=Download%20Latest&color=6366f1)](https://github.com/muhib-karim/sonu/releases/latest)
 [![Total Downloads](https://img.shields.io/github/downloads/muhib-karim/sonu/total?style=for-the-badge&label=Downloads&color=22c55e)](https://github.com/muhib-karim/sonu/releases)
@@ -225,14 +247,14 @@ Choose AI dictation style presets organized by category: *Personal*, *Work*, *Em
 
 SONU supports multiple speech recognition engines and models:
 
-| Model | Size | Speed | Accuracy | Best For |
-|-------|------|-------|----------|----------|
-| **tiny** | 75 MB | ⚡⚡⚡⚡⚡ | ★★☆☆☆ | Quick notes, low-resource machines |
-| **base** | 142 MB | ⚡⚡⚡⚡ | ★★★☆☆ | Everyday dictation |
-| **small** | 466 MB | ⚡⚡⚡ | ★★★★☆ | Professional use |
-| **medium** | 1.5 GB | ⚡⚡ | ★★★★☆ | High-accuracy work |
-| **large-v3** | 3.1 GB | ⚡ | ★★★★★ | Maximum accuracy |
-| **Parakeet 0.6B** | 600 MB | ⚡⚡⚡⚡ | ★★★★★ | English — best speed/accuracy ratio |
+| Model             | Size   | Speed      | Accuracy | Best For                            |
+| ----------------- | ------ | ---------- | -------- | ----------------------------------- |
+| **tiny**          | 75 MB  | ⚡⚡⚡⚡⚡ | ★★☆☆☆    | Quick notes, low-resource machines  |
+| **base**          | 142 MB | ⚡⚡⚡⚡   | ★★★☆☆    | Everyday dictation                  |
+| **small**         | 466 MB | ⚡⚡⚡     | ★★★★☆    | Professional use                    |
+| **medium**        | 1.5 GB | ⚡⚡       | ★★★★☆    | High-accuracy work                  |
+| **large-v3**      | 3.1 GB | ⚡         | ★★★★★    | Maximum accuracy                    |
+| **Parakeet 0.6B** | 600 MB | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
 
 Models download automatically on first use. All processing stays local.
 
@@ -253,15 +275,15 @@ SONU/
 
 ### Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Desktop Framework** | [Tauri v2](https://v2.tauri.app) (Rust) |
-| **Frontend** | React 18, TypeScript, TailwindCSS |
-| **Speech Engine** | [whisper.cpp](https://github.com/ggerganov/whisper.cpp), Parakeet TDT |
-| **AI Enhancement** | Local LLM (GGUF) + Cloud providers (OpenAI, Groq, etc.) |
-| **Cloud Transcription** | Groq, Deepgram, Custom API endpoints |
-| **Security** | OS Keychain, Context Isolation, CSP, Input Validation |
-| **Testing** | Vitest, Playwright, Rust tests, GitHub Actions CI |
+| Layer                   | Technology                                                            |
+| ----------------------- | --------------------------------------------------------------------- |
+| **Desktop Framework**   | [Tauri v2](https://v2.tauri.app) (Rust)                               |
+| **Frontend**            | React 18, TypeScript, TailwindCSS                                     |
+| **Speech Engine**       | [whisper.cpp](https://github.com/ggerganov/whisper.cpp), Parakeet TDT |
+| **AI Enhancement**      | Local LLM (GGUF) + Cloud providers (OpenAI, Groq, etc.)               |
+| **Cloud Transcription** | Groq, Deepgram, Custom API endpoints                                  |
+| **Security**            | OS Keychain, Context Isolation, CSP, Input Validation                 |
+| **Testing**             | Vitest, Playwright, Rust tests, GitHub Actions CI                     |
 
 ---
 
@@ -307,7 +329,7 @@ bun run typecheck     # TypeScript check
 ### Self-Hosted / Custom Transcription
 
 SONU can send audio to any transcription endpoint you control. Go to
-**Settings → Cloud**, pick the *Custom / Self-Hosted* provider, and point it
+**Settings → Cloud**, pick the _Custom / Self-Hosted_ provider, and point it
 at your own OpenAI-compatible API endpoint. Nothing is routed through us.
 
 ---
@@ -374,16 +396,16 @@ See [AGENTS.md](AGENTS.md) for development guidelines and coding conventions.
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
-| [AGENTS.md](AGENTS.md) | AI assistant guidelines & build commands |
-| [CHANGELOG.md](CHANGELOG.md) | Version history & release notes |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture overview |
-| [INSTALL.md](INSTALL.md) | Installation guide |
-| [docs/AI_FEATURES.md](docs/AI_FEATURES.md) | AI post-processing & context-aware dictation |
-| [docs/BRAND_GUIDELINES.md](docs/BRAND_GUIDELINES.md) | Brand & logo usage |
-| [docs/TAURI_V2_MIGRATION_GUIDE.md](docs/TAURI_V2_MIGRATION_GUIDE.md) | Tauri v2 migration guide |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+| Document                                                             | Description                                  |
+| -------------------------------------------------------------------- | -------------------------------------------- |
+| [AGENTS.md](AGENTS.md)                                               | AI assistant guidelines & build commands     |
+| [CHANGELOG.md](CHANGELOG.md)                                         | Version history & release notes              |
+| [ARCHITECTURE.md](ARCHITECTURE.md)                                   | Technical architecture overview              |
+| [INSTALL.md](INSTALL.md)                                             | Installation guide                           |
+| [docs/AI_FEATURES.md](docs/AI_FEATURES.md)                           | AI post-processing & context-aware dictation |
+| [docs/BRAND_GUIDELINES.md](docs/BRAND_GUIDELINES.md)                 | Brand & logo usage                           |
+| [docs/TAURI_V2_MIGRATION_GUIDE.md](docs/TAURI_V2_MIGRATION_GUIDE.md) | Tauri v2 migration guide                     |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                                   | Contribution guidelines                      |
 
 ---
 
