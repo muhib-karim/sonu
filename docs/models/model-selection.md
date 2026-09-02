@@ -2,62 +2,67 @@
 
 SONU supports multiple AI models for speech recognition and text processing. This guide helps you choose the right model for your needs.
 
+> **Note on sizes:** Sizes below are the actual download sizes served by SONU's model
+> catalog (see `apps/tauri-v2/src-tauri/src/managers/model.rs`). Most Whisper models are
+> quantized ggml builds, so they are smaller than the upstream fp16 releases.
+
 ## Quick Comparison
 
-| Model | Size | Speed | Accuracy | VRAM | Best For |
-|-------|------|-------|----------|------|----------|
-| Whisper Tiny | 39 MB | ⚡⚡⚡⚡⚡ | ⭐⭐⭐ | 1 GB | Quick notes, testing |
-| Whisper Base | 74 MB | ⚡⚡⚡⚡ | ⭐⭐⭐⭐ | 1 GB | General use |
-| Whisper Small | 244 MB | ⚡⚡⚡ | ⭐⭐⭐⭐⭐ | 2 GB | Balanced performance |
-| Whisper Medium | 769 MB | ⚡⚡ | ⭐⭐⭐⭐⭐⭐ | 5 GB | High accuracy |
-| Whisper Large | 1.5 GB | ⚡ | ⭐⭐⭐⭐⭐⭐⭐ | 10 GB | Maximum accuracy |
-| Parakeet | 600 MB | ⚡⚡⚡⚡⚡ | ⭐⭐⭐⭐⭐ | 2 GB | GPU acceleration |
+| Model              | Download Size | Speed      | Accuracy | Best For                            |
+| ------------------ | ------------- | ---------- | -------- | ----------------------------------- |
+| **Moonshine Base** | 58 MB         | ⚡⚡⚡⚡⚡ | ★★★☆☆    | Ultra-light English dictation       |
+| **Whisper Small**  | 487 MB        | ⚡⚡⚡⚡   | ★★★☆☆    | Everyday multilingual dictation     |
+| **Whisper Medium** | 492 MB        | ⚡⚡⚡     | ★★★★☆    | High-accuracy work (quantized)      |
+| **Whisper Large**  | 1.1 GB        | ⚡         | ★★★★★    | Maximum accuracy (quantized)        |
+| **Whisper Turbo**  | 1.6 GB        | ⚡⚡       | ★★★★☆    | Large-v3 speed/accuracy balance     |
+| **Parakeet V2**    | 473 MB        | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
+| **Parakeet V3**    | 478 MB        | ⚡⚡⚡⚡   | ★★★★☆    | Multilingual, fast and accurate     |
 
 ## Whisper Models
 
-### Tiny (Recommended for Beginners)
-- **Size**: 39 MB
-- **Download**: ~10 seconds on fast connection
-- **Features**: Multilingual, fastest
-- **Use Cases**: Testing, quick notes, low-resource devices
-- **Performance**: Real-time on most systems
-
-### Base (Recommended for Most Users)
-- **Size**: 74 MB
-- **Download**: ~20 seconds
-- **Features**: Multilingual, good accuracy
+### Small (Recommended for Most Users)
+- **Download Size**: 487 MB
+- **Features**: Multilingual, fast
 - **Use Cases**: General voice typing, dictation
-- **Performance**: Near real-time
-
-### Small (Recommended for Professionals)
-- **Size**: 244 MB
-- **Download**: ~1 minute
-- **Features**: Multilingual, high accuracy
-- **Use Cases**: Professional transcription, long documents
 - **Performance**: Good balance of speed and accuracy
 
 ### Medium (Recommended for High-Accuracy Needs)
-- **Size**: 769 MB
-- **Download**: ~3 minutes
+- **Download Size**: 492 MB (Q4 quantized)
 - **Features**: Multilingual, very high accuracy
 - **Use Cases**: Legal/medical transcription, accessibility
 - **Performance**: Slower but more accurate
 
 ### Large (Recommended for Maximum Accuracy)
-- **Size**: 1.5 GB
-- **Download**: ~6 minutes
+- **Download Size**: 1.1 GB (Q5 quantized)
 - **Features**: Multilingual, maximum accuracy
 - **Use Cases**: Critical transcription, multiple speakers
 - **Performance**: Slowest but most accurate
 
+### Turbo
+- **Download Size**: 1.6 GB (large-v3-turbo)
+- **Features**: Multilingual, strong accuracy with better speed than Large
+- **Use Cases**: Professional transcription where accuracy matters most
+- **Performance**: Large-model accuracy at a more usable speed
+
 ## Parakeet Models
 
-### Parakeet 0.6B (Recommended for GPU Users)
-- **Size**: 600 MB
-- **Engine**: NVIDIA Parakeet
-- **Features**: English only, GPU acceleration
-- **Use Cases**: Real-time dictation, gaming, streaming
-- **Requirements**: NVIDIA GPU with CUDA support
+### Parakeet V2 (Recommended for English Speakers)
+- **Download Size**: 473 MB (int8)
+- **Engine**: NVIDIA Parakeet TDT
+- **Features**: English only, extremely fast inference
+- **Use Cases**: Real-time dictation, long-form transcription
+
+### Parakeet V3
+- **Download Size**: 478 MB (int8)
+- **Engine**: NVIDIA Parakeet TDT
+- **Features**: Multilingual (European languages), fast and accurate
+- **Use Cases**: Non-English dictation with near real-time performance
+
+### Moonshine Base
+- **Download Size**: 58 MB
+- **Engine**: Moonshine
+- **Features**: English only, very fast, handles accents well
+- **Use Cases**: Low-resource machines, quick dictation
 
 ## Offline LLM Models
 
@@ -87,35 +92,29 @@ SONU supports multiple AI models for speech recognition and text processing. Thi
 
 ## Model Selection by Use Case
 
-### 🎯 Quick Notes & Testing
-**Recommended**: Whisper Tiny
-- Fastest download
-- Runs on any hardware
-- Good enough for testing
+### 🎯 Quick Notes & Low-Resource Machines
+**Recommended**: Moonshine Base
+- Tiny download (58 MB)
+- Runs on almost any hardware
+- English only
 
 ### 💼 Office Work & General Dictation
-**Recommended**: Whisper Base or Small
+**Recommended**: Whisper Small or Parakeet (V2 for English, V3 for other languages)
 - Good balance
 - Fast enough for real-time
 - High accuracy for common vocabulary
 
 ### 📄 Professional Transcription
-**Recommended**: Whisper Small or Medium
+**Recommended**: Whisper Medium or Turbo
 - High accuracy
 - Handles technical terms better
 - Worth the extra download time
 
 ### 🔬 Legal/Medical/Technical
-**Recommended**: Whisper Medium or Large
+**Recommended**: Whisper Large or Turbo
 - Maximum accuracy
 - Handles jargon well
 - Critical for professional use
-
-### 🎮 Gaming & Streaming
-**Recommended**: Parakeet (if GPU available)
-- Real-time performance
-- Low latency
-- GPU acceleration
 
 ### ✍️ Writing & Content Creation
 **Recommended**: Whisper Small + Qwen2.5 1.5B
@@ -129,7 +128,7 @@ SONU supports multiple AI models for speech recognition and text processing. Thi
 - **CPU**: Dual-core processor
 - **RAM**: 4 GB
 - **Storage**: 500 MB free
-- **Recommended Model**: Whisper Tiny
+- **Recommended Model**: Moonshine Base
 
 ### Recommended Requirements
 - **CPU**: Quad-core processor
@@ -141,7 +140,7 @@ SONU supports multiple AI models for speech recognition and text processing. Thi
 - **CPU**: 6+ cores or GPU
 - **RAM**: 16 GB
 - **Storage**: 5 GB free
-- **Recommended Model**: Whisper Medium + Qwen2.5 3B
+- **Recommended Model**: Whisper Turbo + Qwen2.5 3B
 
 ## Performance Tuning
 
@@ -172,8 +171,11 @@ Supports 99 languages including:
 - And many more...
 
 ### Parakeet Models
-- **English only** (currently)
-- Optimized for English transcription
+- **Parakeet V2**: English only
+- **Parakeet V3**: Multilingual (European languages)
+
+### Moonshine Models
+- **English only**
 
 ### LLM Models
 - Multilingual support varies by model
@@ -221,10 +223,9 @@ Supports 99 languages including:
 ## Future Models
 
 ### Planned Support
-- **Whisper v3 Turbo**: Faster inference
 - **Custom Fine-tuned**: Domain-specific models
 - **Multilingual LLMs**: Better for non-English
-- **Tiny English**: Ultra-small English-only
+- **GPU acceleration for Whisper**: Faster inference on CUDA hardware
 
 ---
 

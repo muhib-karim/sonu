@@ -187,7 +187,7 @@ Choose AI dictation style presets organized by category: _Personal_, _Work_, _Em
 | **Voice notes**                       |          ✅          |     ❌      |      ✅      |       ❌        |
 | **Push-to-talk + toggle**             |          ✅          |     ✅      |      ✅      |       ✅        |
 | **Auto-type into any app**            |          ✅          |     ✅      |      ✅      |       ✅        |
-| **Multiple Whisper models**           | ✅ (tiny → large-v3) |     ❌      |      ✅      |       ❌        |
+| **Multiple Whisper models**           | ✅ (small → large-v3) |     ❌      |      ✅      |       ❌        |
 | **Themes & customization**            |          ✅          |   Limited   |   Limited    |       ❌        |
 
 ---
@@ -247,16 +247,17 @@ Choose AI dictation style presets organized by category: _Personal_, _Work_, _Em
 
 SONU supports multiple speech recognition engines and models:
 
-| Model             | Size   | Speed      | Accuracy | Best For                            |
-| ----------------- | ------ | ---------- | -------- | ----------------------------------- |
-| **tiny**          | 75 MB  | ⚡⚡⚡⚡⚡ | ★★☆☆☆    | Quick notes, low-resource machines  |
-| **base**          | 142 MB | ⚡⚡⚡⚡   | ★★★☆☆    | Everyday dictation                  |
-| **small**         | 466 MB | ⚡⚡⚡     | ★★★★☆    | Professional use                    |
-| **medium**        | 1.5 GB | ⚡⚡       | ★★★★☆    | High-accuracy work                  |
-| **large-v3**      | 3.1 GB | ⚡         | ★★★★★    | Maximum accuracy                    |
-| **Parakeet 0.6B** | 600 MB | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
+| Model              | Download Size | Speed      | Accuracy | Best For                            |
+| ------------------ | ------------- | ---------- | -------- | ----------------------------------- |
+| **Moonshine Base** | 58 MB         | ⚡⚡⚡⚡⚡ | ★★★☆☆    | Ultra-light English dictation       |
+| **Whisper Small**  | 487 MB        | ⚡⚡⚡⚡   | ★★★☆☆    | Everyday multilingual dictation     |
+| **Whisper Medium** | 492 MB        | ⚡⚡⚡     | ★★★★☆    | High-accuracy work (quantized)      |
+| **Whisper Large**  | 1.1 GB        | ⚡         | ★★★★★    | Maximum accuracy (quantized)        |
+| **Whisper Turbo**  | 1.6 GB        | ⚡⚡       | ★★★★☆    | Large-v3 speed/accuracy balance     |
+| **Parakeet V2**    | 473 MB        | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
+| **Parakeet V3**    | 478 MB        | ⚡⚡⚡⚡   | ★★★★☆    | Multilingual, fast and accurate     |
 
-Models download automatically on first use. All processing stays local.
+Download sizes reflect the quantized builds served by SONU's model catalog. Models download automatically on first use. All processing stays local.
 
 ---
 

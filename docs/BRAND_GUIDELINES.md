@@ -53,8 +53,9 @@ info:    #3b82f6 - Information, links
 ## Typography
 
 ### Font Family
-- **Primary:** Geist Mono (monospace)
-- **Fallback:** ui-monospace, SFMono-Regular, Menlo, Consolas
+- **Primary:** Geist Sans (bundled, since v2.4.0)
+- **Mono:** Geist Mono (bundled — code, numeric UI, logs)
+- **Fallback:** system-ui, -apple-system, Segoe UI, sans-serif
 
 ### Font Sizes
 ```
@@ -108,11 +109,11 @@ space-16: 4rem    (64px)
 ## Do's and Don'ts
 
 ### ✅ Do
-- Use the logo on dark backgrounds
+- Use the logo on dark backgrounds (verify contrast on light backgrounds)
 - Maintain aspect ratio
 - Use approved colors only
 - Provide adequate clear space
-- Use Geist Mono font
+- Use Geist Sans for UI text (Geist Mono for code and numeric UI)
 
 ### ❌ Don't
 - Change logo colors
@@ -145,4 +146,4 @@ All application icons should follow the same design language:
 
 ---
 
-Last Updated: February 8, 2026
+Last Updated: September 3, 2026

@@ -1,10 +1,10 @@
-# Contributing to Handy
+# Contributing to SONU
 
-Thank you for your interest in contributing to Handy! This guide will help you get started with contributing to this open source speech-to-text application.
+Thank you for your interest in contributing to SONU! This guide will help you get started with contributing to this open source speech-to-text application.
 
 ## 📖 Philosophy
 
-Handy aims to be the most forkable speech-to-text app. The goal is to create both a useful tool and a foundation for others to build upon—a well-patterned, simple codebase that serves the community. We prioritize:
+SONU is an independent fork of [Handy](https://github.com/cjpais/Handy), built to be a forkable speech-to-text app. The goal is to create both a useful tool and a foundation for others to build upon—a well-patterned, simple codebase that serves the community. We prioritize:
 
 - **Simplicity**: Clear, maintainable code over clever solutions
 - **Extensibility**: Make it easy for others to fork and customize
@@ -28,14 +28,14 @@ Before you begin, ensure you have the following installed:
 2. **Clone your fork**:
 
    ```bash
-   git clone git@github.com:YOUR_USERNAME/Handy.git
-   cd Handy
+   git clone git@github.com:YOUR_USERNAME/sonu.git
+   cd sonu/apps/tauri-v2
    ```
 
 3. **Add upstream remote**:
 
    ```bash
-   git remote add upstream git@github.com:cjpais/Handy.git
+   git remote add upstream https://github.com/muhib-karim/sonu.git
    ```
 
 4. **Install dependencies**:

@@ -296,6 +296,3 @@ This major update transforms SONU from a transcription tool into an intelligent 
 
 ---
 
-## [3.5.4] - 2025-01-XX
-
-### 🧹 Project Cleanup & Comprehensive Testing

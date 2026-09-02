@@ -2,8 +2,7 @@
 Guidance for agentic coding assistants (Cursor, Copilot, Claude Code, OpenCode) in this repository.
 
 ## Scope and precedence
-- **Primary app**: `apps/tauri-v2/` (Tauri v2: Rust + React/TypeScript) — all new development here
-- **Legacy app**: `apps/desktop/` (Electron: JavaScript + Python) — maintenance only
+- **Primary app**: `apps/tauri-v2/` (Tauri v2: Rust + React/TypeScript) — the only app in this repository
 - Conflict order:
   1. Direct user request
   2. Tool-specific rules (Cursor `.cursorrules`, etc.)
@@ -11,7 +10,6 @@ Guidance for agentic coding assistants (Cursor, Copilot, Claude Code, OpenCode) 
 
 ## Working directory defaults
 - **Default to `apps/tauri-v2/`** for all implementation work
-- `apps/desktop/` only when explicitly told "work on the Electron app"
 - For repo-wide analysis, start at root
 
 ## Build, lint, and test commands
@@ -83,4 +81,4 @@ cargo test module::tests::test_name -- --nocapture
 - Use `--no-verify` on commits if pre-commit hooks block on pre-existing upstream warnings.
 
 ---
-Last updated: 2026-02-28
+Last updated: 2026-09-03

@@ -2,7 +2,7 @@
 
 ## Overview
 
-SONU is an offline-first voice typing application built with **Tauri v2** — a Rust backend paired with a React/TypeScript frontend. It runs a local Whisper-based ASR model (Parakeet) for real-time speech-to-text, with optional cloud transcription providers.
+SONU is an offline-first voice typing application built with **Tauri v2** — a Rust backend paired with a React/TypeScript frontend. It runs local ASR models (Parakeet, with Whisper models also supported) for speech-to-text, with optional cloud transcription providers.
 
 ## Technology Stack
 
@@ -12,7 +12,7 @@ SONU is an offline-first voice typing application built with **Tauri v2** — a 
 | **Frontend** | React 18 + TypeScript + Vite |
 | **Styling** | Tailwind CSS 4.x |
 | **State** | Zustand stores |
-| **ASR Engine** | Parakeet (local) · OpenAI / Groq / Custom (cloud) |
+| **ASR Engine** | Parakeet & Whisper (local) · OpenAI / Groq / Custom (cloud) |
 | **Audio** | CPAL (Rust) for cross-platform capture |
 | **i18n** | i18next + react-i18next |
 | **Build** | Bun (frontend), Cargo (backend) |
@@ -32,8 +32,9 @@ SONU is an offline-first voice typing application built with **Tauri v2** — a 
 ├─────────────────────────┼───────────────────────────────┤
 │                   Rust Backend (Tauri)                    │
 │  ┌──────────────┐  ┌───────────┐  ┌─────────────────┐  │
-│  │ Audio Manager │  │ Whisper   │  │ Settings Store  │  │
-│  │ (CPAL)       │  │ (Parakeet)│  │ (JSON + OS Keys)│  │
+│  │ Audio Manager │  │ ASR       │  │ Settings Store  │  │
+│  │ (CPAL)       │  │(Parakeet/ │  │ (JSON + OS Keys)│  │
+│  │              │  │ Whisper)  │  │                 │  │
 │  ├──────────────┤  ├───────────┤  ├─────────────────┤  │
 │  │ Shortcut Mgr │  │ Cloud API │  │ History / Notes │  │
 │  │ (Global Keys)│  │ (reqwest) │  │ (SQLite-backed) │  │
@@ -55,10 +56,10 @@ apps/tauri-v2/
 │   ├── src/
 │   │   ├── lib.rs          # Tauri plugin/command registration
 │   │   ├── commands/       # IPC command handlers (audio, transcription, settings)
-│   │   ├── audio_toolkit/  # Audio capture, processing, Whisper integration
+│   │   ├── audio_toolkit/  # Audio capture, processing, VAD     
 │   │   └── shortcut.rs     # Global hotkey management
 │   ├── Cargo.toml          # Rust dependencies
-│   └── tauri.conf.json     # Tauri app configuration (v2.2.0)
+│   └── tauri.conf.json     # Tauri app configuration
 └── package.json            # Frontend dependencies (Bun)
 ```
 

@@ -8,11 +8,6 @@
 - The Tauri app is version 2.x (Rust + React/TypeScript)
 - Working directory: `apps/tauri-v2/`
 
-## Legacy Electron App
-
-- `apps/desktop/` is the old Electron v3.x app — maintenance only
-- Only work there when user explicitly says "work on the Electron app"
-
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite

@@ -6,9 +6,9 @@ We provide security updates for the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.2.x (Tauri) | :white_check_mark: |
-| 2.x.x (Tauri) | :white_check_mark: |
-| 3.x.x (Electron legacy) | :x: |
+| 2.4.x (Tauri) | :white_check_mark: |
+| 2.2.x – 2.3.x (Tauri) | :white_check_mark: |
+| 2.0.x – 2.1.x (Tauri) | :x:                |
 | 1.0.x   | :x:                |
 
 ## Reporting a Vulnerability
@@ -25,9 +25,9 @@ If you discover a security vulnerability, please follow these steps:
 
 ## Security Features
 
-- **Offline Processing**: All audio processing happens locally
-- **No Network Communication**: Application does not send data externally
-- **Local Storage**: All data stored locally in JSON files
+- **Local-First Processing**: Audio capture and local transcription happen entirely on-device
+- **Network Is Optional**: Cloud transcription and LLM post-processing are strictly opt-in and disabled by default; the only other outbound traffic is model downloads and update checks
+- **Local Storage**: Settings and history stay on-device (JSON settings, SQLite history); API keys are stored in the OS keychain, never in plain files
 - **No Telemetry**: Zero tracking or analytics
 - **Open Source**: Full code transparency
 
