@@ -1,241 +1,130 @@
 {
-  "models": {
-    "whisper": {
-      "tiny": {
-        "name": "tiny",
-        "size": "39 MB",
-        "description": "Fastest, lowest accuracy",
-        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
-        "multilingual": true,
-        "languages": [
-          "en",
-          "de",
-          "es",
-          "fr",
-          "it",
-          "ja",
-          "pl",
-          "pt",
-          "ru",
-          "uk",
-          "vi",
-          "zh"
-        ]
-      },
-      "base": {
-        "name": "base",
-        "size": "74 MB",
-        "description": "Fast, decent accuracy",
-        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
-        "multilingual": true,
-        "languages": [
-          "en",
-          "de",
-          "es",
-          "fr",
-          "it",
-          "ja",
-          "pl",
-          "pt",
-          "ru",
-          "uk",
-          "vi",
-          "zh"
-        ]
-      },
-      "small": {
-        "name": "small",
-        "size": "244 MB",
-        "description": "Balanced speed/accuracy",
-        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
-        "multilingual": true,
-        "languages": [
-          "en",
-          "de",
-          "es",
-          "fr",
-          "it",
-          "ja",
-          "pl",
-          "pt",
-          "ru",
-          "uk",
-          "vi",
-          "zh"
-        ]
-      },
-      "medium": {
-        "name": "medium",
-        "size": "769 MB",
-        "description": "High accuracy, slower",
-        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
-        "multilingual": true,
-        "languages": [
-          "en",
-          "de",
-          "es",
-          "fr",
-          "it",
-          "ja",
-          "pl",
-          "pt",
-          "ru",
-          "uk",
-          "vi",
-          "zh"
-        ]
-      },
-      "large-v1": {
-        "name": "large-v1",
-        "size": "1.5 GB",
-        "description": "Highest accuracy, slowest",
-        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v1.bin",
-        "multilingual": true,
-        "languages": [
-          "en",
-          "de",
-          "es",
-          "fr",
-          "it",
-          "ja",
-          "pl",
-          "pt",
-          "ru",
-          "uk",
-          "vi",
-          "zh"
-        ]
-      },
-      "large-v2": {
-        "name": "large-v2",
-        "size": "1.5 GB",
-        "description": "Latest large model",
-        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2.bin",
-        "multilingual": true,
-        "languages": [
-          "en",
-          "de",
-          "es",
-          "fr",
-          "it",
-          "ja",
-          "pl",
-          "pt",
-          "ru",
-          "uk",
-          "vi",
-          "zh"
-        ]
-      },
-      "large-v3": {
-        "name": "large-v3",
-        "size": "1.5 GB",
-        "description": "Latest large model (v3)",
-        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
-        "multilingual": true,
-        "languages": [
-          "en",
-          "de",
-          "es",
-          "fr",
-          "it",
-          "ja",
-          "pl",
-          "pt",
-          "ru",
-          "uk",
-          "vi",
-          "zh"
-        ]
-      }
+  "models": [
+    {
+      "id": "tiny",
+      "name": "Whisper Tiny",
+      "description": "Fastest, lowest accuracy. Best for low-resource machines.",
+      "filename": "ggml-tiny.bin",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
+      "size_mb": 75,
+      "is_directory": false,
+      "engine_type": "whisper",
+      "recommended": false,
+      "languages": ["multilingual"],
+      "speed_score": 0.95,
+      "accuracy_score": 0.4
     },
-    "parakeet": {
-      "parakeet-tdt-0.6b-v3": {
-        "name": "parakeet-tdt-0.6b-v3",
-        "size": "600 MB",
-        "description": "English only, very fast on GPU",
-        "repo": "istupakov/parakeet-tdt-0.6b-v3-onnx",
-        "multilingual": false,
-        "languages": ["en"]
-      }
+    {
+      "id": "base",
+      "name": "Whisper Base",
+      "description": "Fast with decent accuracy.",
+      "filename": "ggml-base.bin",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+      "size_mb": 142,
+      "is_directory": false,
+      "engine_type": "whisper",
+      "recommended": false,
+      "languages": ["multilingual"],
+      "speed_score": 0.9,
+      "accuracy_score": 0.5
     },
-    "offline_llm": {
-      "smollm2-360m-instruct": {
-        "name": "SmolLM2 360M Instruct",
-        "size": "720 MB",
-        "description": "Lightweight instruction model",
-        "repo": "HuggingFaceTB/SmolLM2-360M-Instruct",
-        "quantization": "Q4_K_M",
-        "context_length": 2048,
-        "recommended_for": ["text_cleanup", "basic_formatting"]
-      },
-      "smollm2-1.7b-instruct": {
-        "name": "SmolLM2 1.7B Instruct",
-        "size": "1.1 GB",
-        "description": "Better quality instruction model",
-        "repo": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        "quantization": "Q4_K_M",
-        "context_length": 2048,
-        "recommended_for": ["text_cleanup", "formatting", "summarization"]
-      },
-      "qwen2.5-0.5b-instruct": {
-        "name": "Qwen2.5 0.5B Instruct",
-        "size": "400 MB",
-        "description": "Ultra-lightweight model",
-        "repo": "Qwen/Qwen2.5-0.5B-Instruct",
-        "quantization": "Q4_K_M",
-        "context_length": 32768,
-        "recommended_for": ["text_cleanup"]
-      },
-      "qwen2.5-1.5b-instruct": {
-        "name": "Qwen2.5 1.5B Instruct",
-        "size": "1.0 GB",
-        "description": "Balanced quality and speed",
-        "repo": "Qwen/Qwen2.5-1.5B-Instruct",
-        "quantization": "Q4_K_M",
-        "context_length": 32768,
-        "recommended_for": [
-          "text_cleanup",
-          "formatting",
-          "summarization",
-          "expansion"
-        ]
-      },
-      "qwen2.5-3b-instruct": {
-        "name": "Qwen2.5 3B Instruct",
-        "size": "1.9 GB",
-        "description": "High quality local LLM",
-        "repo": "Qwen/Qwen2.5-3B-Instruct",
-        "quantization": "Q4_K_M",
-        "context_length": 32768,
-        "recommended_for": [
-          "text_cleanup",
-          "formatting",
-          "summarization",
-          "expansion",
-          "complex_tasks"
-        ]
-      }
+    {
+      "id": "small",
+      "name": "Whisper Small",
+      "description": "Fast and fairly accurate.",
+      "filename": "ggml-small.bin",
+      "url": "https://blob.handy.computer/ggml-small.bin",
+      "size_mb": 487,
+      "is_directory": false,
+      "engine_type": "whisper",
+      "recommended": false,
+      "languages": ["multilingual"],
+      "speed_score": 0.85,
+      "accuracy_score": 0.6
+    },
+    {
+      "id": "medium",
+      "name": "Whisper Medium",
+      "description": "Good accuracy, medium speed. Quantized for faster inference.",
+      "filename": "whisper-medium-q4_1.bin",
+      "url": "https://blob.handy.computer/whisper-medium-q4_1.bin",
+      "size_mb": 492,
+      "is_directory": false,
+      "engine_type": "whisper",
+      "recommended": false,
+      "languages": ["multilingual"],
+      "speed_score": 0.6,
+      "accuracy_score": 0.75
+    },
+    {
+      "id": "turbo",
+      "name": "Whisper Turbo",
+      "description": "Balanced accuracy and speed.",
+      "filename": "ggml-large-v3-turbo.bin",
+      "url": "https://blob.handy.computer/ggml-large-v3-turbo.bin",
+      "size_mb": 1600,
+      "is_directory": false,
+      "engine_type": "whisper",
+      "recommended": false,
+      "languages": ["multilingual"],
+      "speed_score": 0.4,
+      "accuracy_score": 0.8
+    },
+    {
+      "id": "large",
+      "name": "Whisper Large",
+      "description": "Highest accuracy, but slow.",
+      "filename": "ggml-large-v3-q5_0.bin",
+      "url": "https://blob.handy.computer/ggml-large-v3-q5_0.bin",
+      "size_mb": 1100,
+      "is_directory": false,
+      "engine_type": "whisper",
+      "recommended": false,
+      "languages": ["multilingual"],
+      "speed_score": 0.3,
+      "accuracy_score": 0.85
+    },
+    {
+      "id": "parakeet-tdt-0.6b-v2",
+      "name": "Parakeet V2",
+      "description": "English only. The best model for English speakers.",
+      "filename": "parakeet-tdt-0.6b-v2-int8",
+      "url": "https://blob.handy.computer/parakeet-v2-int8.tar.gz",
+      "size_mb": 473,
+      "is_directory": true,
+      "engine_type": "parakeet",
+      "recommended": true,
+      "languages": ["en"],
+      "speed_score": 0.85,
+      "accuracy_score": 0.85
+    },
+    {
+      "id": "parakeet-tdt-0.6b-v3",
+      "name": "Parakeet V3",
+      "description": "Fast and accurate multilingual model with automatic language detection.",
+      "filename": "parakeet-tdt-0.6b-v3-int8",
+      "url": "https://blob.handy.computer/parakeet-v3-int8.tar.gz",
+      "size_mb": 478,
+      "is_directory": true,
+      "engine_type": "parakeet",
+      "recommended": true,
+      "languages": ["multilingual"],
+      "speed_score": 0.85,
+      "accuracy_score": 0.8
+    },
+    {
+      "id": "moonshine-base",
+      "name": "Moonshine Base",
+      "description": "Ultra-light and very fast, English only. Handles accents well.",
+      "filename": "moonshine-base",
+      "url": "https://blob.handy.computer/moonshine-base.tar.gz",
+      "size_mb": 58,
+      "is_directory": true,
+      "engine_type": "moonshine",
+      "recommended": false,
+      "languages": ["en"],
+      "speed_score": 0.9,
+      "accuracy_score": 0.7
     }
-  },
-  "vad": {
-    "silero_v4": {
-      "name": "Silero VAD v4",
-      "url": "https://blob.handy.computer/silero_vad_v4.onnx",
-      "size": "1.1 MB",
-      "required": true
-    }
-  },
-  "default_settings": {
-    "whisper_model": "small",
-    "offline_llm_model": "qwen2.5-1.5b-instruct",
-    "use_offline_llm": true,
-    "cpu_threads": 4,
-    "beam_size": 5,
-    "temperature": 0.0,
-    "compression_ratio_threshold": 2.4,
-    "vad_enabled": true,
-    "vad_threshold": 0.5,
-    "vad_min_silence_duration": 500
-  }
+  ]
 }

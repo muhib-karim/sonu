@@ -85,7 +85,9 @@
     "modelError": "模型错误",
     "modelUnloaded": "模型已卸载",
     "noModelDownloadRequired": "无模型 - 需要下载",
-    "deleteModel": "删除 {{modelName}}"
+    "deleteModel": "删除 {{modelName}}",
+    "recommendedBadge": "推荐",
+    "multilingual": "多语言"
   },
   "settings": {
     "general": {

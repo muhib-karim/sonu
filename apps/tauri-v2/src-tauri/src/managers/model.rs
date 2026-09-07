@@ -14,11 +14,33 @@ use std::sync::Mutex;
 use tar::Archive;
 use tauri::{AppHandle, Emitter, Manager};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+/// Engine type. Serializes as PascalCase (the shape the frontend expects);
+/// the catalog file writes it lowercase, handled by the manual
+/// `Deserialize` impl below (specta's `Type` derive cannot parse serde's
+/// `rename_all(deserialize = ...)` form).
+#[derive(Debug, Clone, Copy, Serialize, Type)]
 pub enum EngineType {
     Whisper,
     Parakeet,
     Moonshine,
+}
+
+impl<'de> serde::Deserialize<'de> for EngineType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        match value.to_lowercase().as_str() {
+            "whisper" => Ok(EngineType::Whisper),
+            "parakeet" => Ok(EngineType::Parakeet),
+            "moonshine" => Ok(EngineType::Moonshine),
+            other => Err(serde::de::Error::unknown_variant(
+                other,
+                &["whisper", "parakeet", "moonshine"],
+            )),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -29,14 +51,56 @@ pub struct ModelInfo {
     pub filename: String,
     pub url: Option<String>,
     pub size_mb: u64,
+    #[serde(default)]
     pub is_downloaded: bool,
+    #[serde(default)]
     pub is_downloading: bool,
+    #[serde(default)]
     pub partial_size: u64,
+    #[serde(default)]
     pub is_directory: bool,
     pub engine_type: EngineType,
+    /// Whether this model should be highlighted/auto-selected first.
+    #[serde(default)]
+    pub recommended: bool,
+    /// Languages supported by the model. Uses ISO codes for single-language
+    /// models (e.g. ["en"]) and the sentinel "multilingual" for models that
+    /// support many languages.
+    #[serde(default)]
+    pub languages: Vec<String>,
+    #[serde(default)]
     pub accuracy_score: f32, // 0.0 to 1.0, higher is more accurate
-    pub speed_score: f32,    // 0.0 to 1.0, higher is faster
+    #[serde(default)]
+    pub speed_score: f32, // 0.0 to 1.0, higher is faster
 }
+
+/// Top-level shape of `resources/models.json`.
+#[derive(Debug, Deserialize)]
+struct ModelCatalog {
+    models: Vec<ModelInfo>,
+}
+
+/// Parse a model catalog from JSON text (the `resources/models.json` format).
+fn parse_catalog(json: &str) -> Result<Vec<ModelInfo>> {
+    Ok(serde_json::from_str::<ModelCatalog>(json)?.models)
+}
+
+/// Embedded fallback catalog, used when `resources/models.json` cannot be
+/// resolved, read, or parsed.
+const FALLBACK_CATALOG_JSON: &str = include_str!("../../resources/models.json");
+
+/// Embedded fallback catalog (kept as parsed models so it can be reused).
+fn fallback_catalog() -> Vec<ModelInfo> {
+    // The constant above is compile-time and tested to be valid; if parsing
+    // somehow failed we degrade to an empty registry rather than panic.
+    parse_catalog(FALLBACK_CATALOG_JSON).unwrap_or_default()
+}
+
+/// Explicit preference order for auto-selecting among recommended (downloaded)
+/// models: Parakeet V3 first (multilingual with automatic language detection,
+/// so it works for everyone), then Parakeet V2 (best for English speakers).
+/// Ids missing from the catalog are skipped gracefully.
+const RECOMMENDED_AUTO_SELECT_ORDER: [&str; 2] = ["parakeet-tdt-0.6b-v3", "parakeet-tdt-0.6b-v2"];
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct DownloadProgress {
@@ -50,6 +114,8 @@ pub struct ModelManager {
     app_handle: AppHandle,
     models_dir: PathBuf,
     available_models: Mutex<HashMap<String, ModelInfo>>,
+    /// Model ids in catalog order, used for deterministic auto-selection.
+    catalog_order: Vec<String>,
 }
 
 impl ModelManager {
@@ -65,148 +131,28 @@ impl ModelManager {
             fs::create_dir_all(&models_dir)?;
         }
 
-        let mut available_models = HashMap::new();
-
-        // TODO this should be read from a JSON file or something..
-        available_models.insert(
-            "small".to_string(),
-            ModelInfo {
-                id: "small".to_string(),
-                name: "Whisper Small".to_string(),
-                description: "Fast and fairly accurate.".to_string(),
-                filename: "ggml-small.bin".to_string(),
-                url: Some("https://blob.handy.computer/ggml-small.bin".to_string()),
-                size_mb: 487,
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                is_directory: false,
-                engine_type: EngineType::Whisper,
-                accuracy_score: 0.60,
-                speed_score: 0.85,
-            },
-        );
-
-        // Add downloadable models
-        available_models.insert(
-            "medium".to_string(),
-            ModelInfo {
-                id: "medium".to_string(),
-                name: "Whisper Medium".to_string(),
-                description: "Good accuracy, medium speed".to_string(),
-                filename: "whisper-medium-q4_1.bin".to_string(),
-                url: Some("https://blob.handy.computer/whisper-medium-q4_1.bin".to_string()),
-                size_mb: 492, // Approximate size
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                is_directory: false,
-                engine_type: EngineType::Whisper,
-                accuracy_score: 0.75,
-                speed_score: 0.60,
-            },
-        );
-
-        available_models.insert(
-            "turbo".to_string(),
-            ModelInfo {
-                id: "turbo".to_string(),
-                name: "Whisper Turbo".to_string(),
-                description: "Balanced accuracy and speed.".to_string(),
-                filename: "ggml-large-v3-turbo.bin".to_string(),
-                url: Some("https://blob.handy.computer/ggml-large-v3-turbo.bin".to_string()),
-                size_mb: 1600, // Approximate size
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                is_directory: false,
-                engine_type: EngineType::Whisper,
-                accuracy_score: 0.80,
-                speed_score: 0.40,
-            },
-        );
-
-        available_models.insert(
-            "large".to_string(),
-            ModelInfo {
-                id: "large".to_string(),
-                name: "Whisper Large".to_string(),
-                description: "Good accuracy, but slow.".to_string(),
-                filename: "ggml-large-v3-q5_0.bin".to_string(),
-                url: Some("https://blob.handy.computer/ggml-large-v3-q5_0.bin".to_string()),
-                size_mb: 1100, // Approximate size
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                is_directory: false,
-                engine_type: EngineType::Whisper,
-                accuracy_score: 0.85,
-                speed_score: 0.30,
-            },
-        );
-
-        // Add NVIDIA Parakeet models (directory-based)
-        available_models.insert(
-            "parakeet-tdt-0.6b-v2".to_string(),
-            ModelInfo {
-                id: "parakeet-tdt-0.6b-v2".to_string(),
-                name: "Parakeet V2".to_string(),
-                description: "English only. The best model for English speakers.".to_string(),
-                filename: "parakeet-tdt-0.6b-v2-int8".to_string(), // Directory name
-                url: Some("https://blob.handy.computer/parakeet-v2-int8.tar.gz".to_string()),
-                size_mb: 473, // Approximate size for int8 quantized model
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                is_directory: true,
-                engine_type: EngineType::Parakeet,
-                accuracy_score: 0.85,
-                speed_score: 0.85,
-            },
-        );
-
-        available_models.insert(
-            "parakeet-tdt-0.6b-v3".to_string(),
-            ModelInfo {
-                id: "parakeet-tdt-0.6b-v3".to_string(),
-                name: "Parakeet V3".to_string(),
-                description: "Fast and accurate".to_string(),
-                filename: "parakeet-tdt-0.6b-v3-int8".to_string(), // Directory name
-                url: Some("https://blob.handy.computer/parakeet-v3-int8.tar.gz".to_string()),
-                size_mb: 478, // Approximate size for int8 quantized model
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                is_directory: true,
-                engine_type: EngineType::Parakeet,
-                accuracy_score: 0.80,
-                speed_score: 0.85,
-            },
-        );
-
-        available_models.insert(
-            "moonshine-base".to_string(),
-            ModelInfo {
-                id: "moonshine-base".to_string(),
-                name: "Moonshine Base".to_string(),
-                description: "Very fast, English only. Handles accents well.".to_string(),
-                filename: "moonshine-base".to_string(),
-                url: Some("https://blob.handy.computer/moonshine-base.tar.gz".to_string()),
-                size_mb: 58,
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                is_directory: true,
-                engine_type: EngineType::Moonshine,
-                accuracy_score: 0.70,
-                speed_score: 0.90,
-            },
-        );
+        // Load the model catalog (Handy-style registry) from the bundled
+        // resources/models.json, with an embedded fallback.
+        let catalog = Self::load_catalog(app_handle);
+        let mut catalog_order: Vec<String> = Vec::with_capacity(catalog.len());
+        let mut available_models: HashMap<String, ModelInfo> = HashMap::new();
+        for model in catalog {
+            if available_models.contains_key(&model.id) {
+                warn!(
+                    "Duplicate model id in catalog, keeping first occurrence: {}",
+                    model.id
+                );
+                continue;
+            }
+            catalog_order.push(model.id.clone());
+            available_models.insert(model.id.clone(), model);
+        }
 
         let manager = Self {
             app_handle: app_handle.clone(),
             models_dir,
             available_models: Mutex::new(available_models),
+            catalog_order,
         };
 
         // Migrate any bundled models to user directory
@@ -219,6 +165,23 @@ impl ModelManager {
         manager.auto_select_model_if_needed()?;
 
         Ok(manager)
+    }
+
+    /// Loads the model catalog from the bundled `resources/models.json`
+    /// resource, falling back to the embedded catalog when the resource
+    /// cannot be resolved, read, or parsed.
+    fn load_catalog(app_handle: &AppHandle) -> Vec<ModelInfo> {
+        app_handle
+            .path()
+            .resolve(
+                "resources/models.json",
+                tauri::path::BaseDirectory::Resource,
+            )
+            .ok()
+            .and_then(|path| fs::read_to_string(path).ok())
+            .and_then(|content| parse_catalog(&content).ok())
+            .filter(|models| !models.is_empty())
+            .unwrap_or_else(fallback_catalog)
     }
 
     pub fn get_available_models(&self) -> Vec<ModelInfo> {
@@ -311,9 +274,24 @@ impl ModelManager {
 
         // If no model is selected or selected model is empty
         if settings.selected_model.is_empty() {
-            // Find the first available (downloaded) model
             let models = self.available_models.lock().unwrap();
-            if let Some(available_model) = models.values().find(|model| model.is_downloaded) {
+
+            // Prefer recommended models in explicit preference order (Parakeet
+            // V3 first: multilingual with automatic language detection, then
+            // Parakeet V2), falling back to any other downloaded model in
+            // catalog order.
+            let candidate = RECOMMENDED_AUTO_SELECT_ORDER
+                .iter()
+                .filter_map(|id| models.get(*id))
+                .find(|model| model.is_downloaded && model.recommended)
+                .or_else(|| {
+                    self.catalog_order
+                        .iter()
+                        .filter_map(|id| models.get(id))
+                        .find(|model| model.is_downloaded)
+                });
+
+            if let Some(available_model) = candidate {
                 info!(
                     "Auto-selecting model: {} ({})",
                     available_model.id, available_model.name
@@ -739,5 +717,245 @@ impl ModelManager {
 
         info!("Download cancelled for: {}", model_id);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    const EXPECTED_MODEL_COUNT: usize = 9;
+
+    fn catalog_ids(models: &[ModelInfo]) -> Vec<String> {
+        let mut ids: Vec<String> = models.iter().map(|m| m.id.clone()).collect();
+        ids.sort();
+        ids
+    }
+
+    /// The bundled resources/models.json must parse and match the embedded
+    /// fallback catalog (which must always mirror it).
+    #[test]
+    fn test_resources_catalog_json_parses_and_matches_fallback() {
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let catalog_path = std::path::Path::new(manifest_dir).join("resources/models.json");
+        let content = fs::read_to_string(&catalog_path)
+            .expect("resources/models.json should exist next to Cargo.toml");
+
+        let models = parse_catalog(&content).expect("models.json should parse");
+        assert_eq!(
+            models.len(),
+            EXPECTED_MODEL_COUNT,
+            "models.json should contain {} models",
+            EXPECTED_MODEL_COUNT
+        );
+
+        let fallback = fallback_catalog();
+        assert_eq!(
+            catalog_ids(&models),
+            catalog_ids(&fallback),
+            "models.json and the embedded fallback catalog must list the same model ids"
+        );
+    }
+
+    /// Every catalog entry must have all required fields populated and be
+    /// internally consistent (engine type vs. directory layout, scores, urls).
+    #[test]
+    fn test_catalog_entries_have_required_fields() {
+        for model in fallback_catalog() {
+            assert!(!model.id.is_empty(), "id must not be empty");
+            assert!(
+                !model.name.is_empty(),
+                "{}: name must not be empty",
+                model.id
+            );
+            assert!(
+                !model.description.is_empty(),
+                "{}: description must not be empty",
+                model.id
+            );
+            assert!(
+                !model.filename.is_empty(),
+                "{}: filename must not be empty",
+                model.id
+            );
+            assert!(model.size_mb > 0, "{}: size_mb must be positive", model.id);
+
+            let url = model
+                .url
+                .as_ref()
+                .unwrap_or_else(|| panic!("{}: url must be set", model.id));
+            assert!(
+                url.starts_with("https://"),
+                "{}: url must be https, got {}",
+                model.id,
+                url
+            );
+
+            assert!(
+                (0.0..=1.0).contains(&model.accuracy_score),
+                "{}: accuracy_score out of range",
+                model.id
+            );
+            assert!(
+                (0.0..=1.0).contains(&model.speed_score),
+                "{}: speed_score out of range",
+                model.id
+            );
+
+            // Whisper models are single .bin files; Parakeet and Moonshine
+            // models are directories. This is what engine dispatch relies on.
+            match model.engine_type {
+                EngineType::Whisper => {
+                    assert!(
+                        !model.is_directory,
+                        "{}: whisper models must be file-based",
+                        model.id
+                    );
+                }
+                EngineType::Parakeet | EngineType::Moonshine => {
+                    assert!(
+                        model.is_directory,
+                        "{}: parakeet/moonshine models must be directory-based",
+                        model.id
+                    );
+                }
+            }
+        }
+    }
+
+    /// Model ids must be unique and the expected Handy catalog must be present.
+    #[test]
+    fn test_catalog_ids_unique_and_expected() {
+        let models = fallback_catalog();
+        let unique: HashSet<&str> = models.iter().map(|m| m.id.as_str()).collect();
+        assert_eq!(unique.len(), models.len(), "model ids must be unique");
+
+        let ids = unique;
+        for expected in [
+            "tiny",
+            "base",
+            "small",
+            "medium",
+            "turbo",
+            "large",
+            "parakeet-tdt-0.6b-v2",
+            "parakeet-tdt-0.6b-v3",
+            "moonshine-base",
+        ] {
+            assert!(ids.contains(expected), "catalog must contain {}", expected);
+        }
+    }
+
+    /// Recommended flags: both Parakeet entries are recommended (V3 first in
+    /// auto-select order), everything else is not.
+    #[test]
+    fn test_recommended_flags() {
+        let models = fallback_catalog();
+        let recommended: Vec<&str> = models
+            .iter()
+            .filter(|m| m.recommended)
+            .map(|m| m.id.as_str())
+            .collect();
+        assert_eq!(
+            recommended.len(),
+            2,
+            "exactly the two parakeet models should be recommended"
+        );
+        for id in recommended {
+            assert!(
+                id.starts_with("parakeet-"),
+                "recommended flag must exist on parakeet entries, got {}",
+                id
+            );
+        }
+
+        // Auto-select preference must reference real, recommended model ids.
+        for id in RECOMMENDED_AUTO_SELECT_ORDER {
+            let model = models
+                .iter()
+                .find(|m| m.id == id)
+                .unwrap_or_else(|| panic!("auto-select order references unknown id {}", id));
+            assert!(model.recommended, "{} must be recommended", id);
+        }
+        // Parakeet V3 is preferred over V2 in the auto-select order.
+        assert_eq!(RECOMMENDED_AUTO_SELECT_ORDER[0], "parakeet-tdt-0.6b-v3");
+        assert_eq!(RECOMMENDED_AUTO_SELECT_ORDER[1], "parakeet-tdt-0.6b-v2");
+    }
+
+    /// Languages convention: ISO codes for single-language models, the
+    /// "multilingual" sentinel for multilingual ones.
+    #[test]
+    fn test_languages_convention() {
+        for model in fallback_catalog() {
+            assert!(
+                !model.languages.is_empty(),
+                "{}: languages must not be empty",
+                model.id
+            );
+            match model.engine_type {
+                EngineType::Whisper => {
+                    assert!(
+                        model.languages.contains(&"multilingual".to_string()),
+                        "{}: whisper models are multilingual",
+                        model.id
+                    );
+                }
+                EngineType::Parakeet => {
+                    if model.id == "parakeet-tdt-0.6b-v2" {
+                        assert_eq!(model.languages, vec!["en".to_string()]);
+                    } else {
+                        assert!(model.languages.contains(&"multilingual".to_string()));
+                    }
+                }
+                EngineType::Moonshine => {
+                    assert_eq!(
+                        model.languages,
+                        vec!["en".to_string()],
+                        "{}: moonshine base is English only",
+                        model.id
+                    );
+                }
+            }
+        }
+    }
+
+    /// The new ModelInfo fields must be part of the serialized shape the
+    /// frontend receives.
+    #[test]
+    fn test_model_info_serializes_new_fields() {
+        let model = ModelInfo {
+            id: "test".to_string(),
+            name: "Test".to_string(),
+            description: "A test model".to_string(),
+            filename: "test.bin".to_string(),
+            url: Some("https://example.com/test.bin".to_string()),
+            size_mb: 10,
+            is_downloaded: false,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::Whisper,
+            recommended: true,
+            languages: vec!["multilingual".to_string()],
+            accuracy_score: 0.5,
+            speed_score: 0.5,
+        };
+
+        let json = serde_json::to_value(&model).expect("ModelInfo must serialize");
+        assert_eq!(json["recommended"], serde_json::Value::Bool(true));
+        assert_eq!(json["languages"][0], "multilingual");
+    }
+
+    /// Catalog parsing must reject malformed input (used by the fallback path).
+    #[test]
+    fn test_parse_catalog_rejects_invalid_input() {
+        assert!(parse_catalog("not json").is_err());
+        assert!(parse_catalog(r#"{"models": []}"#).is_ok()); // empty is parseable
+        assert!(parse_catalog(r#"{"models": [{"id": "x"}]}"#).is_err()); // missing fields
+        assert!(parse_catalog(
+            r#"{"models": [{"id": "x", "name": "X", "description": "d", "filename": "x.bin", "url": null, "size_mb": 1, "engine_type": "gpt"}]}"#
+        )
+        .is_err()); // unknown engine type
     }
 }

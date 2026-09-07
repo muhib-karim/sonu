@@ -85,7 +85,9 @@
     "modelError": "Помилка моделі",
     "modelUnloaded": "Модель вивантажена",
     "noModelDownloadRequired": "Немає моделі - потрібно завантажити",
-    "deleteModel": "Видалити {{modelName}}"
+    "deleteModel": "Видалити {{modelName}}",
+    "recommendedBadge": "Рекомендовано",
+    "multilingual": "Багатомовний"
   },
   "settings": {
     "general": {

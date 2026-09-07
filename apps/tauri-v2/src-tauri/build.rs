@@ -62,9 +62,9 @@ fn generate_tray_translations() {
     }
     out.push_str("}\n\n");
 
-    // Static map
+    // Static map (fully-qualified paths: the includer provides no imports)
     out.push_str(
-        "pub static TRANSLATIONS: Lazy<HashMap<&'static str, TrayStrings>> = Lazy::new(|| {\n",
+        "pub static TRANSLATIONS: std::sync::LazyLock<std::collections::HashMap<&'static str, TrayStrings>> = std::sync::LazyLock::new(|| {\n",
     );
     out.push_str("    let mut m = HashMap::new();\n");
 

@@ -12,7 +12,7 @@ SONU is an offline-first voice typing application built with **Tauri v2** — a 
 | **Frontend** | React 18 + TypeScript + Vite |
 | **Styling** | Tailwind CSS 4.x |
 | **State** | Zustand stores |
-| **ASR Engine** | Parakeet & Whisper (local) · OpenAI / Groq / Custom (cloud) |
+| **ASR Engine** | Parakeet, Whisper & Moonshine (local) · OpenAI / Groq / Custom (cloud) |
 | **Audio** | CPAL (Rust) for cross-platform capture |
 | **i18n** | i18next + react-i18next |
 | **Build** | Bun (frontend), Cargo (backend) |

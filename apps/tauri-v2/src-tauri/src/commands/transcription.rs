@@ -9,16 +9,8 @@ use crate::settings::{
 };
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error, info};
-use serde::Serialize;
-use specta::Type;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager, State};
-
-#[derive(Serialize, Type)]
-pub struct ModelLoadStatus {
-    is_loaded: bool,
-    current_model: Option<String>,
-}
+use tauri::{AppHandle, State};
 
 #[tauri::command]
 #[specta::specta]

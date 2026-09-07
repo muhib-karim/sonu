@@ -1,17 +1,14 @@
 use crate::settings::{get_settings, write_settings};
 use anyhow::Result;
-use flate2::read::GzDecoder;
 use futures_util::StreamExt;
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::HashMap;
 use std::fs;
-use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tar::Archive;
 use tauri::{AppHandle, Emitter, Manager};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -451,40 +448,6 @@ impl OfflineLLMManager {
         Ok(())
     }
 
-    pub fn get_model_path(&self, model_id: &str) -> Result<PathBuf> {
-        let model_info = self
-            .get_model_info(model_id)
-            .ok_or_else(|| anyhow::anyhow!("Offline LLM model not found: {}", model_id))?;
-
-        if !model_info.is_downloaded {
-            return Err(anyhow::anyhow!(
-                "Offline LLM model not available: {}",
-                model_id
-            ));
-        }
-
-        if model_info.is_downloading {
-            return Err(anyhow::anyhow!(
-                "Offline LLM model is currently downloading: {}",
-                model_id
-            ));
-        }
-
-        let model_path = self.models_dir.join(&model_info.filename);
-        let partial_path = self
-            .models_dir
-            .join(format!("{}.partial", &model_info.filename));
-
-        if model_path.exists() && !partial_path.exists() {
-            Ok(model_path)
-        } else {
-            Err(anyhow::anyhow!(
-                "Complete offline LLM model file not found: {}",
-                model_id
-            ))
-        }
-    }
-
     pub fn cancel_download(&self, model_id: &str) -> Result<()> {
         debug!(
             "OfflineLLMManager: cancel_download called for: {}",
@@ -510,44 +473,5 @@ impl OfflineLLMManager {
 
         info!("Download cancelled for offline LLM model: {}", model_id);
         Ok(())
-    }
-
-    /// Process text using the selected offline LLM model
-    pub fn process_text(&self, text: &str, prompt_template: &str) -> Result<String> {
-        let settings = get_settings(&self.app_handle);
-        let model_id = &settings.offline_llm_model;
-
-        if model_id.is_empty() {
-            return Err(anyhow::anyhow!("No offline LLM model selected"));
-        }
-
-        let model_path = self.get_model_path(model_id)?;
-
-        // Replace ${output} with the actual text in the prompt
-        let full_prompt = prompt_template.replace("${output}", text);
-
-        // Use llama.cpp for inference
-        // For now, we'll use a simple approach - in production you'd want to keep the model loaded
-        self.run_inference(&model_path, &full_prompt)
-    }
-
-    fn run_inference(&self, model_path: &PathBuf, prompt: &str) -> Result<String> {
-        // This is a placeholder for the actual llama.cpp integration
-        // In a real implementation, you would:
-        // 1. Load the model (or use a cached loaded model)
-        // 2. Run inference with the prompt
-        // 3. Return the generated text
-
-        // For now, we'll use llama-cpp-rs or similar bindings
-        // This requires adding the llama-cpp crate to Cargo.toml
-
-        debug!("Running offline LLM inference with model: {:?}", model_path);
-        debug!("Prompt length: {} chars", prompt.len());
-
-        // Placeholder: Return the original text for now
-        // This will be replaced with actual llama.cpp inference
-        Err(anyhow::anyhow!(
-            "Offline LLM inference not yet implemented - requires llama-cpp integration"
-        ))
     }
 }

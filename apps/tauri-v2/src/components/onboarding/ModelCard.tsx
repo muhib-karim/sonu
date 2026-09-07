@@ -3,11 +3,10 @@ import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import type { ModelInfo } from "@/bindings";
 import { formatModelSize } from "../../lib/utils/format";
-import {
-  getTranslatedModelName,
-  getTranslatedModelDescription,
-} from "../../lib/utils/modelTranslation";
+import { getTranslatedModelField } from "../../lib/utils/modelTranslation";
 import Badge from "../ui/Badge";
+import ModelLanguageChip from "../model-selector/ModelLanguageChip";
+import { isRecommendedModel } from "../model-selector/modelRecommendation";
 
 interface ModelCardProps {
   model: ModelInfo;
@@ -28,8 +27,8 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const isFeatured = variant === "featured";
 
   // Get translated model name and description
-  const displayName = getTranslatedModelName(model, t);
-  const displayDescription = getTranslatedModelDescription(model, t);
+  const displayName = getTranslatedModelField(model, t, "name");
+  const displayDescription = getTranslatedModelField(model, t, "description");
 
   const baseButtonClasses =
     "flex justify-between items-center rounded-xl p-3 px-4 text-left transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-logo-primary/25 active:scale-[0.98] cursor-pointer group";
@@ -53,12 +52,13 @@ const ModelCard: React.FC<ModelCardProps> = ({
             {displayName}
           </h3>
           <DownloadSize sizeMb={Number(model.size_mb)} />
-          {isFeatured && (
-            <Badge variant="primary">{t("onboarding.recommended")}</Badge>
+          {isRecommendedModel(model) && (
+            <Badge>{t("modelSelector.recommendedBadge", "Recommended")}</Badge>
           )}
         </div>
         <p className="text-text/60 text-sm leading-relaxed">
           {displayDescription}
+          <ModelLanguageChip model={model} />
         </p>
       </div>
 

@@ -12,7 +12,6 @@
 //! 2. Add translations to other locale files
 //! 3. Update tray.rs to use the new field (e.g., strings.new_field)
 
-use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
 // Include the auto-generated TrayStrings struct and TRANSLATIONS static

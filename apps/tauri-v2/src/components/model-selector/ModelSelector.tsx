@@ -2,10 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { commands, type ModelInfo } from "@/bindings";
-import { getTranslatedModelName } from "../../lib/utils/modelTranslation";
-import ModelStatusButton from "./ModelStatusButton";
+import { getTranslatedModelField } from "../../lib/utils/modelTranslation";
 import ModelDropdown from "./ModelDropdown";
-import DownloadProgressDisplay from "./DownloadProgressDisplay";
+import { ProgressBar } from "../shared";
 
 interface ModelStateEvent {
   event_type: string;
@@ -36,6 +35,25 @@ interface DownloadStats {
   totalDownloaded: number;
   speed: number;
 }
+
+const getStatusColor = (status: ModelStatus): string => {
+  switch (status) {
+    case "ready":
+      return "bg-green-400";
+    case "loading":
+      return "bg-yellow-400 animate-pulse";
+    case "downloading":
+      return "bg-logo-primary animate-pulse";
+    case "extracting":
+      return "bg-orange-400 animate-pulse";
+    case "error":
+    case "none":
+      return "bg-red-400";
+    case "unloaded":
+    default:
+      return "bg-mid-gray/60";
+  }
+};
 
 interface ModelSelectorProps {
   onError?: (error: string) => void;
@@ -334,7 +352,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
         const [modelId] = Array.from(extractingModels);
         const model = models.find((m) => m.id === modelId);
         const modelName = model
-          ? getTranslatedModelName(model, t)
+          ? getTranslatedModelField(model, t, "name")
           : t("modelSelector.extractingGeneric").replace("...", "");
         return t("modelSelector.extracting", { modelName });
       } else {
@@ -364,31 +382,31 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
     switch (modelStatus) {
       case "ready":
         return currentModel
-          ? getTranslatedModelName(currentModel, t)
+          ? getTranslatedModelField(currentModel, t, "name")
           : t("modelSelector.modelReady");
       case "loading":
         return currentModel
           ? t("modelSelector.loading", {
-              modelName: getTranslatedModelName(currentModel, t),
+              modelName: getTranslatedModelField(currentModel, t, "name"),
             })
           : t("modelSelector.loadingGeneric");
       case "extracting":
         return currentModel
           ? t("modelSelector.extracting", {
-              modelName: getTranslatedModelName(currentModel, t),
+              modelName: getTranslatedModelField(currentModel, t, "name"),
             })
           : t("modelSelector.extractingGeneric");
       case "error":
         return modelError || t("modelSelector.modelError");
       case "unloaded":
         return currentModel
-          ? getTranslatedModelName(currentModel, t)
+          ? getTranslatedModelField(currentModel, t, "name")
           : t("modelSelector.modelUnloaded");
       case "none":
         return t("modelSelector.noModelDownloadRequired");
       default:
         return currentModel
-          ? getTranslatedModelName(currentModel, t)
+          ? getTranslatedModelField(currentModel, t, "name")
           : t("modelSelector.modelUnloaded");
     }
   };
@@ -405,12 +423,29 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
     <>
       {/* Model Status and Switcher */}
       <div className="relative" ref={dropdownRef}>
-        <ModelStatusButton
-          status={modelStatus}
-          displayText={getModelDisplayText()}
-          isDropdownOpen={showModelDropdown}
+        <button
           onClick={() => setShowModelDropdown(!showModelDropdown)}
-        />
+          className="flex items-center gap-2 hover:text-text/80 transition-colors"
+          title={`Model status: ${getModelDisplayText()}`}
+        >
+          <div
+            className={`w-2 h-2 rounded-full ${getStatusColor(modelStatus)}`}
+          />
+          <span className="max-w-28 truncate">{getModelDisplayText()}</span>
+          <svg
+            className={`w-3 h-3 transition-transform ${showModelDropdown ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
 
         {/* Model Dropdown */}
         {showModelDropdown && (
@@ -427,10 +462,19 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
       </div>
 
       {/* Download Progress Bar for Models */}
-      <DownloadProgressDisplay
-        downloadProgress={modelDownloadProgress}
-        downloadStats={downloadStats}
-      />
+      {modelDownloadProgress.size > 0 && (
+        <ProgressBar
+          progress={Array.from(modelDownloadProgress.values()).map(
+            (progress) => ({
+              id: progress.model_id,
+              percentage: progress.percentage,
+              speed: downloadStats.get(progress.model_id)?.speed,
+            }),
+          )}
+          showSpeed={modelDownloadProgress.size === 1}
+          size="medium"
+        />
+      )}
     </>
   );
 };

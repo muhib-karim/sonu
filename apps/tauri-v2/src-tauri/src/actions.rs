@@ -12,9 +12,9 @@ use crate::utils::{self, show_recording_overlay, show_transcribing_overlay};
 use crate::ManagedToggleState;
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error};
-use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::time::Instant;
 use tauri::AppHandle;
 use tauri::Emitter;
@@ -24,8 +24,8 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use crate::input::EnigoState;
 
 /// Text captured from the focused application when Command Mode starts.
-static COMMAND_SELECTED_TEXT: Lazy<std::sync::Mutex<Option<String>>> =
-    Lazy::new(|| std::sync::Mutex::new(None));
+static COMMAND_SELECTED_TEXT: LazyLock<std::sync::Mutex<Option<String>>> =
+    LazyLock::new(|| std::sync::Mutex::new(None));
 
 /// Case-insensitive whole-phrase replacement on word boundaries. The search
 /// runs on per-character lowercased copies but the output is rebuilt from the
@@ -836,7 +836,7 @@ impl ShortcutAction for CommandAction {
 }
 
 // Static Action Map
-pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::new(|| {
+pub static ACTION_MAP: LazyLock<HashMap<String, Arc<dyn ShortcutAction>>> = LazyLock::new(|| {
     let mut map = HashMap::new();
     map.insert(
         "transcribe".to_string(),

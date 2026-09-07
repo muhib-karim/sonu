@@ -115,6 +115,19 @@ jobs:
             gir1.2-javascriptcoregtk-4.1=2.44.0-2 \
             gir1.2-webkit2-4.1=2.44.0-2
 
+      # whisper-rs compiles whisper.cpp bindings with bindgen, which needs
+      # libclang. GitHub Windows runners ship LLVM, but install it when
+      # missing and set LIBCLANG_PATH explicitly so builds never depend on
+      # runner image defaults.
+      - name: Ensure libclang (Windows)
+        if: contains(inputs.platform, 'windows')
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files\LLVM\bin\libclang.dll")) {
+            choco install llvm -y --no-progress
+          }
+          "LIBCLANG_PATH=C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Install Vulkan SDK (Windows x64)
         if: contains(inputs.platform, 'windows') && !contains(inputs.target, 'aarch64')
         uses: humbletim/install-vulkan-sdk@v1.2

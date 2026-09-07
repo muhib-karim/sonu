@@ -110,16 +110,6 @@ pub async fn has_any_models_available(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn has_any_models_or_downloads(
-    model_manager: State<'_, Arc<ModelManager>>,
-) -> Result<bool, String> {
-    let models = model_manager.get_available_models();
-    // Return true if any models are downloaded OR if any downloads are in progress
-    Ok(models.iter().any(|m| m.is_downloaded))
-}
-
-#[tauri::command]
-#[specta::specta]
 pub async fn cancel_download(
     model_manager: State<'_, Arc<ModelManager>>,
     model_id: String,

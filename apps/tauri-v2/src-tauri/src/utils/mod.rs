@@ -1,8 +1,4 @@
 pub mod keychain;
-pub mod mutex;
-
-pub use keychain::Keychain;
-pub use mutex::{MutexError, MutexExt};
 
 // Re-export core utility functions (merged from utils.rs)
 use crate::managers::audio::AudioRecordingManager;

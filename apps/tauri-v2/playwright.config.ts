@@ -8,7 +8,8 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // One local retry smooths over dev-server cold starts; CI retries twice.
+  retries: process.env.CI ? 2 : 1,
   workers: 1,
   reporter: "html",
   use: {

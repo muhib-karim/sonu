@@ -1,96 +1,90 @@
 # Model Selection Guide
 
-SONU supports multiple AI models for speech recognition and text processing. This guide helps you choose the right model for your needs.
+SONU supports the full transcription model catalog — Whisper, Parakeet, and
+Moonshine — all running locally on your device. This guide helps you choose the
+right model for your needs.
 
-> **Note on sizes:** Sizes below are the actual download sizes served by SONU's model
-> catalog (see `apps/tauri-v2/src-tauri/src/managers/model.rs`). Most Whisper models are
-> quantized ggml builds, so they are smaller than the upstream fp16 releases.
-> Local transcription currently runs on the **Parakeet** engine (V2/V3); Whisper and
-> Moonshine entries are listed in the catalog with local inference for them planned.
+> **Note on sizes:** Sizes below are the actual download sizes served by SONU's
+> model catalog (see `apps/tauri-v2/src-tauri/resources/models.json`). Most
+> Whisper models are quantized ggml builds, so they are smaller than the
+> upstream fp16 releases.
 
 ## Quick Comparison
 
-| Model              | Download Size | Speed      | Accuracy | Best For                            |
-| ------------------ | ------------- | ---------- | -------- | ----------------------------------- |
-| **Moonshine Base** | 58 MB         | ⚡⚡⚡⚡⚡ | ★★★☆☆    | Ultra-light English dictation       |
-| **Whisper Small**  | 487 MB        | ⚡⚡⚡⚡   | ★★★☆☆    | Everyday multilingual dictation     |
-| **Whisper Medium** | 492 MB        | ⚡⚡⚡     | ★★★★☆    | High-accuracy work (quantized)      |
-| **Whisper Large**  | 1.1 GB        | ⚡         | ★★★★★    | Maximum accuracy (quantized)        |
-| **Whisper Turbo**  | 1.6 GB        | ⚡⚡       | ★★★★☆    | Large-v3 speed/accuracy balance     |
-| **Parakeet V2**    | 473 MB        | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
-| **Parakeet V3**    | 478 MB        | ⚡⚡⚡⚡   | ★★★★☆    | Multilingual, fast and accurate     |
+| Model              | Download Size | Languages          | Recommended For                     |
+| ------------------ | ------------- | ------------------ | ----------------------------------- |
+| **Moonshine Base** | 58 MB         | English            | Ultra-light, low-resource machines  |
+| **Whisper Tiny**   | 75 MB         | 99 languages       | Quick tests, very old hardware      |
+| **Whisper Base**   | 142 MB        | 99 languages       | Lightweight multilingual dictation  |
+| **Whisper Small**  | 487 MB        | 99 languages       | Balanced multilingual dictation     |
+| **Whisper Medium** | 492 MB        | 99 languages       | High-accuracy work (quantized)      |
+| **Whisper Large**  | 1.1 GB        | 99 languages       | Maximum accuracy (quantized)        |
+| **Whisper Turbo**  | 1.6 GB        | 99 languages       | Large-v3 speed/accuracy balance     |
+| **Parakeet V2** ⭐ | 473 MB        | English            | **Best speed/accuracy for English** |
+| **Parakeet V3** ⭐ | 478 MB        | Multilingual (auto)| **Default recommendation**          |
+
+⭐ = marked **Recommended** in the app. Parakeet V3 is the default pick for new
+installations (multilingual with automatic language detection); Parakeet V2 is
+the top choice for English-only dictation.
 
 ## Whisper Models
 
-### Small (Recommended for Most Users)
+All Whisper models are multilingual (99 languages) and run on CPU, with GPU
+acceleration when available.
+
+### Tiny
+- **Download Size**: 75 MB
+- **Use Cases**: Testing, very old hardware
+- **Performance**: Fastest, lowest accuracy
+
+### Base
+- **Download Size**: 142 MB
+- **Use Cases**: Lightweight multilingual dictation
+- **Performance**: Fast, decent accuracy
+
+### Small
 - **Download Size**: 487 MB
-- **Features**: Multilingual, fast
-- **Use Cases**: General voice typing, dictation
+- **Use Cases**: Everyday multilingual dictation
 - **Performance**: Good balance of speed and accuracy
 
-### Medium (Recommended for High-Accuracy Needs)
+### Medium
 - **Download Size**: 492 MB (Q4 quantized)
-- **Features**: Multilingual, very high accuracy
 - **Use Cases**: Legal/medical transcription, accessibility
 - **Performance**: Slower but more accurate
 
-### Large (Recommended for Maximum Accuracy)
+### Large
 - **Download Size**: 1.1 GB (Q5 quantized)
-- **Features**: Multilingual, maximum accuracy
 - **Use Cases**: Critical transcription, multiple speakers
 - **Performance**: Slowest but most accurate
 
 ### Turbo
 - **Download Size**: 1.6 GB (large-v3-turbo)
-- **Features**: Multilingual, strong accuracy with better speed than Large
 - **Use Cases**: Professional transcription where accuracy matters most
 - **Performance**: Large-model accuracy at a more usable speed
 
 ## Parakeet Models
 
-### Parakeet V2 (Recommended for English Speakers)
-- **Download Size**: 473 MB (int8)
-- **Engine**: NVIDIA Parakeet TDT
-- **Features**: English only, extremely fast inference
-- **Use Cases**: Real-time dictation, long-form transcription
+NVIDIA Parakeet TDT models are CPU-optimized (int8) and extremely fast —
+several times faster than real time on mid-range hardware. No GPU required.
 
-### Parakeet V3
+### Parakeet V2 ⭐ (Recommended for English speakers)
+- **Download Size**: 473 MB (int8)
+- **Features**: English only, extremely fast inference
+- **Use Cases**: Real-time English dictation, long-form transcription
+
+### Parakeet V3 ⭐ (Default recommendation)
 - **Download Size**: 478 MB (int8)
-- **Engine**: NVIDIA Parakeet TDT
-- **Features**: Multilingual (European languages), fast and accurate
-- **Use Cases**: Non-English dictation with near real-time performance
+- **Features**: Multilingual with automatic language detection — no manual
+  language selection needed
+- **Use Cases**: Non-English or mixed-language dictation at near real-time speed
+
+## Moonshine Models
 
 ### Moonshine Base
 - **Download Size**: 58 MB
 - **Engine**: Moonshine
 - **Features**: English only, very fast, handles accents well
 - **Use Cases**: Low-resource machines, quick dictation
-
-## Offline LLM Models
-
-### SmolLM2 360M (Recommended for Text Cleanup)
-- **Size**: 720 MB
-- **Tasks**: Grammar correction, basic formatting
-- **Speed**: Very fast
-- **Best For**: Quick text improvements
-
-### SmolLM2 1.7B (Recommended for Advanced Processing)
-- **Size**: 1.1 GB
-- **Tasks**: Advanced formatting, summarization
-- **Speed**: Fast
-- **Best For**: Professional document processing
-
-### Qwen2.5 1.5B (Recommended for Versatility)
-- **Size**: 1.0 GB
-- **Context**: 32K tokens
-- **Tasks**: Text expansion, creative writing, translation
-- **Best For**: Versatile text processing
-
-### Qwen2.5 3B (Recommended for Complex Tasks)
-- **Size**: 1.9 GB
-- **Context**: 32K tokens
-- **Tasks**: Complex analysis, detailed editing
-- **Best For**: Power users with high-end hardware
 
 ## Model Selection by Use Case
 
@@ -100,29 +94,25 @@ SONU supports multiple AI models for speech recognition and text processing. Thi
 - Runs on almost any hardware
 - English only
 
-### 💼 Office Work & General Dictation
-**Recommended**: Whisper Small or Parakeet (V2 for English, V3 for other languages)
-- Good balance
-- Fast enough for real-time
-- High accuracy for common vocabulary
+### 🇺🇸 English Dictation
+**Recommended**: Parakeet V2
+- Best speed/accuracy ratio
+- Extremely fast on CPU
+
+### 🌍 Multilingual Dictation
+**Recommended**: Parakeet V3
+- Multilingual with automatic language detection
+- Near real-time performance
 
 ### 📄 Professional Transcription
 **Recommended**: Whisper Medium or Turbo
-- High accuracy
-- Handles technical terms better
-- Worth the extra download time
+- High accuracy across 99 languages
+- Handles technical terms well
 
 ### 🔬 Legal/Medical/Technical
 **Recommended**: Whisper Large or Turbo
 - Maximum accuracy
-- Handles jargon well
 - Critical for professional use
-
-### ✍️ Writing & Content Creation
-**Recommended**: Whisper Small + Qwen2.5 1.5B
-- Good transcription accuracy
-- Powerful text enhancement
-- Context-aware processing
 
 ## System Requirements
 
@@ -136,13 +126,13 @@ SONU supports multiple AI models for speech recognition and text processing. Thi
 - **CPU**: Quad-core processor
 - **RAM**: 8 GB
 - **Storage**: 2 GB free
-- **Recommended Model**: Whisper Small
+- **Recommended Model**: Parakeet V2 / V3
 
 ### Optimal Requirements
 - **CPU**: 6+ cores or GPU
 - **RAM**: 16 GB
 - **Storage**: 5 GB free
-- **Recommended Model**: Whisper Turbo + Qwen2.5 3B
+- **Recommended Model**: Whisper Turbo + cloud LLM post-processing
 
 ## Performance Tuning
 
@@ -153,8 +143,8 @@ All models run on CPU. Performance scales with:
 - Memory bandwidth
 
 ### GPU Acceleration
+- **Whisper**: GPU acceleration when available
 - **Parakeet**: CPU-optimized (int8); no GPU required
-- **Whisper**: CPU-only (future GPU support planned)
 - **LLM**: Can use GPU if available
 
 ### Memory Management
@@ -174,15 +164,14 @@ Supports 99 languages including:
 
 ### Parakeet Models
 - **Parakeet V2**: English only
-- **Parakeet V3**: Multilingual (European languages)
+- **Parakeet V3**: Multilingual with automatic language detection
 
 ### Moonshine Models
 - **English only**
 
-### LLM Models
-- Multilingual support varies by model
-- Qwen2.5 models support multiple languages
-- SmolLM2 primarily English-focused
+### LLM Post-Processing
+- Works with cloud providers (OpenAI, Groq, custom endpoints)
+- Multilingual support varies by provider model
 
 ## Download Management
 
@@ -198,9 +187,9 @@ Supports 99 languages including:
 - Delete unused models to save space
 
 ### Storage Locations
-- **Windows**: `%APPDATA%\sonu\models\`
-- **macOS**: `~/Library/Application Support/sonu/models/`
-- **Linux**: `~/.config/sonu/models/`
+- **Windows**: `%APPDATA%\com.sonu.desktop\models\`
+- **macOS**: `~/Library/Application Support/com.sonu.desktop/models/`
+- **Linux**: `~/.config/com.sonu.desktop/models/`
 
 ## Troubleshooting
 
@@ -211,13 +200,12 @@ Supports 99 languages including:
 4. Check firewall/antivirus
 
 ### Slow Performance
-1. Try smaller model
+1. Try a Parakeet model (CPU-optimized)
 2. Close other applications
-3. Enable CPU optimization
-4. Check system resources
+3. Check system resources
 
 ### Low Accuracy
-1. Use larger model
+1. Use a larger model
 2. Check microphone quality
 3. Speak clearly
 4. Adjust audio settings
@@ -225,10 +213,10 @@ Supports 99 languages including:
 ## Future Models
 
 ### Planned Support
-- **Custom Fine-tuned**: Domain-specific models
-- **Multilingual LLMs**: Better for non-English
-- **GPU acceleration for Whisper**: Faster inference on CUDA hardware
+- **Custom fine-tuned models**: Domain-specific models
+- **GPU acceleration improvements**: Faster inference on CUDA hardware
 
 ---
 
-For help selecting the right model, visit our [Discussions](https://github.com/muhib-karim/sonu/discussions).
+For help selecting the right model, visit our
+[Discussions](https://github.com/muhib-karim/sonu/discussions).

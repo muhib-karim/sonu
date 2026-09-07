@@ -12,7 +12,6 @@ interface ProgressBarProps {
   className?: string;
   size?: "small" | "medium" | "large";
   showSpeed?: boolean;
-  showLabel?: boolean;
 }
 
 const ProgressBar: React.FC<ProgressBarProps> = ({
@@ -20,7 +19,6 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   className = "",
   size = "medium",
   showSpeed = false,
-  showLabel = false,
 }) => {
   const sizeClasses = {
     small: "w-16 h-1",
@@ -46,11 +44,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
           max={100}
           className={`${progressClasses} [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-mid-gray/20 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-logo-primary`}
         />
-        {(showSpeed || showLabel) && (
+        {showSpeed && (
           <div className="text-xs text-text/60 tabular-nums min-w-fit">
-            {showLabel && item.label && (
-              <span className="mr-2">{item.label}</span>
-            )}
             {showSpeed && item.speed !== undefined && item.speed > 0 ? (
               // eslint-disable-next-line i18next/no-literal-string
               <span>{item.speed.toFixed(1)}MB/s</span>

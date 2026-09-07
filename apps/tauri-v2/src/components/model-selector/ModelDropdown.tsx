@@ -2,11 +2,10 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import type { ModelInfo } from "@/bindings";
 import { formatModelSize } from "../../lib/utils/format";
-import {
-  getTranslatedModelName,
-  getTranslatedModelDescription,
-} from "../../lib/utils/modelTranslation";
+import { getTranslatedModelField } from "../../lib/utils/modelTranslation";
 import { ProgressBar } from "../shared";
+import { isRecommendedModel } from "./modelRecommendation";
+import ModelLanguageChip from "./ModelLanguageChip";
 
 interface DownloadProgress {
   model_id: string;
@@ -14,6 +13,21 @@ interface DownloadProgress {
   total: number;
   percentage: number;
 }
+
+/**
+ * Sort recommended models to the top; stable (catalog order) within each group.
+ */
+const recommendedFirst = (a: ModelInfo, b: ModelInfo): number =>
+  Number(isRecommendedModel(b)) - Number(isRecommendedModel(a));
+
+const RecommendedBadge: React.FC = () => {
+  const { t } = useTranslation();
+  return (
+    <span className="ml-2 whitespace-nowrap rounded bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent">
+      {t("modelSelector.recommendedBadge", "Recommended")}
+    </span>
+  );
+};
 
 interface ModelDropdownProps {
   models: ModelInfo[];
@@ -35,8 +49,12 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
   onError,
 }) => {
   const { t } = useTranslation();
-  const availableModels = models.filter((m) => m.is_downloaded);
-  const downloadableModels = models.filter((m) => !m.is_downloaded);
+  const availableModels = models
+    .filter((m) => m.is_downloaded)
+    .sort(recommendedFirst);
+  const downloadableModels = models
+    .filter((m) => !m.is_downloaded)
+    .sort(recommendedFirst);
   const isFirstRun = availableModels.length === 0 && models.length > 0;
 
   const handleDeleteClick = async (e: React.MouseEvent, modelId: string) => {
@@ -106,10 +124,12 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm">
-                    {getTranslatedModelName(model, t)}
+                    {getTranslatedModelField(model, t, "name")}
+                    {isRecommendedModel(model) && <RecommendedBadge />}
                   </div>
                   <div className="text-xs text-text/40 italic pr-4">
-                    {getTranslatedModelDescription(model, t)}
+                    {getTranslatedModelField(model, t, "description")}
+                    <ModelLanguageChip model={model} />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -123,7 +143,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                       onClick={(e) => handleDeleteClick(e, model.id)}
                       className="text-red-400 hover:text-red-300 p-1 hover:bg-red-500/10 rounded transition-colors"
                       title={t("modelSelector.deleteModel", {
-                        modelName: getTranslatedModelName(model, t),
+                        modelName: getTranslatedModelField(model, t, "name"),
                       })}
                     >
                       <svg
@@ -183,15 +203,12 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm">
-                      {getTranslatedModelName(model, t)}
-                      {model.id === "parakeet-tdt-0.6b-v3" && isFirstRun && (
-                        <span className="ml-2 text-xs bg-logo-primary/20 text-logo-primary px-1.5 py-0.5 rounded">
-                          {t("onboarding.recommended")}
-                        </span>
-                      )}
+                      {getTranslatedModelField(model, t, "name")}
+                      {isRecommendedModel(model) && <RecommendedBadge />}
                     </div>
                     <div className="text-xs text-text/40 italic pr-4">
-                      {getTranslatedModelDescription(model, t)}
+                      {getTranslatedModelField(model, t, "description")}
+                      <ModelLanguageChip model={model} />
                     </div>
                     <div className="mt-1 text-xs text-text/50 tabular-nums">
                       {t("modelSelector.downloadSize")} ·{" "}

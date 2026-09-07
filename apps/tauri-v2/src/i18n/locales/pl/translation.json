@@ -85,7 +85,9 @@
     "modelError": "Błąd modelu",
     "modelUnloaded": "Model wyładowany",
     "noModelDownloadRequired": "Brak modelu – wymagane pobranie",
-    "deleteModel": "Usuń {{modelName}}"
+    "deleteModel": "Usuń {{modelName}}",
+    "recommendedBadge": "Zalecany",
+    "multilingual": "Wielojęzyczny"
   },
   "settings": {
     "general": {

@@ -9,9 +9,7 @@ mod commands;
 mod helpers;
 mod input;
 mod llm_client;
-mod llm_inference;
 mod managers;
-mod model_config;
 mod overlay;
 mod settings;
 mod shortcut;
@@ -313,7 +311,6 @@ pub fn run() {
         commands::models::get_transcription_model_status,
         commands::models::is_model_loading,
         commands::models::has_any_models_available,
-        commands::models::has_any_models_or_downloads,
         commands::models::get_recommended_first_model,
         commands::audio::update_microphone_mode,
         commands::audio::get_microphone_mode,

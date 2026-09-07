@@ -8,7 +8,7 @@
 
 **Type at the speed of thought. Fully offline. Fully private.**
 
-[![Latest Release](https://img.shields.io/badge/Latest-v2.5.0-6366f1?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases/latest)
+[![Latest Release](https://img.shields.io/badge/Latest-v2.6.0-6366f1?style=for-the-badge)](https://github.com/muhib-karim/sonu/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/muhib-karim/sonu/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/muhib-karim/sonu?style=for-the-badge&color=f59e0b)](https://github.com/muhib-karim/sonu)
@@ -45,7 +45,7 @@ All transcription runs **locally on your device** by default — no audio ever l
 
 ### ⚡ Real-Time Transcription
 
-Powered by the NVIDIA **Parakeet** engine (via transcribe-rs) for blazing-fast, real-time voice-to-text. Start speaking and see words appear instantly.
+Powered by **NVIDIA Parakeet**, **Whisper**, and **Moonshine** engines (via transcribe-rs) for blazing-fast, real-time voice-to-text. Start speaking and see words appear instantly.
 
 </td>
 </tr>
@@ -61,7 +61,7 @@ Optional **LLM post-processing** cleans up filler words, fixes grammar, and form
 
 ### 🌍 50+ Languages
 
-Transcribe in 50+ languages with automatic language detection via cloud Whisper. Offline models cover English and major European languages (Parakeet). Switch languages on the fly or lock to a specific one.
+Transcribe in 50+ languages with automatic language detection. Offline, pick your engine: Parakeet V3 auto-detects languages, Whisper covers 99 languages, and cloud Whisper extends coverage further. Switch languages on the fly or lock to a specific one.
 
 </td>
 </tr>
@@ -121,7 +121,7 @@ Define shorthand codes that expand into full text blocks — perfect for emails,
 
 <div align="center">
 
-> **SONU v2.5.0** — Built with Tauri v2 (Rust + React). Lightweight, native, and fast.
+> **SONU v2.6.0** — Built with Tauri v2 (Rust + React). Lightweight, native, and fast.
 
 ### Appearance & responsiveness
 
@@ -187,7 +187,7 @@ Choose AI dictation style presets organized by category: _Personal_, _Work_, _Em
 | **Voice notes**                       |          ✅          |     ❌      |      ✅      |       ❌        |
 | **Push-to-talk + toggle**             |          ✅          |     ✅      |      ✅      |       ✅        |
 | **Auto-type into any app**            |          ✅          |     ✅      |      ✅      |       ✅        |
-| **Multiple ASR models**               | ✅ (Parakeet local; Whisper cloud) |     ❌      |      ✅      |       ❌        |
+| **Multiple ASR models**               | ✅ (Parakeet, Whisper & Moonshine local) |     ❌      |      ✅      |       ❌        |
 | **Themes & customization**            |          ✅          |   Limited   |   Limited    |       ❌        |
 
 ---
@@ -250,14 +250,19 @@ SONU supports multiple speech recognition engines and models:
 | Model              | Download Size | Speed      | Accuracy | Best For                            |
 | ------------------ | ------------- | ---------- | -------- | ----------------------------------- |
 | **Moonshine Base** | 58 MB         | ⚡⚡⚡⚡⚡ | ★★★☆☆    | Ultra-light English dictation       |
-| **Whisper Small**  | 487 MB        | ⚡⚡⚡⚡   | ★★★☆☆    | Everyday multilingual dictation     |
+| **Whisper Tiny**   | 75 MB         | ⚡⚡⚡⚡⚡ | ★★☆☆☆    | Quick tests, very old hardware      |
+| **Whisper Base**   | 142 MB        | ⚡⚡⚡⚡   | ★★★☆☆    | Lightweight multilingual dictation  |
+| **Whisper Small**  | 487 MB        | ⚡⚡⚡⚡   | ★★★☆☆    | Balanced multilingual dictation     |
 | **Whisper Medium** | 492 MB        | ⚡⚡⚡     | ★★★★☆    | High-accuracy work (quantized)      |
 | **Whisper Large**  | 1.1 GB        | ⚡         | ★★★★★    | Maximum accuracy (quantized)        |
 | **Whisper Turbo**  | 1.6 GB        | ⚡⚡       | ★★★★☆    | Large-v3 speed/accuracy balance     |
-| **Parakeet V2**    | 473 MB        | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
-| **Parakeet V3**    | 478 MB        | ⚡⚡⚡⚡   | ★★★★☆    | Multilingual, fast and accurate     |
+| **Parakeet V2** ⭐ | 473 MB        | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
+| **Parakeet V3** ⭐ | 478 MB        | ⚡⚡⚡⚡   | ★★★★☆    | Multilingual — default pick         |
 
-Download sizes reflect the quantized builds served by SONU's model catalog. Local transcription currently runs on the Parakeet engine; Whisper and Moonshine entries are available in the catalog, with local inference for them planned. Models download automatically on first use. All processing stays local.
+⭐ Recommended by SONU (Parakeet V3 is the default for new installs; V2 for
+English-only). Download sizes reflect the quantized builds served by SONU's
+model catalog. All models run locally on your device — they download
+automatically on first use.
 
 ---
 
@@ -280,7 +285,7 @@ SONU/
 | ----------------------- | --------------------------------------------------------------------- |
 | **Desktop Framework**   | [Tauri v2](https://v2.tauri.app) (Rust)                               |
 | **Frontend**            | React 18, TypeScript, TailwindCSS                                     |
-| **Speech Engine**       | [transcribe-rs](https://github.com/cjpais/transcribe-rs) (NVIDIA Parakeet TDT) |
+| **Speech Engine**       | [transcribe-rs](https://github.com/cjpais/transcribe-rs) (Parakeet TDT · Whisper · Moonshine) |
 | **AI Enhancement**      | Local LLM (GGUF) + Cloud providers (OpenAI, Groq, etc.)               |
 | **Cloud Transcription** | Groq, Deepgram, Custom API endpoints                                  |
 | **Security**            | OS Keychain, Context Isolation, CSP, Input Validation                 |
@@ -353,7 +358,7 @@ SONU is designed with security-first principles:
 
 ### ✅ Shipped
 
-- [x] Offline voice-to-text (NVIDIA Parakeet)
+- [x] Offline voice-to-text (Parakeet, Whisper & Moonshine)
 - [x] AI text enhancement (cloud LLMs; local models planned)
 - [x] Context-aware dictation (adapts to the active app)
 - [x] Command Mode (voice-rewrite selected text)

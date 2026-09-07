@@ -14,10 +14,8 @@ import { Button } from "../../ui/Button";
 import { ResetButton } from "../../ui/ResetButton";
 import { Input } from "../../ui/Input";
 
-import { ProviderSelect } from "../PostProcessingSettingsApi/ProviderSelect";
-import { BaseUrlField } from "../PostProcessingSettingsApi/BaseUrlField";
-import { ApiKeyField } from "../PostProcessingSettingsApi/ApiKeyField";
-import { ModelSelect } from "../PostProcessingSettingsApi/ModelSelect";
+import { Select } from "../../ui/Select";
+import { DeferredInput } from "../PostProcessingSettingsApi/DeferredInput";
 import { usePostProcessProviderState } from "../PostProcessingSettingsApi/usePostProcessProviderState";
 import { useSettings } from "../../../hooks/useSettings";
 import { OfflineLLMSettings } from "../offline-llm/OfflineLLMSettings";
@@ -52,10 +50,11 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
         grouped={true}
       >
         <div className="flex items-center gap-2">
-          <ProviderSelect
+          <Dropdown
             options={state.providerOptions}
-            value={state.selectedProviderId}
-            onChange={state.handleProviderSelect}
+            selectedValue={state.selectedProviderId}
+            onSelect={state.handleProviderSelect}
+            className="flex-1"
           />
         </div>
       </SettingContainer>
@@ -77,7 +76,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
               grouped={true}
             >
               <div className="flex items-center gap-2">
-                <BaseUrlField
+                <DeferredInput
                   value={state.baseUrl}
                   onBlur={state.handleBaseUrlChange}
                   placeholder={t(
@@ -85,6 +84,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
                   )}
                   disabled={state.isBaseUrlUpdating}
                   className="min-w-[380px]"
+                  disabledHint="Base URL is managed by the selected provider."
                 />
               </div>
             </SettingContainer>
@@ -98,7 +98,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
             grouped={true}
           >
             <div className="flex items-center gap-2">
-              <ApiKeyField
+              <DeferredInput
                 value={state.apiKey}
                 onBlur={state.handleApiKeyChange}
                 placeholder={t(
@@ -106,6 +106,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
                 )}
                 disabled={state.isApiKeyUpdating}
                 className="min-w-[320px]"
+                type="password"
               />
             </div>
           </SettingContainer>
@@ -125,11 +126,16 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
           grouped={true}
         >
           <div className="flex items-center gap-2">
-            <ModelSelect
-              value={state.model}
+            <Select
+              className="text-sm flex-1 min-w-[380px]"
+              value={state.model || null}
               options={state.modelOptions}
-              disabled={state.isModelUpdating}
-              isLoading={state.isFetchingModels}
+              onChange={(selected) => state.handleModelSelect(selected ?? "")}
+              onCreateOption={(input) => {
+                const trimmed = input.trim();
+                if (trimmed) state.handleModelCreate(trimmed);
+              }}
+              onBlur={() => {}}
               placeholder={
                 state.modelOptions.length > 0
                   ? t(
@@ -137,10 +143,10 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
                     )
                   : t("settings.postProcessing.api.model.placeholderNoOptions")
               }
-              onSelect={state.handleModelSelect}
-              onCreate={state.handleModelCreate}
-              onBlur={() => {}}
-              className="flex-1 min-w-[380px]"
+              disabled={state.isModelUpdating}
+              isLoading={state.isFetchingModels}
+              isCreatable
+              formatCreateLabel={(input) => `Use "${input}"`}
             />
             <ResetButton
               onClick={state.handleRefreshModels}

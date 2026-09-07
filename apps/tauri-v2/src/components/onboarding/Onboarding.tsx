@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { commands, type ModelInfo } from "@/bindings";
 import ModelCard from "./ModelCard";
 import SonuLogo from "../icons/SonuLogo";
+import { isRecommendedModel } from "../model-selector/modelRecommendation";
 
 interface OnboardingProps {
   onModelSelected: () => void;
@@ -54,10 +55,6 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     }
   };
 
-  const getRecommendedBadge = (modelId: string): boolean => {
-    return modelId === "parakeet-tdt-0.6b-v3";
-  };
-
   return (
     <div className="h-screen w-screen flex flex-col p-6 gap-4 inset-0 bg-background">
       <div className="flex flex-col items-center gap-2 shrink-0">
@@ -74,27 +71,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
           </div>
         )}
 
-        {/*<div className="flex flex-col gap-4 bg-background-dark p-4 py-5 w-full rounded-2xl flex-1 overflow-y-auto min-h-0">*/}
         <div className="flex flex-col gap-4 ">
-          {availableModels
-            .filter((model) => getRecommendedBadge(model.id))
+          {/* Recommended models first, then by size */}
+          {[...availableModels]
+            .sort(
+              (a, b) =>
+                Number(isRecommendedModel(b)) - Number(isRecommendedModel(a)) ||
+                (isRecommendedModel(a) ? 0 : a.size_mb - b.size_mb),
+            )
             .map((model) => (
               <ModelCard
                 key={model.id}
                 model={model}
-                variant="featured"
-                disabled={downloading}
-                onSelect={handleDownloadModel}
-              />
-            ))}
-
-          {availableModels
-            .filter((model) => !getRecommendedBadge(model.id))
-            .sort((a, b) => Number(a.size_mb) - Number(b.size_mb))
-            .map((model) => (
-              <ModelCard
-                key={model.id}
-                model={model}
+                variant={isRecommendedModel(model) ? "featured" : "default"}
                 disabled={downloading}
                 onSelect={handleDownloadModel}
               />

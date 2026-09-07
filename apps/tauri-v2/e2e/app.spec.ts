@@ -82,6 +82,50 @@ test.describe("SONU App", () => {
     ).toBeVisible();
   });
 
+  test("should show voice commands on dictionary page", async ({ page }) => {
+    await page.getByText("Dictionary", { exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Dictionary" }),
+    ).toBeVisible();
+
+    // Voice commands section renders with its enable toggle
+    await expect(
+      page.getByText("Voice commands", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Enable voice commands", { exact: true }),
+    ).toBeVisible();
+
+    // The add-macro button stays disabled until both inputs have content
+    const addButton = page.getByRole("button", { name: "Add macro" });
+    await expect(addButton).toBeDisabled();
+    await page
+      .getByPlaceholder("Spoken phrase (e.g. my email)")
+      .fill("my email");
+    await expect(addButton).toBeDisabled();
+    await page.getByPlaceholder("Replacement text").fill("john@example.com");
+    await expect(addButton).toBeEnabled();
+  });
+
+  test("should support keyboard navigation in the theme picker", async ({
+    page,
+  }) => {
+    await page.getByText("Appearance", { exact: true }).click();
+
+    // In the plain-browser e2e context settings cannot load, so the active
+    // theme stays on the "dark" fallback — arrow keys move from there.
+    await page.locator('[data-testid="theme-mode-light"]').focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(
+      page.locator('[data-testid="theme-mode-system"]'),
+    ).toBeFocused();
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(
+      page.locator('[data-testid="theme-mode-light"]'),
+    ).toBeFocused();
+  });
+
   test("should show version in footer", async ({ page }) => {
     await expect(page.getByText(/v\d+\.\d+\.\d+/)).toBeVisible();
   });

@@ -85,7 +85,9 @@
     "modelError": "モデルエラー",
     "modelUnloaded": "モデルがアンロードされました",
     "noModelDownloadRequired": "モデルなし - ダウンロードが必要",
-    "deleteModel": "{{modelName}}を削除"
+    "deleteModel": "{{modelName}}を削除",
+    "recommendedBadge": "おすすめ",
+    "multilingual": "多言語"
   },
   "settings": {
     "general": {

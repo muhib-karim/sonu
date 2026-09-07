@@ -4,13 +4,12 @@ import { invoke } from "@tauri-apps/api/core";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CancelIcon } from "../components/icons";
+import { parsePreviewPayload, type PreviewText } from "./preview";
 import "./RecordingOverlay.css";
 import { commands } from "@/bindings";
 import { syncLanguageFromSettings } from "@/i18n";
 
 type OverlayState = "recording" | "transcribing" | "done";
-
-type PreviewText = { stable: string; partial: string };
 
 const EMPTY_PREVIEW: PreviewText = { stable: "", partial: "" };
 
@@ -77,25 +76,7 @@ const RecordingOverlay: React.FC = () => {
       // Listen for preview text updates (streaming live transcription:
       // { stable, partial } — the confirmed prefix and the volatile tail).
       const unlistenPreview = await listen("preview-text", (event) => {
-        const payload = event.payload as unknown;
-        if (
-          payload &&
-          typeof payload === "object" &&
-          "stable" in payload &&
-          "partial" in payload
-        ) {
-          const p = payload as { stable: unknown; partial: unknown };
-          setPreview({
-            stable: typeof p.stable === "string" ? p.stable : "",
-            partial: typeof p.partial === "string" ? p.partial : "",
-          });
-        } else {
-          // Backward compatibility: plain-string payload.
-          setPreview({
-            stable: "",
-            partial: typeof payload === "string" ? payload : "",
-          });
-        }
+        setPreview(parsePreviewPayload(event.payload));
       });
 
       // Listen for done state

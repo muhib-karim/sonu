@@ -1,0 +1,15 @@
+# Cargo build configuration for SONU's Tauri backend.
+#
+# CRT workaround for Windows MSVC: esaxx-rs (pulled in by transcribe-rs's
+# moonshine feature via tokenizers' default `esaxx_fast`) hardcodes
+# `.static_crt(true)` in its build script (/MT), which conflicts with the
+# dynamic CRT (/MD) used by rustc, onig, and ort's prebuilt onnxruntime.
+# Mixing them is rejected by the MSVC linker with LNK2038/LNK2005
+# ("RuntimeLibrary mismatch" / duplicate C++ runtime symbols).
+#
+# The cc crate appends target-specific CXXFLAGS *after* its own flags, so
+# this overrides -MT with -MD for C++ builds on Windows only. Other targets
+# never read this variable, and whisper.cpp (built via cmake, not cc) is
+# unaffected. See https://github.com/Narsil/esaxx-rs (unfixed upstream).
+[env]
+CXXFLAGS_x86_64_pc_windows_msvc = "/MD"

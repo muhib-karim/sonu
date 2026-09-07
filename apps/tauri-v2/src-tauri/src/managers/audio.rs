@@ -13,18 +13,6 @@ use tauri::{Emitter, Manager};
 pub enum AudioError {
     #[error("Mutex lock poisoned: {0}")]
     LockPoisoned(String),
-    #[error("Recorder not initialized")]
-    RecorderNotInitialized,
-    #[error("Failed to open microphone: {0}")]
-    MicrophoneOpenFailed(String),
-    #[error("Failed to start recording: {0}")]
-    RecordingStartFailed(String),
-    #[error("Failed to stop recording: {0}")]
-    RecordingStopFailed(String),
-    #[error("Invalid device selection")]
-    InvalidDevice,
-    #[error("Path contains invalid UTF-8")]
-    InvalidPath,
 }
 
 impl<T> From<PoisonError<T>> for AudioError {

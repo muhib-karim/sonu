@@ -85,7 +85,9 @@
     "modelError": "Erro no Modelo",
     "modelUnloaded": "Modelo Descarregado",
     "noModelDownloadRequired": "Sem Modelo - Download Necessário",
-    "deleteModel": "Excluir {{modelName}}"
+    "deleteModel": "Excluir {{modelName}}",
+    "recommendedBadge": "Recomendado",
+    "multilingual": "Multilíngue"
   },
   "settings": {
     "general": {

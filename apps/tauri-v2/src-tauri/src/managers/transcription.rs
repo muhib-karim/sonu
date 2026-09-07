@@ -16,17 +16,18 @@ use transcribe_rs::{
     TranscriptionEngine,
 };
 
+#[cfg(feature = "moonshine")]
+use transcribe_rs::engines::moonshine::{
+    ModelVariant, MoonshineEngine, MoonshineInferenceParams, MoonshineModelParams,
+};
+#[cfg(feature = "whisper")]
+use transcribe_rs::engines::whisper::{WhisperEngine, WhisperInferenceParams, WhisperModelParams};
+
 /// Errors that can occur in transcription operations
 #[derive(Debug, thiserror::Error)]
 pub enum TranscriptionError {
     #[error("Mutex lock poisoned: {0}")]
     LockPoisoned(String),
-    #[error("Model not loaded")]
-    ModelNotLoaded,
-    #[error("Model loading failed: {0}")]
-    ModelLoadingFailed(String),
-    #[error("Transcription failed: {0}")]
-    TranscriptionFailed(String),
 }
 
 impl<T> From<PoisonError<T>> for TranscriptionError {
@@ -47,7 +48,34 @@ pub struct ModelStateEvent {
 }
 
 enum LoadedEngine {
+    #[cfg(feature = "parakeet")]
     Parakeet(ParakeetEngine),
+    /// Whisper loads a single GGML .bin model file.
+    #[cfg(feature = "whisper")]
+    Whisper(WhisperEngine),
+    /// Moonshine loads a model directory (encoder/decoder ONNX + tokenizer).
+    #[cfg(feature = "moonshine")]
+    Moonshine(MoonshineEngine),
+}
+
+/// Maps user settings onto Whisper inference parameters.
+///
+/// `selected_language` of "auto" (or empty) maps to `None`, which makes
+/// Whisper auto-detect the spoken language; `translate_to_english` maps to
+/// Whisper's translate option (multilingual models only).
+#[cfg(feature = "whisper")]
+fn whisper_inference_params(
+    selected_language: &str,
+    translate_to_english: bool,
+) -> WhisperInferenceParams {
+    WhisperInferenceParams {
+        language: match selected_language {
+            "" | "auto" => None,
+            lang => Some(lang.to_string()),
+        },
+        translate: translate_to_english,
+        ..Default::default()
+    }
 }
 
 #[derive(Clone)]
@@ -184,7 +212,12 @@ impl TranscriptionManager {
                 .map_err(|e| anyhow::anyhow!("Failed to lock engine: {}", e))?;
             if let Some(ref mut loaded_engine) = *engine {
                 match loaded_engine {
+                    #[cfg(feature = "parakeet")]
                     LoadedEngine::Parakeet(ref mut e) => e.unload_model(),
+                    #[cfg(feature = "whisper")]
+                    LoadedEngine::Whisper(ref mut e) => e.unload_model(),
+                    #[cfg(feature = "moonshine")]
+                    LoadedEngine::Moonshine(ref mut e) => e.unload_model(),
                 }
             }
             *engine = None; // Drop the engine to free memory
@@ -228,6 +261,26 @@ impl TranscriptionManager {
         }
     }
 
+    /// Emits a `loading_failed` model state event and returns the matching
+    /// error for propagation to the caller.
+    fn emit_load_failure(
+        &self,
+        model_id: &str,
+        model_name: &str,
+        error_msg: &str,
+    ) -> anyhow::Error {
+        let _ = self.app_handle.emit(
+            "model-state-changed",
+            ModelStateEvent {
+                event_type: "loading_failed".to_string(),
+                model_id: Some(model_id.to_string()),
+                model_name: Some(model_name.to_string()),
+                error: Some(error_msg.to_string()),
+            },
+        );
+        anyhow::anyhow!("{}", error_msg)
+    }
+
     pub fn load_model(&self, model_id: &str) -> Result<()> {
         let load_start = std::time::Instant::now();
         debug!("Starting to load model: {}", model_id);
@@ -250,54 +303,74 @@ impl TranscriptionManager {
 
         if !model_info.is_downloaded {
             let error_msg = "Model not downloaded";
-            let _ = self.app_handle.emit(
-                "model-state-changed",
-                ModelStateEvent {
-                    event_type: "loading_failed".to_string(),
-                    model_id: Some(model_id.to_string()),
-                    model_name: Some(model_info.name.clone()),
-                    error: Some(error_msg.to_string()),
-                },
-            );
-            return Err(anyhow::anyhow!(error_msg));
+            return Err(self.emit_load_failure(model_id, &model_info.name, error_msg));
         }
 
         let model_path = self.model_manager.get_model_path(model_id)?;
 
-        // Create appropriate engine based on model type (SONU uses Parakeet only)
+        // Create the appropriate engine based on the catalog's engine type.
+        // Whisper takes the .bin file path, Parakeet and Moonshine take the
+        // model directory path (guaranteed by the catalog's is_directory).
         let loaded_engine = match model_info.engine_type {
             EngineType::Parakeet => {
-                let mut engine = ParakeetEngine::new();
-                engine
-                    .load_model_with_params(&model_path, ParakeetModelParams::int8())
-                    .map_err(|e| {
+                #[cfg(feature = "parakeet")]
+                {
+                    let mut engine = ParakeetEngine::new();
+                    if let Err(e) =
+                        engine.load_model_with_params(&model_path, ParakeetModelParams::int8())
+                    {
                         let error_msg =
                             format!("Failed to load parakeet model {}: {}", model_id, e);
-                        let _ = self.app_handle.emit(
-                            "model-state-changed",
-                            ModelStateEvent {
-                                event_type: "loading_failed".to_string(),
-                                model_id: Some(model_id.to_string()),
-                                model_name: Some(model_info.name.clone()),
-                                error: Some(error_msg.clone()),
-                            },
-                        );
-                        anyhow::anyhow!(error_msg)
-                    })?;
-                LoadedEngine::Parakeet(engine)
+                        return Err(self.emit_load_failure(model_id, &model_info.name, &error_msg));
+                    }
+                    LoadedEngine::Parakeet(engine)
+                }
+                #[cfg(not(feature = "parakeet"))]
+                {
+                    let error_msg =
+                        format!("Parakeet engine is not compiled in for model {}", model_id);
+                    return Err(self.emit_load_failure(model_id, &model_info.name, &error_msg));
+                }
             }
-            _ => {
-                let error_msg = format!("Unsupported engine type for model {}", model_id);
-                let _ = self.app_handle.emit(
-                    "model-state-changed",
-                    ModelStateEvent {
-                        event_type: "loading_failed".to_string(),
-                        model_id: Some(model_id.to_string()),
-                        model_name: Some(model_info.name.clone()),
-                        error: Some(error_msg.clone()),
-                    },
-                );
-                return Err(anyhow::anyhow!(error_msg));
+            EngineType::Whisper => {
+                #[cfg(feature = "whisper")]
+                {
+                    let mut engine = WhisperEngine::new();
+                    if let Err(e) =
+                        engine.load_model_with_params(&model_path, WhisperModelParams::default())
+                    {
+                        let error_msg = format!("Failed to load whisper model {}: {}", model_id, e);
+                        return Err(self.emit_load_failure(model_id, &model_info.name, &error_msg));
+                    }
+                    LoadedEngine::Whisper(engine)
+                }
+                #[cfg(not(feature = "whisper"))]
+                {
+                    let error_msg =
+                        format!("Whisper engine is not compiled in for model {}", model_id);
+                    return Err(self.emit_load_failure(model_id, &model_info.name, &error_msg));
+                }
+            }
+            EngineType::Moonshine => {
+                #[cfg(feature = "moonshine")]
+                {
+                    let mut engine = MoonshineEngine::new();
+                    let params = MoonshineModelParams {
+                        variant: ModelVariant::Base,
+                    };
+                    if let Err(e) = engine.load_model_with_params(&model_path, params) {
+                        let error_msg =
+                            format!("Failed to load moonshine model {}: {}", model_id, e);
+                        return Err(self.emit_load_failure(model_id, &model_info.name, &error_msg));
+                    }
+                    LoadedEngine::Moonshine(engine)
+                }
+                #[cfg(not(feature = "moonshine"))]
+                {
+                    let error_msg =
+                        format!("Moonshine engine is not compiled in for model {}", model_id);
+                    return Err(self.emit_load_failure(model_id, &model_info.name, &error_msg));
+                }
             }
         };
 
@@ -447,6 +520,7 @@ impl TranscriptionManager {
             })?;
 
             match engine {
+                #[cfg(feature = "parakeet")]
                 LoadedEngine::Parakeet(parakeet_engine) => {
                     let params = ParakeetInferenceParams {
                         timestamp_granularity: TimestampGranularity::Segment,
@@ -455,6 +529,24 @@ impl TranscriptionManager {
                     parakeet_engine
                         .transcribe_samples(audio, Some(params))
                         .map_err(|e| anyhow::anyhow!("Parakeet transcription failed: {}", e))?
+                }
+                #[cfg(feature = "whisper")]
+                LoadedEngine::Whisper(whisper_engine) => {
+                    let params = whisper_inference_params(
+                        &settings.selected_language,
+                        settings.translate_to_english,
+                    );
+                    whisper_engine
+                        .transcribe_samples(audio, Some(params))
+                        .map_err(|e| anyhow::anyhow!("Whisper transcription failed: {}", e))?
+                }
+                #[cfg(feature = "moonshine")]
+                LoadedEngine::Moonshine(moonshine_engine) => {
+                    // Moonshine has no language/translate options (English-only
+                    // models); max_length is derived from audio duration.
+                    moonshine_engine
+                        .transcribe_samples(audio, Some(MoonshineInferenceParams::default()))
+                        .map_err(|e| anyhow::anyhow!("Moonshine transcription failed: {}", e))?
                 }
             }
         };
@@ -520,5 +612,86 @@ impl Drop for TranscriptionManager {
                 warn!("Failed to lock watcher_handle during drop: {}", e);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::managers::model::EngineType;
+
+    /// Whether a given engine type can be dispatched in the current build
+    /// (i.e. its cargo feature is compiled in and `LoadedEngine` has the
+    /// corresponding variant plus load/transcribe arms).
+    fn engine_type_supported(engine_type: &EngineType) -> bool {
+        match engine_type {
+            EngineType::Parakeet => cfg!(feature = "parakeet"),
+            EngineType::Whisper => cfg!(feature = "whisper"),
+            EngineType::Moonshine => cfg!(feature = "moonshine"),
+        }
+    }
+
+    /// Parakeet is SONU's baseline engine and must always be compiled in.
+    #[test]
+    fn test_parakeet_always_supported() {
+        assert!(engine_type_supported(&EngineType::Parakeet));
+    }
+
+    /// Whisper and Moonshine support must exactly track their cargo features,
+    /// so the load-time dispatch never hits an "engine not compiled in" error
+    /// for a model whose engine is enabled.
+    #[test]
+    fn test_engine_support_tracks_features() {
+        assert_eq!(
+            engine_type_supported(&EngineType::Whisper),
+            cfg!(feature = "whisper")
+        );
+        assert_eq!(
+            engine_type_supported(&EngineType::Moonshine),
+            cfg!(feature = "moonshine")
+        );
+    }
+
+    /// In the full build (parakeet + whisper + moonshine) every catalog
+    /// engine type must be dispatchable.
+    #[test]
+    #[cfg(all(feature = "whisper", feature = "moonshine"))]
+    fn test_all_engines_dispatchable_in_full_build() {
+        for engine_type in [
+            EngineType::Parakeet,
+            EngineType::Whisper,
+            EngineType::Moonshine,
+        ] {
+            assert!(
+                engine_type_supported(&engine_type),
+                "{:?} must be dispatchable in the full build",
+                engine_type
+            );
+        }
+    }
+
+    /// Whisper parameter mapping: "auto"/empty language means auto-detect
+    /// (None) and the translate setting is forwarded as-is.
+    #[test]
+    #[cfg(feature = "whisper")]
+    fn test_whisper_inference_params_mapping() {
+        // "auto" => None (Whisper auto-detects the language)
+        let params = whisper_inference_params("auto", false);
+        assert_eq!(params.language, None);
+        assert!(!params.translate);
+        assert!(!params.print_timestamps);
+
+        // Explicit language is forwarded
+        let params = whisper_inference_params("en", false);
+        assert_eq!(params.language, Some("en".to_string()));
+
+        // Empty language behaves like auto
+        let params = whisper_inference_params("", false);
+        assert_eq!(params.language, None);
+
+        // Translate-to-English setting maps to Whisper's translate flag
+        let params = whisper_inference_params("de", true);
+        assert_eq!(params.language, Some("de".to_string()));
+        assert!(params.translate);
     }
 }

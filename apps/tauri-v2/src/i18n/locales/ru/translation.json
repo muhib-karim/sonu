@@ -85,7 +85,9 @@
     "modelError": "Ошибка модели",
     "modelUnloaded": "Модель выгружена",
     "noModelDownloadRequired": "Нет модели – требуется загрузка",
-    "deleteModel": "Удалить {{modelName}}"
+    "deleteModel": "Удалить {{modelName}}",
+    "recommendedBadge": "Рекомендуется",
+    "multilingual": "Многоязычный"
   },
   "settings": {
     "general": {

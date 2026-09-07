@@ -85,7 +85,9 @@
     "modelError": "Lỗi Mô Hình",
     "modelUnloaded": "Mô Hình Đã Gỡ",
     "noModelDownloadRequired": "Chưa Có Mô Hình - Cần Tải Xuống",
-    "deleteModel": "Xóa {{modelName}}"
+    "deleteModel": "Xóa {{modelName}}",
+    "recommendedBadge": "Đề xuất",
+    "multilingual": "Đa ngôn ngữ"
   },
   "settings": {
     "general": {

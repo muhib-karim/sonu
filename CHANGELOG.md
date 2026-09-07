@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.5.0] - 2026-09-03
+## [2.6.0] - 2026-09-03
 
 ### Added
 
+- **Full model catalog**: the complete transcription model list — Whisper
+  Tiny, Base, Small, Medium, Large and Turbo, Parakeet V2/V3, and Moonshine
+  Base — all running locally, driven by a bundled JSON model registry
+  (Handy-style) with per-model language coverage.
+- **Model recommendations**: Parakeet V3 is the default pick (multilingual
+  with automatic language detection) and Parakeet V2 the top pick for
+  English-only dictation; the model selector and onboarding surface
+  "Recommended" badges.
 - **Streaming live dictation**: the recording overlay now shows text as you
   speak — the confirmed prefix renders solid while the volatile tail is
   translucent, using word-boundary stabilization across preview ticks.
@@ -20,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Custom voice macros**: define spoken phrase → replacement text pairs in
   the Dictionary settings; longest phrase wins and matching is
   case-insensitive on whole words.
+- **Automated releases**: pushing a version change on main now creates and
+  publishes the multi-platform release automatically, guarded against
+  duplicate releases; manual dispatch still works.
 
 ### Changed
 
