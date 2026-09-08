@@ -194,17 +194,18 @@ impl CloudTranscriptionManager {
         result
     }
 
-    /// Transcribe using Groq's Whisper API (OpenAI-compatible format)
-    async fn transcribe_groq(
+    /// POST an OpenAI-compatible multipart transcription request and
+    /// return the trimmed transcript. `api_key` of `None` omits the auth
+    /// header; `language` of `None`/`"auto"`/`""` omits the language field.
+    async fn post_openai_transcription(
         &self,
-        provider: &CloudTranscriptionProvider,
-        api_key: &str,
+        endpoint: &str,
+        api_key: Option<&str>,
+        model: &str,
         wav_bytes: Vec<u8>,
-        language: &str,
-        translate: bool,
+        language: Option<&str>,
+        translate_task: bool,
     ) -> CloudTranscriptionResult<String> {
-        let endpoint = &provider.api_endpoint;
-
         let file_part = multipart::Part::bytes(wav_bytes)
             .file_name("audio.wav")
             .mime_str("audio/wav")
@@ -212,23 +213,23 @@ impl CloudTranscriptionManager {
 
         let mut form = multipart::Form::new()
             .part("file", file_part)
-            .text("model", "whisper-large-v3-turbo")
+            .text("model", model.to_string())
             .text("response_format", "json");
 
-        if language != "auto" && !language.is_empty() {
+        if let Some(language) = language.filter(|l| *l != "auto" && !l.is_empty()) {
             form = form.text("language", language.to_string());
         }
 
-        if translate {
-            // Groq uses the same "task" parameter as OpenAI Whisper
+        if translate_task {
             form = form.text("task", "translate");
         }
 
-        let response = self
-            .client
-            .post(endpoint)
-            .header("Authorization", format!("Bearer {}", api_key))
-            .multipart(form)
+        let mut request = self.client.post(endpoint).multipart(form);
+        if let Some(api_key) = api_key {
+            request = request.header("Authorization", format!("Bearer {}", api_key));
+        }
+
+        let response = request
             .send()
             .await
             .map_err(|e| CloudTranscriptionError::NetworkError(e.to_string()))?;
@@ -248,6 +249,26 @@ impl CloudTranscriptionManager {
             .map_err(|e| CloudTranscriptionError::ParseError(e.to_string()))?;
 
         Ok(api_response.text.trim().to_string())
+    }
+
+    /// Transcribe using Groq's Whisper API (OpenAI-compatible format)
+    async fn transcribe_groq(
+        &self,
+        provider: &CloudTranscriptionProvider,
+        api_key: &str,
+        wav_bytes: Vec<u8>,
+        language: &str,
+        translate: bool,
+    ) -> CloudTranscriptionResult<String> {
+        self.post_openai_transcription(
+            &provider.api_endpoint,
+            Some(api_key),
+            "whisper-large-v3-turbo",
+            wav_bytes,
+            Some(language),
+            translate,
+        )
+        .await
     }
 
     /// Transcribe using Deepgram's API
@@ -334,53 +355,16 @@ impl CloudTranscriptionManager {
         language: &str,
         translate: bool,
     ) -> CloudTranscriptionResult<String> {
-        let endpoint = &provider.api_endpoint;
-
-        let file_part = multipart::Part::bytes(wav_bytes)
-            .file_name("audio.wav")
-            .mime_str("audio/wav")
-            .map_err(|e| CloudTranscriptionError::NetworkError(e.to_string()))?;
-
-        let mut form = multipart::Form::new()
-            .part("file", file_part)
-            .text("model", "whisper-large-v3")
-            .text("response_format", "json");
-
-        if language != "auto" && !language.is_empty() {
-            form = form.text("language", language.to_string());
-        }
-
-        if translate {
-            form = form.text("task", "translate");
-        }
-
-        let mut request = self.client.post(endpoint).multipart(form);
-
-        // Only add auth header if API key is provided
-        if !api_key.is_empty() {
-            request = request.header("Authorization", format!("Bearer {}", api_key));
-        }
-
-        let response = request
-            .send()
-            .await
-            .map_err(|e| CloudTranscriptionError::NetworkError(e.to_string()))?;
-
-        let status = response.status().as_u16();
-        if status != 200 {
-            let body = response.text().await.unwrap_or_default();
-            return Err(CloudTranscriptionError::ApiError {
-                status,
-                message: body,
-            });
-        }
-
-        let api_response: WhisperApiResponse = response
-            .json()
-            .await
-            .map_err(|e| CloudTranscriptionError::ParseError(e.to_string()))?;
-
-        Ok(api_response.text.trim().to_string())
+        // Self-hosted servers may not require an API key.
+        self.post_openai_transcription(
+            &provider.api_endpoint,
+            (!api_key.is_empty()).then_some(api_key),
+            "whisper-large-v3",
+            wav_bytes,
+            Some(language),
+            translate,
+        )
+        .await
     }
 
     /// Test the connection to the cloud provider by sending a tiny silent audio clip
@@ -439,46 +423,22 @@ impl CloudTranscriptionManager {
             }
             _ => {
                 // Groq / Custom / Self-hosted - OpenAI-compatible format
-                let file_part = multipart::Part::bytes(wav_bytes)
-                    .file_name("audio.wav")
-                    .mime_str("audio/wav")
-                    .map_err(|e| CloudTranscriptionError::NetworkError(e.to_string()))?;
-
                 let model = if provider_id == CLOUD_PROVIDER_GROQ {
                     "whisper-large-v3-turbo"
                 } else {
                     "whisper-large-v3"
                 };
 
-                let form = multipart::Form::new()
-                    .part("file", file_part)
-                    .text("model", model.to_string())
-                    .text("response_format", "json");
-
-                let mut request = self.client.post(actual_endpoint).multipart(form);
-
-                if !api_key.is_empty() {
-                    request = request.header("Authorization", format!("Bearer {}", api_key));
-                }
-
-                let response = request
-                    .send()
-                    .await
-                    .map_err(|e| CloudTranscriptionError::NetworkError(e.to_string()))?;
-
-                let status = response.status().as_u16();
-                if status == 200 {
-                    Ok(format!(
-                        "Connection successful! {} API is working.",
-                        provider.label
-                    ))
-                } else {
-                    let body = response.text().await.unwrap_or_default();
-                    Err(CloudTranscriptionError::ApiError {
-                        status,
-                        message: body,
-                    })
-                }
+                self.post_openai_transcription(
+                    actual_endpoint,
+                    (!api_key.is_empty()).then_some(api_key),
+                    model,
+                    wav_bytes,
+                    None,
+                    false,
+                )
+                .await
+                .map(|_| format!("Connection successful! {} API is working.", provider.label))
             }
         }
     }

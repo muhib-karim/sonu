@@ -5,20 +5,12 @@
  *
  * @example
  * ```tsx
- * import { ErrorBoundary, SettingsErrorBoundary } from '@/components/error-boundary';
+ * import { ErrorBoundary } from '@/components/error-boundary';
  *
  * <ErrorBoundary>
  *   <MyComponent />
  * </ErrorBoundary>
- *
- * <SettingsErrorBoundary>
- *   <SettingsSection />
- * </SettingsErrorBoundary>
  * ```
  */
 
-export {
-  ErrorBoundary,
-  SettingsErrorBoundary,
-  withErrorBoundary,
-} from "./ErrorBoundary";
+export { ErrorBoundary } from "./ErrorBoundary";

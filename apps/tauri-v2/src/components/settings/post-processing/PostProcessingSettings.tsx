@@ -130,10 +130,9 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
               className="text-sm flex-1 min-w-[380px]"
               value={state.model || null}
               options={state.modelOptions}
-              onChange={(selected) => state.handleModelSelect(selected ?? "")}
+              onChange={(selected) => state.handleModelSet(selected ?? "")}
               onCreateOption={(input) => {
-                const trimmed = input.trim();
-                if (trimmed) state.handleModelCreate(trimmed);
+                if (input.trim()) state.handleModelSet(input);
               }}
               onBlur={() => {}}
               placeholder={

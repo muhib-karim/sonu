@@ -22,6 +22,29 @@ pub fn get_cursor_position(app_handle: &AppHandle) -> Option<(i32, i32)> {
     enigo.location().ok()
 }
 
+/// Press `hold` keys, click `tap`, then release in reverse order.
+/// Shared by all copy/paste combos below.
+fn key_combo(enigo: &mut Enigo, hold: &[Key], tap: Key) -> Result<(), String> {
+    for key in hold {
+        enigo
+            .key(*key, enigo::Direction::Press)
+            .map_err(|e| format!("Failed to press key: {e}"))?;
+    }
+    enigo
+        .key(tap, enigo::Direction::Click)
+        .map_err(|e| format!("Failed to click key: {e}"))?;
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+    for key in hold.iter().rev() {
+        enigo
+            .key(*key, enigo::Direction::Release)
+            .map_err(|e| format!("Failed to release key: {e}"))?;
+    }
+
+    Ok(())
+}
+
 /// Sends a Ctrl+C or Cmd+C copy command using platform-specific virtual key codes.
 /// Used by Command Mode to capture the currently selected text.
 pub fn send_copy_ctrl_c(enigo: &mut Enigo) -> Result<(), String> {
@@ -32,20 +55,7 @@ pub fn send_copy_ctrl_c(enigo: &mut Enigo) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     let (modifier_key, c_key_code) = (Key::Control, Key::Unicode('c'));
 
-    enigo
-        .key(modifier_key, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press modifier key: {}", e))?;
-    enigo
-        .key(c_key_code, enigo::Direction::Click)
-        .map_err(|e| format!("Failed to click C key: {}", e))?;
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
-    enigo
-        .key(modifier_key, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release modifier key: {}", e))?;
-
-    Ok(())
+    key_combo(enigo, &[modifier_key], c_key_code)
 }
 
 /// Sends a Ctrl+V or Cmd+V paste command using platform-specific virtual key codes.
@@ -60,21 +70,7 @@ pub fn send_paste_ctrl_v(enigo: &mut Enigo) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     let (modifier_key, v_key_code) = (Key::Control, Key::Unicode('v'));
 
-    // Press modifier + V
-    enigo
-        .key(modifier_key, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press modifier key: {}", e))?;
-    enigo
-        .key(v_key_code, enigo::Direction::Click)
-        .map_err(|e| format!("Failed to click V key: {}", e))?;
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
-    enigo
-        .key(modifier_key, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release modifier key: {}", e))?;
-
-    Ok(())
+    key_combo(enigo, &[modifier_key], v_key_code)
 }
 
 /// Sends a Ctrl+Shift+V paste command.
@@ -89,27 +85,7 @@ pub fn send_paste_ctrl_shift_v(enigo: &mut Enigo) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     let (modifier_key, v_key_code) = (Key::Control, Key::Unicode('v'));
 
-    // Press Ctrl/Cmd + Shift + V
-    enigo
-        .key(modifier_key, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press modifier key: {}", e))?;
-    enigo
-        .key(Key::Shift, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press Shift key: {}", e))?;
-    enigo
-        .key(v_key_code, enigo::Direction::Click)
-        .map_err(|e| format!("Failed to click V key: {}", e))?;
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
-    enigo
-        .key(Key::Shift, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release Shift key: {}", e))?;
-    enigo
-        .key(modifier_key, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release modifier key: {}", e))?;
-
-    Ok(())
+    key_combo(enigo, &[modifier_key, Key::Shift], v_key_code)
 }
 
 /// Sends a Shift+Insert paste command (Windows and Linux only).
@@ -121,21 +97,7 @@ pub fn send_paste_shift_insert(enigo: &mut Enigo) -> Result<(), String> {
     #[cfg(not(target_os = "windows"))]
     let insert_key_code = Key::Other(0x76); // XK_Insert (keycode 118 / 0x76, also used as fallback)
 
-    // Press Shift + Insert
-    enigo
-        .key(Key::Shift, enigo::Direction::Press)
-        .map_err(|e| format!("Failed to press Shift key: {}", e))?;
-    enigo
-        .key(insert_key_code, enigo::Direction::Click)
-        .map_err(|e| format!("Failed to click Insert key: {}", e))?;
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
-    enigo
-        .key(Key::Shift, enigo::Direction::Release)
-        .map_err(|e| format!("Failed to release Shift key: {}", e))?;
-
-    Ok(())
+    key_combo(enigo, &[Key::Shift], insert_key_code)
 }
 
 /// Pastes text directly using the enigo text method.

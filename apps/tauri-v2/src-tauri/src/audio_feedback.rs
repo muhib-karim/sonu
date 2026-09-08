@@ -40,31 +40,30 @@ fn get_sound_base_dir(settings: &AppSettings) -> tauri::path::BaseDirectory {
     }
 }
 
-pub fn play_feedback_sound(app: &AppHandle, sound_type: SoundType) {
+fn play_resolved(app: &AppHandle, sound_type: SoundType, check_enabled: bool, blocking: bool) {
     let settings = settings::get_settings(app);
-    if !settings.audio_feedback {
+    if check_enabled && !settings.audio_feedback {
         return;
     }
     if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_async(app, path);
+        if blocking {
+            play_sound_blocking(app, &path);
+        } else {
+            play_sound_async(app, path);
+        }
     }
+}
+
+pub fn play_feedback_sound(app: &AppHandle, sound_type: SoundType) {
+    play_resolved(app, sound_type, true, false);
 }
 
 pub fn play_feedback_sound_blocking(app: &AppHandle, sound_type: SoundType) {
-    let settings = settings::get_settings(app);
-    if !settings.audio_feedback {
-        return;
-    }
-    if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_blocking(app, &path);
-    }
+    play_resolved(app, sound_type, true, true);
 }
 
 pub fn play_test_sound(app: &AppHandle, sound_type: SoundType) {
-    let settings = settings::get_settings(app);
-    if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_blocking(app, &path);
-    }
+    play_resolved(app, sound_type, false, true);
 }
 
 fn play_sound_async(app: &AppHandle, path: PathBuf) {

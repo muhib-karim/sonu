@@ -39,6 +39,27 @@ export default defineConfig(async ({ mode }) => {
   return {
     plugins,
 
+    // Vitest reads the `test` block from this file when no
+    // vitest.config.ts exists (kept here to avoid a duplicate config).
+    test: {
+      globals: true,
+      environment: "jsdom",
+      setupFiles: ["./src/test/setup.ts"],
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "json", "html"],
+        exclude: [
+          "node_modules/",
+          "src/test/",
+          "**/*.d.ts",
+          "**/*.config.*",
+          "**/bindings.ts",
+        ],
+      },
+      include: ["src/**/*.test.{ts,tsx}"],
+      exclude: ["node_modules", "dist", ".git", ".cache"],
+    },
+
     // Path aliases for cleaner imports
     resolve: {
       alias: {
