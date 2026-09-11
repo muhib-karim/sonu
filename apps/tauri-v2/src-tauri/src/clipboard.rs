@@ -10,6 +10,30 @@ use crate::utils::is_wayland;
 #[cfg(target_os = "linux")]
 use std::process::Command;
 
+/// Restores the clipboard when dropped, but only when the original read
+/// actually succeeded.
+///
+/// `read_text()` fails when the clipboard holds non-text data (an image, a file
+/// list). The previous code used `unwrap_or_default()` and then wrote the
+/// resulting `""` back, erasing the user's clipboard. It also skipped
+/// restoration entirely on the early-`?` error paths, leaving the
+/// transcription on the clipboard instead of the original contents.
+struct ClipboardRestore {
+    app_handle: AppHandle,
+    original: Option<String>,
+}
+
+impl Drop for ClipboardRestore {
+    fn drop(&mut self) {
+        let Some(original) = self.original.take() else {
+            return;
+        };
+        if let Err(e) = self.app_handle.clipboard().write_text(&original) {
+            log::error!("Failed to restore clipboard: {}", e);
+        }
+    }
+}
+
 /// Pastes text using the clipboard: saves current content, writes text, sends paste keystroke, restores clipboard.
 fn paste_via_clipboard(
     enigo: &mut Enigo,
@@ -18,7 +42,23 @@ fn paste_via_clipboard(
     paste_method: &PasteMethod,
 ) -> Result<(), String> {
     let clipboard = app_handle.clipboard();
-    let clipboard_content = clipboard.read_text().unwrap_or_default();
+
+    let original = match clipboard.read_text() {
+        Ok(text) => Some(text),
+        Err(e) => {
+            log::warn!(
+                "Clipboard does not hold text ({}); leaving it untouched after pasting",
+                e
+            );
+            None
+        }
+    };
+
+    // Restores on every exit path, including the `?` returns below.
+    let _restore = ClipboardRestore {
+        app_handle: app_handle.clone(),
+        original,
+    };
 
     // Write text to clipboard first
     clipboard
@@ -46,11 +86,7 @@ fn paste_via_clipboard(
 
     std::thread::sleep(std::time::Duration::from_millis(50));
 
-    // Restore original clipboard content
-    clipboard
-        .write_text(&clipboard_content)
-        .map_err(|e| format!("Failed to restore clipboard: {}", e))?;
-
+    // Clipboard is restored by `_restore` when this function returns.
     Ok(())
 }
 

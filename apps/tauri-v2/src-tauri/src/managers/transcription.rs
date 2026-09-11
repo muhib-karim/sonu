@@ -47,6 +47,11 @@ pub struct ModelStateEvent {
     pub error: Option<String>,
 }
 
+// The engine variants differ a lot in size, but this enum is constructed once
+// at model-load time and stored in a single `Option` — never in a collection —
+// so the largest variant's footprint is paid exactly once. Boxing would add a
+// heap indirection to every transcription call for no measurable benefit.
+#[allow(clippy::large_enum_variant)]
 enum LoadedEngine {
     #[cfg(feature = "parakeet")]
     Parakeet(ParakeetEngine),
@@ -524,7 +529,6 @@ impl TranscriptionManager {
                 LoadedEngine::Parakeet(parakeet_engine) => {
                     let params = ParakeetInferenceParams {
                         timestamp_granularity: TimestampGranularity::Segment,
-                        ..Default::default()
                     };
                     parakeet_engine
                         .transcribe_samples(audio, Some(params))
@@ -617,7 +621,6 @@ impl Drop for TranscriptionManager {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::managers::model::EngineType;
 
     /// Whether a given engine type can be dispatched in the current build

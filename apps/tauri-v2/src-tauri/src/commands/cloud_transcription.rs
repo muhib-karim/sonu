@@ -1,5 +1,6 @@
 use crate::managers::cloud_transcription::CloudTranscriptionManager;
 use crate::settings::{get_settings, write_settings};
+use crate::utils::keychain::Keychain;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -113,7 +114,17 @@ pub fn set_cloud_provider(app: AppHandle, provider_id: String) -> Result<(), Str
     Ok(())
 }
 
-/// Set the API key for a cloud transcription provider
+/// Set — or, with an empty value, remove — the API key for a cloud provider.
+///
+/// Passing an empty or whitespace-only `api_key` deletes the stored credential.
+/// That is the *only* way to remove one: `save_api_keys_to_keychain` writes
+/// non-empty values and has no delete path, so simply storing `""` would leave
+/// the secret sitting in the OS keychain while the UI reported no key.
+///
+/// (Removal is expressed as an empty value rather than a separate command
+/// because `bindings.ts` is generated at app startup and cannot be regenerated
+/// in this environment — adding a command would mean hand-editing a generated
+/// file.)
 #[tauri::command]
 #[specta::specta]
 pub fn set_cloud_api_key(
@@ -131,6 +142,20 @@ pub fn set_cloud_api_key(
         .any(|p| p.id == provider_id)
     {
         return Err(format!("Cloud provider '{}' not found", provider_id));
+    }
+
+    if api_key.trim().is_empty() {
+        // Drop the in-memory copy first so `write_settings` does not write it
+        // back, then delete the keychain entry.
+        settings.cloud_transcription.api_keys.remove(&provider_id);
+
+        Keychain::new()
+            .delete_password(&format!("cloud_api_key_{}", provider_id))
+            .map_err(|e| format!("Failed to remove the API key from the OS keychain: {e}"))?;
+
+        write_settings(&app, settings);
+        debug!("Cloud API key removed for provider: {}", provider_id);
+        return Ok(());
     }
 
     settings
@@ -195,12 +220,35 @@ pub fn set_cloud_translate_to_english(app: AppHandle, translate: bool) -> Result
 #[tauri::command]
 #[specta::specta]
 pub async fn test_cloud_connection(
-    _app: AppHandle,
+    app: AppHandle,
     cloud_manager: State<'_, Arc<CloudTranscriptionManager>>,
     provider_id: String,
     api_key: String,
     endpoint: Option<String>,
 ) -> Result<String, String> {
+    // Fall back to the stored credential when the caller supplies no draft.
+    //
+    // The UI only keeps an unsaved draft in memory, so after navigating away
+    // and back the input is empty even though a key is saved — testing then
+    // failed for a perfectly valid configuration.
+    let api_key = if api_key.trim().is_empty() {
+        get_settings(&app)
+            .cloud_transcription
+            .api_keys
+            .get(&provider_id)
+            .cloned()
+            .unwrap_or_default()
+    } else {
+        api_key
+    };
+
+    if api_key.trim().is_empty() {
+        return Err(format!(
+            "No API key available for provider '{}'. Enter one and save it first.",
+            provider_id
+        ));
+    }
+
     cloud_manager
         .test_connection(&provider_id, &api_key, endpoint.as_deref())
         .await

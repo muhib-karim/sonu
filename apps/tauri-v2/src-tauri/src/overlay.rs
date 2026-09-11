@@ -1,7 +1,17 @@
 use crate::input;
 use crate::settings;
 use crate::settings::OverlayPosition;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
+
+/// Incremented every time the overlay is shown.
+///
+/// `hide_recording_overlay` hides the window from a delayed thread to let the
+/// fade-out animation finish. If a new recording starts inside that delay, the
+/// pending hide would hide the freshly-shown overlay. The delayed thread
+/// compares the generation it captured against the current value and skips the
+/// hide when it has been superseded.
+static OVERLAY_GENERATION: AtomicU64 = AtomicU64::new(0);
 
 #[cfg(not(target_os = "macos"))]
 use log::debug;
@@ -213,6 +223,9 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
     }
 
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+        // Invalidate any delayed hide still pending from a previous session.
+        OVERLAY_GENERATION.fetch_add(1, Ordering::SeqCst);
+
         // Update position before showing to prevent flicker from position changes
         if let Some((x, y)) = calculate_overlay_position(app_handle) {
             let _ = overlay_window
@@ -241,6 +254,9 @@ pub fn show_transcribing_overlay(app_handle: &AppHandle) {
     update_overlay_position(app_handle);
 
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+        // Invalidate any delayed hide still pending from a previous session.
+        OVERLAY_GENERATION.fetch_add(1, Ordering::SeqCst);
+
         let _ = overlay_window.show();
 
         // On Windows, aggressively re-assert "topmost" in the native Z-order after showing
@@ -269,10 +285,19 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         // Emit event to trigger fade-out animation
         let _ = overlay_window.emit("hide-overlay", ());
+
+        // Captured before the delay so a show that happens meanwhile can
+        // invalidate this hide.
+        let generation = OVERLAY_GENERATION.load(Ordering::SeqCst);
+
         // Hide the window after a short delay to allow animation to complete
         let window_clone = overlay_window.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(300));
+            if OVERLAY_GENERATION.load(Ordering::SeqCst) != generation {
+                // A new recording started during the delay; leave it visible.
+                return;
+            }
             let _ = window_clone.hide();
         });
     }

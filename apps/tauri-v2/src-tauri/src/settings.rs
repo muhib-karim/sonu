@@ -3,8 +3,9 @@ use log::{debug, warn};
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_store::StoreExt;
 
 pub const APPLE_INTELLIGENCE_PROVIDER_ID: &str = "apple_intelligence";
@@ -136,9 +137,10 @@ pub enum OverlayPosition {
     Bottom,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelUnloadTimeout {
+    #[default]
     Never,
     Immediately,
     Min2,
@@ -166,9 +168,10 @@ pub enum PasteMethod {
     CtrlShiftV,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ClipboardHandling {
+    #[default]
     DontModify,
     CopyToClipboard,
 }
@@ -183,12 +186,6 @@ pub enum RecordingRetentionPeriod {
     Months3,
 }
 
-impl Default for ModelUnloadTimeout {
-    fn default() -> Self {
-        ModelUnloadTimeout::Never
-    }
-}
-
 impl Default for PasteMethod {
     fn default() -> Self {
         // Default to CtrlV for macOS and Windows, Direct for Linux
@@ -196,12 +193,6 @@ impl Default for PasteMethod {
         return PasteMethod::Direct;
         #[cfg(not(target_os = "linux"))]
         return PasteMethod::CtrlV;
-    }
-}
-
-impl Default for ClipboardHandling {
-    fn default() -> Self {
-        ClipboardHandling::DontModify
     }
 }
 
@@ -246,11 +237,11 @@ impl SoundTheme {
         }
     }
 
-    pub fn to_start_path(&self) -> String {
+    pub fn to_start_path(self) -> String {
         format!("resources/{}_start.wav", self.as_str())
     }
 
-    pub fn to_stop_path(&self) -> String {
+    pub fn to_stop_path(self) -> String {
         format!("resources/{}_stop.wav", self.as_str())
     }
 }
@@ -761,11 +752,16 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
                 let default_settings = get_default_settings();
                 let mut updated = false;
 
-                // Merge default bindings into existing settings
+                // Merge default bindings into existing settings.
+                //
+                // Written as an `entry` match rather than
+                // `contains_key` + `insert` (clippy::map_entry) so the lookup
+                // happens once. `entry.key()` is used for the log line so the
+                // key is not moved before it is read.
                 for (key, value) in default_settings.bindings {
-                    if !settings.bindings.contains_key(&key) {
-                        debug!("Adding missing binding: {}", key);
-                        settings.bindings.insert(key, value);
+                    if let Entry::Vacant(entry) = settings.bindings.entry(key) {
+                        debug!("Adding missing binding: {}", entry.key());
+                        entry.insert(value);
                         updated = true;
                     }
                 }
@@ -833,16 +829,27 @@ pub fn write_settings(app: &AppHandle, mut settings: AppSettings) {
         .store(SETTINGS_STORE_PATH)
         .expect("Failed to initialize store");
 
-    // Save API keys to keychain before removing them from the settings object
-    save_api_keys_to_keychain(&settings);
+    // Save API keys to keychain before removing them from the settings object.
+    //
+    // If this fails the key is *not* recoverable later: API keys are
+    // `#[serde(skip)]`, so they never land in the settings file, and
+    // `get_settings` rebuilds them from the keychain on every load. Previously
+    // the failure was only `warn!`-logged, so the user was told the key saved
+    // while it silently evaporated. Report it instead.
+    if let Err(e) = save_api_keys_to_keychain(&settings) {
+        log::error!("Failed to persist API keys to the OS keychain: {e}");
+        if let Err(emit_err) = app.emit("settings-persist-error", e.clone()) {
+            log::error!("Failed to emit settings-persist-error: {emit_err}");
+        }
+    }
 
     // Clear API keys from memory after saving to keychain
     // This prevents keys from lingering in the managed state
     // Note: For production security, consider using the `secrecy` crate for true zeroization
-    for (_, api_key) in settings.cloud_transcription.api_keys.iter_mut() {
+    for api_key in settings.cloud_transcription.api_keys.values_mut() {
         api_key.clear();
     }
-    for (_, api_key) in settings.post_process_api_keys.iter_mut() {
+    for api_key in settings.post_process_api_keys.values_mut() {
         api_key.clear();
     }
 
@@ -850,7 +857,6 @@ pub fn write_settings(app: &AppHandle, mut settings: AppSettings) {
         Ok(value) => store.set("settings", value),
         Err(e) => {
             log::error!("Failed to serialize settings: {}", e);
-            return;
         }
     }
 }
@@ -912,15 +918,20 @@ fn load_api_keys_from_keychain(settings: &mut AppSettings) {
     }
 }
 
-/// Save API keys from settings to the OS keychain
-fn save_api_keys_to_keychain(settings: &AppSettings) {
+/// Save API keys from settings to the OS keychain.
+///
+/// Returns an error describing every key that could not be persisted. Callers
+/// must surface this: a silently dropped key is unrecoverable, because keys are
+/// `#[serde(skip)]` and are rebuilt from the keychain on every load.
+fn save_api_keys_to_keychain(settings: &AppSettings) -> Result<(), String> {
     let keychain = Keychain::new();
+    let mut failures: Vec<String> = Vec::new();
 
     for (provider_id, api_key) in &settings.post_process_api_keys {
         if !api_key.is_empty() {
             let account = format!("api_key_{}", provider_id);
             if let Err(e) = keychain.set_password(&account, api_key) {
-                warn!("Failed to save API key for provider {}: {}", provider_id, e);
+                failures.push(format!("post-processing key for '{provider_id}': {e}"));
             }
         }
     }
@@ -930,12 +941,19 @@ fn save_api_keys_to_keychain(settings: &AppSettings) {
         if !api_key.is_empty() {
             let account = format!("cloud_api_key_{}", provider_id);
             if let Err(e) = keychain.set_password(&account, api_key) {
-                warn!(
-                    "Failed to save cloud API key for provider {}: {}",
-                    provider_id, e
-                );
+                failures.push(format!("cloud key for '{provider_id}': {e}"));
             }
         }
+    }
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "could not save {} key(s) to the system keychain: {}",
+            failures.len(),
+            failures.join("; ")
+        ))
     }
 }
 
@@ -948,9 +966,25 @@ pub fn get_bindings(app: &AppHandle) -> HashMap<String, ShortcutBinding> {
 pub fn get_stored_binding(app: &AppHandle, id: &str) -> ShortcutBinding {
     let bindings = get_bindings(app);
 
-    let binding = bindings.get(id).unwrap().clone();
-
-    binding
+    match bindings.get(id) {
+        Some(binding) => binding.clone(),
+        None => {
+            // Previously `.unwrap()`, which aborted the process on a missing
+            // binding (the release profile sets `panic = "abort"`).
+            warn!("No stored binding for '{id}'; falling back to the default");
+            get_default_settings()
+                .bindings
+                .get(id)
+                .cloned()
+                .unwrap_or_else(|| ShortcutBinding {
+                    id: id.to_string(),
+                    name: id.to_string(),
+                    description: String::new(),
+                    default_binding: String::new(),
+                    current_binding: String::new(),
+                })
+        }
+    }
 }
 
 pub fn get_history_limit(app: &AppHandle) -> usize {

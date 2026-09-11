@@ -95,9 +95,14 @@ pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -
 
 /// Preserves the case pattern of the original word when applying a replacement
 fn preserve_case_pattern(original: &str, replacement: &str) -> String {
-    if original.chars().all(|c| c.is_uppercase()) {
+    // Only alphabetic characters carry case information. Looking at the raw
+    // `chars()` would let a leading emoji or CJK punctuation suppress the
+    // uppercase detection entirely.
+    let alphabetic: Vec<char> = original.chars().filter(|c| c.is_alphabetic()).collect();
+
+    if !alphabetic.is_empty() && alphabetic.iter().all(|c| c.is_uppercase()) {
         replacement.to_uppercase()
-    } else if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+    } else if alphabetic.first().is_some_and(|c| c.is_uppercase()) {
         let mut chars: Vec<char> = replacement.chars().collect();
         if let Some(first_char) = chars.get_mut(0) {
             *first_char = first_char.to_uppercase().next().unwrap_or(*first_char);
@@ -108,28 +113,33 @@ fn preserve_case_pattern(original: &str, replacement: &str) -> String {
     }
 }
 
-/// Extracts punctuation prefix and suffix from a word
+/// Extracts the punctuation prefix and suffix surrounding a word.
+///
+/// Offsets are computed from `char_indices` so they are always valid **byte**
+/// boundaries. The previous implementation counted characters but sliced
+/// bytes, which panicked on any multi-byte non-alphabetic character (emoji,
+/// CJK punctuation) and — because the release profile sets `panic = "abort"` —
+/// killed the whole process.
 fn extract_punctuation(word: &str) -> (&str, &str) {
-    let prefix_end = word.chars().take_while(|c| !c.is_alphabetic()).count();
-    let suffix_start = word
+    let start = word
+        .char_indices()
+        .find(|(_, c)| c.is_alphabetic())
+        .map(|(i, _)| i);
+
+    let Some(start) = start else {
+        // No alphabetic characters at all. Report the whole word as prefix
+        // rather than as both prefix and suffix (which would duplicate it).
+        return (word, "");
+    };
+
+    let end = word
         .char_indices()
         .rev()
-        .take_while(|(_, c)| !c.is_alphabetic())
-        .count();
+        .find(|(_, c)| c.is_alphabetic())
+        .map(|(i, c)| i + c.len_utf8())
+        .unwrap_or(start);
 
-    let prefix = if prefix_end > 0 {
-        &word[..prefix_end]
-    } else {
-        ""
-    };
-
-    let suffix = if suffix_start > 0 {
-        &word[word.len() - suffix_start..]
-    } else {
-        ""
-    };
-
-    (prefix, suffix)
+    (&word[..start], &word[end..])
 }
 
 #[cfg(test)]
@@ -164,6 +174,43 @@ mod tests {
         assert_eq!(extract_punctuation("hello"), ("", ""));
         assert_eq!(extract_punctuation("!hello?"), ("!", "?"));
         assert_eq!(extract_punctuation("...hello..."), ("...", "..."));
+    }
+
+    /// Regression: offsets were previously counted in chars but used as byte
+    /// indices, so any multi-byte non-alphabetic character panicked. With
+    /// `panic = "abort"` in the release profile that aborted the process.
+    #[test]
+    fn test_extract_punctuation_multibyte_does_not_panic() {
+        assert_eq!(extract_punctuation("😀hello"), ("😀", ""));
+        assert_eq!(extract_punctuation("hello😀"), ("", "😀"));
+        assert_eq!(extract_punctuation("😀hello😀"), ("😀", "😀"));
+        assert_eq!(extract_punctuation("「hello」"), ("「", "」"));
+        assert_eq!(extract_punctuation("—hello…"), ("—", "…"));
+        // Fully non-alphabetic input must not duplicate the word as both
+        // prefix and suffix.
+        assert_eq!(extract_punctuation("😀"), ("😀", ""));
+        assert_eq!(extract_punctuation(""), ("", ""));
+    }
+
+    #[test]
+    fn test_apply_custom_words_with_emoji_does_not_panic() {
+        let custom_words = vec!["hello".to_string()];
+
+        let result = apply_custom_words("😀helo", &custom_words, 0.5);
+        assert_eq!(result, "😀hello");
+
+        let result = apply_custom_words("helo😀", &custom_words, 0.5);
+        assert_eq!(result, "hello😀");
+
+        let result = apply_custom_words("「helo」", &custom_words, 0.5);
+        assert_eq!(result, "「hello」");
+    }
+
+    #[test]
+    fn test_preserve_case_pattern_ignores_non_alphabetic_prefix() {
+        assert_eq!(preserve_case_pattern("😀HELLO", "world"), "WORLD");
+        assert_eq!(preserve_case_pattern("😀Hello", "world"), "World");
+        assert_eq!(preserve_case_pattern("😀hello", "world"), "world");
     }
 
     #[test]

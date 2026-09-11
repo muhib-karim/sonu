@@ -1,7 +1,14 @@
+// Everything in this module is Unix-only (it exists to service SIGUSR2). Gate
+// the imports to match, otherwise Windows builds report them as unused.
+#[cfg(unix)]
 use crate::actions::ACTION_MAP;
+#[cfg(unix)]
 use crate::ManagedToggleState;
+#[cfg(unix)]
 use log::{debug, info, warn};
+#[cfg(unix)]
 use std::thread;
+#[cfg(unix)]
 use tauri::{AppHandle, Manager};
 
 #[cfg(unix)]
@@ -47,26 +54,44 @@ pub fn setup_signal_handler(app_handle: AppHandle, mut signals: Signals) {
                                 .or_insert(false);
 
                             should_start = !*is_currently_active;
-                            if should_start {
-                                *is_currently_active = true;
-                            }
                         } // Lock released here
 
                         // Now call the action without holding the lock
                         if should_start {
                             debug!("SIGUSR2: Starting transcription (was inactive)");
-                            action.start(&app_handle_for_signal, binding_id, shortcut_string);
-                            info!("SIGUSR2: Transcription started");
+                            // Only latch the toggle if the action actually
+                            // started, matching the shortcut handler.
+                            let started =
+                                action.start(&app_handle_for_signal, binding_id, shortcut_string);
+                            if started {
+                                info!("SIGUSR2: Transcription started");
+                                if let Ok(mut states) =
+                                    app_handle_for_signal.state::<ManagedToggleState>().lock()
+                                {
+                                    states.active_toggles.insert(binding_id.to_string(), true);
+                                }
+                            } else {
+                                warn!("SIGUSR2: Transcription failed to start");
+                            }
                         } else {
                             debug!("SIGUSR2: Stopping transcription (was active)");
                             action.stop(&app_handle_for_signal, binding_id, shortcut_string);
+                            if let Ok(mut states) =
+                                app_handle_for_signal.state::<ManagedToggleState>().lock()
+                            {
+                                states.active_toggles.insert(binding_id.to_string(), false);
+                            }
                             debug!("SIGUSR2: Transcription stopped");
                         }
                     } else {
                         warn!("No action defined in ACTION_MAP for binding ID '{binding_id}'");
                     }
                 }
-                _ => unreachable!(),
+                other => {
+                    // Was `unreachable!()`, which would abort the process
+                    // (`panic = "abort"`) if the signal set ever changes.
+                    warn!("Ignoring unexpected signal: {other}");
+                }
             }
         }
     });

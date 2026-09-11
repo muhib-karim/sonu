@@ -4,11 +4,7 @@ use crate::managers::audio::AudioRecordingManager;
 use crate::managers::cloud_transcription::CloudTranscriptionManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{
-    get_settings, write_settings, AppSettings, ModelUnloadTimeout, APPLE_INTELLIGENCE_PROVIDER_ID,
-};
-use ferrous_opencc::{config::BuiltinConfig, OpenCC};
-use log::{debug, error, info};
+use crate::settings::{get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID};
 use std::sync::Arc;
 use tauri::{AppHandle, State};
 
@@ -154,38 +150,22 @@ pub async fn finish_note_recording(
         }
     }
 
-    // Save as "saved" (starred) history entry automatically
+    // Save as a starred ("saved") history entry in a single insert. Doing it
+    // here — rather than starring the row afterwards — is what makes the note
+    // reliable: a post-processing pass changes the text, so matching on
+    // `transcription_text == final_text` never held, and picking the newest row
+    // by timestamp was racy. An unstarred row is also eligible for the
+    // unsaved-entry retention cleanup, so the recording could be deleted too.
     history_manager
         .save_transcription(
             samples_clone,
             transcription,
             post_processed_text,
             post_process_prompt,
+            true,
         )
         .await
         .map_err(|e| format!("Failed to save history: {}", e))?;
-
-    // We need to mark the last entry as saved, but save_transcription doesn't return ID.
-    // However, save_transcription saves it as "not saved" by default.
-    // We should update history manager to support saving as "note" or update it immediately.
-    // For now, let's just cheat and assume it's the latest one, OR verify if save_transcription supports a flag.
-    // Checking HistoryManager... it saves with `saved: false`.
-    // We'll effectively "star" it by getting the latest history entry and toggling it.
-
-    // Slight race condition potential but acceptable for now:
-    let entries = history_manager
-        .get_history_entries()
-        .await
-        .map_err(|e: anyhow::Error| e.to_string())?;
-    if let Some(latest) = entries.first() {
-        if latest.transcription_text == final_text {
-            // simple check
-            history_manager
-                .toggle_saved_status(latest.id)
-                .await
-                .map_err(|e: anyhow::Error| e.to_string())?;
-        }
-    }
 
     Ok(final_text)
 }

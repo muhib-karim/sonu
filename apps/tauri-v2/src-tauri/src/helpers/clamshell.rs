@@ -63,6 +63,9 @@ pub fn is_laptop() -> Result<bool, String> {
 
 #[cfg(test)]
 mod tests {
+    // Only needed by the macOS-only test below; importing it unconditionally
+    // makes every other platform report it as unused.
+    #[cfg(target_os = "macos")]
     use super::*;
 
     #[test]

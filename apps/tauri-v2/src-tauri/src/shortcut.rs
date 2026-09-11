@@ -1,4 +1,4 @@
-use log::{error, warn};
+use log::{debug, error, warn};
 use serde::Serialize;
 use specta::Type;
 use std::sync::Arc;
@@ -11,8 +11,11 @@ use crate::managers::audio::AudioRecordingManager;
 use crate::settings::ShortcutBinding;
 use crate::settings::{
     self, get_settings, ClipboardHandling, LLMPrompt, OverlayPosition, PasteMethod, SoundTheme,
-    APPLE_INTELLIGENCE_DEFAULT_MODEL_ID, APPLE_INTELLIGENCE_PROVIDER_ID,
+    APPLE_INTELLIGENCE_PROVIDER_ID,
 };
+// Only referenced from the Apple-silicon macOS branch below.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::tray;
 use crate::ManagedToggleState;
 
@@ -81,23 +84,23 @@ pub fn change_binding(
         }
     }
 
-    // Unregister the existing binding
-    if let Err(e) = unregister_shortcut(&app, binding_to_modify.clone()) {
-        let error_msg = format!("Failed to unregister shortcut: {}", e);
-        error!("change_binding error: {}", error_msg);
-    }
-
-    // Validate the new shortcut before we touch the current registration
+    // Validate the new shortcut BEFORE touching the current registration.
     if let Err(e) = validate_shortcut_string(&binding) {
         warn!("change_binding validation error: {}", e);
         return Err(e);
     }
 
+    let previous_binding = binding_to_modify.clone();
+
     // Create an updated binding
     let mut updated_binding = binding_to_modify;
     updated_binding.current_binding = binding;
 
-    // Register the new binding
+    // Register the new binding FIRST. The previous code unregistered the old
+    // binding before validating and registering the new one, so a validation
+    // failure or a duplicate-shortcut collision left the user with no working
+    // hotkey at all. Registering first means a failure here is harmless: the
+    // old binding is still live.
     if let Err(e) = register_shortcut(&app, updated_binding.clone()) {
         let error_msg = format!("Failed to register shortcut: {}", e);
         error!("change_binding error: {}", error_msg);
@@ -106,6 +109,16 @@ pub fn change_binding(
             binding: None,
             error: Some(error_msg),
         });
+    }
+
+    // The new binding is live; now retire the old one. Skipped when the
+    // keystroke is unchanged, otherwise we would unregister what we just
+    // registered.
+    if previous_binding.current_binding != updated_binding.current_binding {
+        if let Err(e) = unregister_shortcut(&app, previous_binding) {
+            // Not fatal: the new binding already works.
+            warn!("Failed to unregister previous shortcut: {}", e);
+        }
     }
 
     // Update the binding in the settings
@@ -127,7 +140,7 @@ pub fn change_binding(
 pub fn reset_binding(app: AppHandle, id: String) -> Result<BindingResponse, String> {
     let binding = settings::get_stored_binding(&app, &id);
 
-    return change_binding(app, id, binding.default_binding);
+    change_binding(app, id, binding.default_binding)
 }
 
 #[tauri::command]
@@ -857,7 +870,9 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
                         if audio_manager.is_recording() && event.state == ShortcutState::Pressed {
                             action.start(ah, &binding_id_for_closure, &shortcut_string);
                         }
-                        return;
+                        // No early return needed: the `else if` / `else` below
+                        // are the other arms of this same chain, so they are
+                        // already skipped for the cancel binding.
                     } else if settings.push_to_talk {
                         if event.state == ShortcutState::Pressed {
                             action.start(ah, &binding_id_for_closure, &shortcut_string);
@@ -873,9 +888,15 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
                             let should_start: bool;
                             {
                                 let toggle_state_manager = ah.state::<ManagedToggleState>();
-                                let mut states = toggle_state_manager
-                                    .lock()
-                                    .expect("Failed to lock toggle state manager");
+                                let mut states = match toggle_state_manager.lock() {
+                                    Ok(guard) => guard,
+                                    Err(poisoned) => {
+                                        // Never panic here: `panic = "abort"` in the
+                                        // release profile would kill the process.
+                                        warn!("Toggle state mutex poisoned; recovering");
+                                        poisoned.into_inner()
+                                    }
+                                };
 
                                 let is_currently_active = states
                                     .active_toggles
@@ -883,14 +904,41 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
                                     .or_insert(false);
 
                                 should_start = !*is_currently_active;
-                                *is_currently_active = should_start;
                             } // Lock released here
 
                             // Now call the action without holding the lock
                             if should_start {
-                                action.start(ah, &binding_id_for_closure, &shortcut_string);
+                                let started =
+                                    action.start(ah, &binding_id_for_closure, &shortcut_string);
+
+                                // Latch the toggle only if the action actually
+                                // started. Latching unconditionally meant that a
+                                // failed start left the state reading "active", so
+                                // the next press called `stop` on a recording that
+                                // had never begun.
+                                if started {
+                                    if let Ok(mut states) =
+                                        ah.state::<ManagedToggleState>().lock()
+                                    {
+                                        states
+                                            .active_toggles
+                                            .insert(binding_id_for_closure.clone(), true);
+                                    }
+                                } else {
+                                    debug!(
+                                        "Shortcut '{}' did not start; leaving toggle state inactive",
+                                        binding_id_for_closure
+                                    );
+                                }
                             } else {
                                 action.stop(ah, &binding_id_for_closure, &shortcut_string);
+
+                                // Recording is no longer active.
+                                if let Ok(mut states) = ah.state::<ManagedToggleState>().lock() {
+                                    states
+                                        .active_toggles
+                                        .insert(binding_id_for_closure.clone(), false);
+                                }
                             }
                         }
                     }

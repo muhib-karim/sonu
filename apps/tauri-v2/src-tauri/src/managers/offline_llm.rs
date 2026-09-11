@@ -162,7 +162,7 @@ impl OfflineLLMManager {
 
         for model in models.values_mut() {
             let model_path = self.models_dir.join(&model.filename);
-            let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
+            let partial_path = self.models_dir.join(format!("{}.partial", model.filename));
 
             model.is_downloaded = model_path.exists();
             model.is_downloading = false;
@@ -219,7 +219,7 @@ impl OfflineLLMManager {
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
             .models_dir
-            .join(format!("{}.partial", &model_info.filename));
+            .join(format!("{}.partial", model_info.filename));
 
         // Don't download if complete version already exists
         if model_path.exists() {
@@ -255,7 +255,12 @@ impl OfflineLLMManager {
         }
 
         // Create HTTP client with range request for resuming
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            // A connect timeout only. A whole-request timeout would abort
+            // legitimate multi-gigabyte model downloads mid-transfer.
+            .connect_timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {e}"))?;
         let mut request = client.get(&url);
 
         if resume_from > 0 {
@@ -326,14 +331,11 @@ impl OfflineLLMManager {
 
         // Download with progress
         while let Some(chunk) = stream.next().await {
-            let chunk = chunk.map_err(|e| {
-                {
-                    let mut models = self.available_models.lock().unwrap();
-                    if let Some(model) = models.get_mut(model_id) {
-                        model.is_downloading = false;
-                    }
+            let chunk = chunk.inspect_err(|_e| {
+                let mut models = self.available_models.lock().unwrap();
+                if let Some(model) = models.get_mut(model_id) {
+                    model.is_downloading = false;
                 }
-                e
             })?;
 
             file.write_all(&chunk)?;
@@ -419,7 +421,7 @@ impl OfflineLLMManager {
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
             .models_dir
-            .join(format!("{}.partial", &model_info.filename));
+            .join(format!("{}.partial", model_info.filename));
 
         let mut deleted_something = false;
 

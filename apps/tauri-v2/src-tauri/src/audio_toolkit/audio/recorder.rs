@@ -26,6 +26,16 @@ enum Cmd {
     Shutdown,
 }
 
+/// How long `open` waits for the worker to build and start the input stream
+/// before giving up. Stream construction is normally sub-millisecond; this
+/// only matters for a wedged driver.
+const WORKER_INIT_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// How often the consumer wakes up to service commands while no audio is
+/// arriving. Bounds how long `close()` can block when a device stops
+/// delivering callbacks (unplugged, muted at the OS level, stalled driver).
+const CMD_POLL_INTERVAL: Duration = Duration::from_millis(50);
+
 pub struct AudioRecorder {
     device: Option<Device>,
     cmd_tx: Option<mpsc::Sender<Cmd>>,
@@ -65,6 +75,11 @@ impl AudioRecorder {
 
         let (sample_tx, sample_rx) = mpsc::channel::<Vec<f32>>();
         let (cmd_tx, cmd_rx) = mpsc::channel::<Cmd>();
+        // Handshake so `open` can report why the device could not be used.
+        // Previously the worker used `unwrap`/`expect`/`panic!` here, and
+        // because the release profile sets `panic = "abort"` an unusable
+        // microphone killed the whole process instead of failing the recording.
+        let (init_tx, init_rx) = mpsc::channel::<Result<(), String>>();
 
         let host = crate::audio_toolkit::get_cpal_host();
         let device = match device {
@@ -80,8 +95,13 @@ impl AudioRecorder {
         let level_cb = self.level_cb.clone();
 
         let worker = std::thread::spawn(move || {
-            let config = AudioRecorder::get_preferred_config(&thread_device)
-                .expect("failed to fetch preferred config");
+            let config = match AudioRecorder::get_preferred_config(&thread_device) {
+                Ok(config) => config,
+                Err(e) => {
+                    let _ = init_tx.send(Err(format!("failed to fetch preferred config: {e}")));
+                    return;
+                }
+            };
 
             let sample_rate = config.sample_rate().0;
             let channels = config.channels() as usize;
@@ -94,36 +114,54 @@ impl AudioRecorder {
                 config.sample_format()
             );
 
-            let stream = match config.sample_format() {
-                cpal::SampleFormat::U8 => {
-                    AudioRecorder::build_stream::<u8>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
+            let stream = match build_input_stream(&thread_device, &config, sample_tx, channels) {
+                Ok(stream) => stream,
+                Err(e) => {
+                    let _ = init_tx.send(Err(e));
+                    return;
                 }
-                cpal::SampleFormat::I8 => {
-                    AudioRecorder::build_stream::<i8>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
-                }
-                cpal::SampleFormat::I16 => {
-                    AudioRecorder::build_stream::<i16>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
-                }
-                cpal::SampleFormat::I32 => {
-                    AudioRecorder::build_stream::<i32>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
-                }
-                cpal::SampleFormat::F32 => {
-                    AudioRecorder::build_stream::<f32>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
-                }
-                _ => panic!("unsupported sample format"),
             };
 
-            stream.play().expect("failed to start stream");
+            if let Err(e) = stream.play() {
+                let _ = init_tx.send(Err(format!("failed to start input stream: {e}")));
+                return;
+            }
+
+            // Tell the caller we are live. If the caller has already given up
+            // the send fails, in which case there is nothing to consume.
+            if init_tx.send(Ok(())).is_err() {
+                return;
+            }
 
             // keep the stream alive while we process samples
             run_consumer(sample_rate, vad, sample_rx, cmd_rx, level_cb);
             // stream is dropped here, after run_consumer returns
         });
+
+        // Wait for the worker to report success or failure. Bounded so a
+        // wedged device driver cannot block the caller indefinitely.
+        match init_rx.recv_timeout(WORKER_INIT_TIMEOUT) {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                let _ = worker.join();
+                return Err(Error::other(e).into());
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                let _ = cmd_tx.send(Cmd::Shutdown);
+                let _ = worker.join();
+                return Err(Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "timed out while opening the microphone",
+                )
+                .into());
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                let _ = worker.join();
+                return Err(
+                    Error::other("audio worker exited before the microphone was ready").into(),
+                );
+            }
+        }
 
         self.device = Some(device);
         self.cmd_tx = Some(cmd_tx);
@@ -254,6 +292,43 @@ impl AudioRecorder {
     }
 }
 
+/// Dispatches to [`AudioRecorder::build_stream`] for the device's sample format.
+///
+/// Unsupported formats return a descriptive error rather than panicking: with
+/// `panic = "abort"` in the release profile, the old `panic!` arm terminated
+/// the entire application whenever a device reported an unusual format.
+fn build_input_stream(
+    device: &cpal::Device,
+    config: &cpal::SupportedStreamConfig,
+    sample_tx: mpsc::Sender<Vec<f32>>,
+    channels: usize,
+) -> Result<cpal::Stream, String> {
+    fn build<T>(
+        device: &cpal::Device,
+        config: &cpal::SupportedStreamConfig,
+        sample_tx: mpsc::Sender<Vec<f32>>,
+        channels: usize,
+    ) -> Result<cpal::Stream, String>
+    where
+        T: Sample + SizedSample + Send + 'static,
+        f32: cpal::FromSample<T>,
+    {
+        AudioRecorder::build_stream::<T>(device, config, sample_tx, channels)
+            .map_err(|e| format!("{e}"))
+    }
+
+    match config.sample_format() {
+        cpal::SampleFormat::U8 => build::<u8>(device, config, sample_tx, channels),
+        cpal::SampleFormat::I8 => build::<i8>(device, config, sample_tx, channels),
+        cpal::SampleFormat::I16 => build::<i16>(device, config, sample_tx, channels),
+        cpal::SampleFormat::I32 => build::<i32>(device, config, sample_tx, channels),
+        cpal::SampleFormat::F32 => build::<f32>(device, config, sample_tx, channels),
+        other => Err(format!(
+            "unsupported sample format {other:?} (supported: U8, I8, I16, I32, F32)"
+        )),
+    }
+}
+
 fn run_consumer(
     in_sample_rate: u32,
     vad: Option<Arc<Mutex<Box<dyn vad::VoiceActivityDetector>>>>,
@@ -292,7 +367,15 @@ fn run_consumer(
         }
 
         if let Some(vad_arc) = vad {
-            let mut det = vad_arc.lock().unwrap();
+            // A poisoned VAD mutex must not abort the process; fall back to
+            // treating the frame as speech.
+            let mut det = match vad_arc.lock() {
+                Ok(guard) => guard,
+                Err(poisoned) => {
+                    log::error!("VAD mutex poisoned; recovering");
+                    poisoned.into_inner()
+                }
+            };
             match det.push_frame(samples).unwrap_or(VadFrame::Speech(samples)) {
                 VadFrame::Speech(buf) => out_buf.extend_from_slice(buf),
                 VadFrame::Noise => {}
@@ -303,24 +386,33 @@ fn run_consumer(
     }
 
     loop {
-        let raw = match sample_rx.recv() {
-            Ok(s) => s,
-            Err(_) => break, // stream closed
-        };
+        // Bounded wait so commands are serviced even when the device has
+        // stopped delivering callbacks. Previously this was a blocking
+        // `recv()`, which meant a stalled or unplugged device left the worker
+        // parked forever — `close()` then blocked in `join()` while holding
+        // the manager's locks, wedging the whole audio subsystem.
+        let mut disconnected = false;
+        match sample_rx.recv_timeout(CMD_POLL_INTERVAL) {
+            Ok(raw) => {
+                // ---------- spectrum processing ------------------------------ //
+                if let Some(buckets) = visualizer.feed(&raw) {
+                    if let Some(cb) = &level_cb {
+                        cb(buckets);
+                    }
+                }
 
-        // ---------- spectrum processing ---------------------------------- //
-        if let Some(buckets) = visualizer.feed(&raw) {
-            if let Some(cb) = &level_cb {
-                cb(buckets);
+                // ---------- existing pipeline -------------------------------- //
+                frame_resampler.push(&raw, &mut |frame: &[f32]| {
+                    handle_frame(frame, recording, &vad, &mut processed_samples)
+                });
             }
+            Err(mpsc::RecvTimeoutError::Timeout) => {}
+            Err(mpsc::RecvTimeoutError::Disconnected) => disconnected = true,
         }
 
-        // ---------- existing pipeline ------------------------------------ //
-        frame_resampler.push(&raw, &mut |frame: &[f32]| {
-            handle_frame(frame, recording, &vad, &mut processed_samples)
-        });
-
-        // non-blocking check for a command
+        // Always drain pending commands — including on the disconnect path, so
+        // a caller blocked in `stop()`/`peek()` still gets a reply instead of
+        // hanging on a dropped response channel.
         while let Ok(cmd) = cmd_rx.try_recv() {
             match cmd {
                 Cmd::Start => {
@@ -328,7 +420,13 @@ fn run_consumer(
                     recording = true;
                     visualizer.reset(); // Reset visualization buffer
                     if let Some(v) = &vad {
-                        v.lock().unwrap().reset();
+                        match v.lock() {
+                            Ok(mut guard) => guard.reset(),
+                            Err(poisoned) => {
+                                log::error!("VAD mutex poisoned; recovering");
+                                poisoned.into_inner().reset();
+                            }
+                        }
                     }
                 }
                 Cmd::Stop(reply_tx) => {
@@ -348,5 +446,75 @@ fn run_consumer(
                 Cmd::Shutdown => return,
             }
         }
+
+        if disconnected {
+            return; // stream closed and all pending commands serviced
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression for the audio-manager hang.
+    ///
+    /// `run_consumer` used to block in `sample_rx.recv()` indefinitely, so a
+    /// device that stopped delivering callbacks (unplugged, muted at the OS
+    /// level, stalled driver) left the worker parked forever. `close()` then
+    /// blocked in `join()` while holding the manager's locks and the whole
+    /// audio subsystem wedged.
+    ///
+    /// Here the sample channel stays *open but silent* — exactly the stalled
+    /// device case — and the worker must still service `Shutdown`.
+    #[test]
+    fn run_consumer_services_shutdown_while_no_audio_arrives() {
+        let (_sample_tx, sample_rx) = mpsc::channel::<Vec<f32>>();
+        let (cmd_tx, cmd_rx) = mpsc::channel::<Cmd>();
+
+        let worker = std::thread::spawn(move || {
+            run_consumer(48_000, None, sample_rx, cmd_rx, None);
+        });
+
+        // Let the worker reach its loop before asking it to stop.
+        std::thread::sleep(Duration::from_millis(20));
+        cmd_tx.send(Cmd::Shutdown).expect("worker should be alive");
+
+        let (done_tx, done_rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = worker.join();
+            let _ = done_tx.send(());
+        });
+
+        assert!(
+            done_rx.recv_timeout(Duration::from_secs(2)).is_ok(),
+            "run_consumer did not exit after Shutdown while no audio was arriving"
+        );
+    }
+
+    /// A caller blocked in `stop()` must still receive a reply when the device
+    /// has gone silent, rather than hanging on a dropped response channel.
+    #[test]
+    fn run_consumer_replies_to_stop_while_no_audio_arrives() {
+        let (_sample_tx, sample_rx) = mpsc::channel::<Vec<f32>>();
+        let (cmd_tx, cmd_rx) = mpsc::channel::<Cmd>();
+
+        let worker = std::thread::spawn(move || {
+            run_consumer(48_000, None, sample_rx, cmd_rx, None);
+        });
+
+        std::thread::sleep(Duration::from_millis(20));
+        let (reply_tx, reply_rx) = mpsc::channel::<Vec<f32>>();
+        cmd_tx
+            .send(Cmd::Stop(reply_tx))
+            .expect("worker should be alive");
+
+        assert!(
+            reply_rx.recv_timeout(Duration::from_secs(2)).is_ok(),
+            "stop() reply never arrived for a silent device"
+        );
+
+        let _ = cmd_tx.send(Cmd::Shutdown);
+        let _ = worker.join();
     }
 }

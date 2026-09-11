@@ -98,7 +98,13 @@ pub fn apply_voice_commands(text: &str, enabled: bool, custom: &[VoiceCommand]) 
 
 // Shortcut Action Trait
 pub trait ShortcutAction: Send + Sync {
-    fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
+    /// Begin the action.
+    ///
+    /// Returns `true` if the action actually started. Toggle-mode bindings use
+    /// this to decide whether to latch their pressed state — latching on a
+    /// failed start made the next press call `stop` on something that had never
+    /// begun.
+    fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) -> bool;
     fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
 }
 
@@ -294,7 +300,7 @@ async fn maybe_convert_chinese_variant(
 }
 
 impl ShortcutAction for TranscribeAction {
-    fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
+    fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) -> bool {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
 
@@ -328,7 +334,7 @@ impl ShortcutAction for TranscribeAction {
             // so we can always reuse this thread to ensure mute happens right after playback.
             std::thread::spawn(move || {
                 play_feedback_sound_blocking(&app_clone, SoundType::Start);
-                rm_clone.apply_mute();
+                let _ = rm_clone.apply_mute();
             });
 
             recording_started = rm.try_start_recording(&binding_id);
@@ -350,7 +356,7 @@ impl ShortcutAction for TranscribeAction {
                     // Helper handles disabled audio feedback by returning early, so we reuse it
                     // to keep mute sequencing consistent in every mode.
                     play_feedback_sound_blocking(&app_clone, SoundType::Start);
-                    rm_clone.apply_mute();
+                    let _ = rm_clone.apply_mute();
                 });
             } else {
                 debug!("Failed to start recording");
@@ -366,6 +372,8 @@ impl ShortcutAction for TranscribeAction {
             "TranscribeAction::start completed in {:?}",
             start_time.elapsed()
         );
+
+        recording_started
     }
 
     fn stop(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
@@ -385,7 +393,7 @@ impl ShortcutAction for TranscribeAction {
         show_transcribing_overlay(app);
 
         // Unmute before playing audio feedback so the stop sound is audible
-        rm.remove_mute();
+        let _ = rm.remove_mute();
 
         // Play audio feedback for recording stop
         play_feedback_sound(app, SoundType::Stop);
@@ -489,6 +497,7 @@ impl ShortcutAction for TranscribeAction {
                                         transcription_for_history,
                                         post_processed_text,
                                         post_process_prompt,
+                                        false,
                                     )
                                     .await
                                 {
@@ -551,8 +560,10 @@ impl ShortcutAction for TranscribeAction {
 struct CancelAction;
 
 impl ShortcutAction for CancelAction {
-    fn start(&self, app: &AppHandle, _binding_id: &str, _shortcut_str: &str) {
+    fn start(&self, app: &AppHandle, _binding_id: &str, _shortcut_str: &str) -> bool {
         utils::cancel_current_operation(app);
+        // Cancelling is idempotent: there is no start that can fail.
+        true
     }
 
     fn stop(&self, _app: &AppHandle, _binding_id: &str, _shortcut_str: &str) {
@@ -564,13 +575,14 @@ impl ShortcutAction for CancelAction {
 struct TestAction;
 
 impl ShortcutAction for TestAction {
-    fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) {
+    fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) -> bool {
         log::info!(
             "Shortcut ID '{}': Started - {} (App: {})", // Changed "Pressed" to "Started" for consistency
             binding_id,
             shortcut_str,
             app.package_info().name
         );
+        true
     }
 
     fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) {
@@ -693,7 +705,7 @@ async fn rewrite_with_instruction(
 }
 
 impl ShortcutAction for CommandAction {
-    fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
+    fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) -> bool {
         debug!("CommandAction::start called for binding: {}", binding_id);
 
         // Load model in background if cloud transcription is not enabled
@@ -720,10 +732,11 @@ impl ShortcutAction for CommandAction {
             }
             utils::hide_recording_overlay(app);
             change_tray_icon(app, TrayIconState::Idle);
-            return;
+            return false;
         }
 
         shortcut::register_cancel_shortcut(app);
+        true
     }
 
     fn stop(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
@@ -740,7 +753,7 @@ impl ShortcutAction for CommandAction {
         change_tray_icon(app, TrayIconState::Transcribing);
         show_transcribing_overlay(app);
 
-        rm.remove_mute();
+        let _ = rm.remove_mute();
         play_feedback_sound(app, SoundType::Stop);
 
         tauri::async_runtime::spawn(async move {
@@ -809,7 +822,13 @@ impl ShortcutAction for CommandAction {
             // Save to history
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = hm
-                    .save_transcription(samples_clone, instruction, post_processed_text, None)
+                    .save_transcription(
+                        samples_clone,
+                        instruction,
+                        post_processed_text,
+                        None,
+                        false,
+                    )
                     .await
                 {
                     error!("Command Mode: failed to save history: {}", e);
