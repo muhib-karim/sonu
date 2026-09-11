@@ -3139,6 +3139,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "md5"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
+
+[[package]]
 name = "memchr"
 version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4896,7 +4902,7 @@ dependencies = [
 [[package]]
 name = "rodio"
 version = "0.20.1"
-source = "git+https://github.com/cjpais/rodio.git#fed30292db417cb95305c118c0e1d804fb74cbff"
+source = "git+https://github.com/cjpais/rodio.git?rev=fed30292db417cb95305c118c0e1d804fb74cbff#fed30292db417cb95305c118c0e1d804fb74cbff"
 dependencies = [
  "cpal",
  "dasp_sample",
@@ -5521,7 +5527,7 @@ dependencies = [
 
 [[package]]
 name = "sonu-desktop"
-version = "2.6.0"
+version = "2.6.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5534,6 +5540,7 @@ dependencies = [
  "hound",
  "keyring",
  "log",
+ "md5",
  "natural",
  "regex",
  "reqwest",
@@ -5544,6 +5551,7 @@ dependencies = [
  "rustfft",
  "serde",
  "serde_json",
+ "sha2",
  "signal-hook",
  "specta",
  "specta-typescript",
@@ -6146,7 +6154,7 @@ dependencies = [
 [[package]]
 name = "tauri-nspanel"
 version = "2.1.0"
-source = "git+https://github.com/ahkohd/tauri-nspanel?branch=v2.1#da9c9a8d4eb7f0524a2508988df1a7d9585b4904"
+source = "git+https://github.com/ahkohd/tauri-nspanel?rev=da9c9a8d4eb7f0524a2508988df1a7d9585b4904#da9c9a8d4eb7f0524a2508988df1a7d9585b4904"
 dependencies = [
  "objc2 0.6.3",
  "objc2-app-kit",
@@ -7212,7 +7220,7 @@ dependencies = [
 [[package]]
 name = "vad-rs"
 version = "0.1.5"
-source = "git+https://github.com/cjpais/vad-rs#88b3a01f72f83a5d80d0e7ea9bacfc0d897fd03f"
+source = "git+https://github.com/cjpais/vad-rs?rev=88b3a01f72f83a5d80d0e7ea9bacfc0d897fd03f#88b3a01f72f83a5d80d0e7ea9bacfc0d897fd03f"
 dependencies = [
  "eyre",
  "ndarray",

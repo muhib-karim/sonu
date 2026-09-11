@@ -1,6 +1,6 @@
 [package]
 name = "sonu-desktop"
-version = "2.6.0"
+version = "2.6.1"
 description = "SONU - Offline Voice Typing"
 authors = ["cjpais"]
 edition = "2021"
@@ -64,9 +64,13 @@ hound = "3.5.1"
 log = "0.4.25"
 env_filter = "0.1.0"
 tokio = "1.43.0"
-vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
+# Git dependencies are pinned to an exact commit. Without `rev`, Cargo resolves
+# them to the repository's default-branch HEAD, so any `cargo update` (or a
+# resolve that is not `--locked`) floats to whatever the fork currently points
+# at — and a force-push silently changes what gets compiled.
+vad-rs = { git = "https://github.com/cjpais/vad-rs", rev = "88b3a01f72f83a5d80d0e7ea9bacfc0d897fd03f", default-features = false }
 enigo = "0.6.1"
-rodio = { git = "https://github.com/cjpais/rodio.git" }
+rodio = { git = "https://github.com/cjpais/rodio.git", rev = "fed30292db417cb95305c118c0e1d804fb74cbff" }
 reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
 futures-util = "0.3"
 rustfft = "6.4.0"
@@ -86,6 +90,11 @@ specta = "=2.0.0-rc.22"
 specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
 regex = "1.10"
+# Download integrity. `sha2` verifies artifacts whose host publishes a real
+# content hash; `md5` reproduces the object-store ETag for hosts that only
+# expose one (see `MULTIPART_PART_SIZE` in `managers/model.rs`).
+sha2 = "0.10"
+md5 = "0.7"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
@@ -107,7 +116,8 @@ windows = { version = "0.61.3", features = [
 ] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
+# Pinned to a commit: the previous `branch = "v2.1"` tracked a mutable ref.
+tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", rev = "da9c9a8d4eb7f0524a2508988df1a7d9585b4904" }
 
 [profile.release]
 lto = "thin"
