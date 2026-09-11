@@ -16,8 +16,11 @@ if echo "$STAGED_FILES" | grep -E "\.(js|jsx|ts|tsx)$" > /dev/null; then
     echo "  - Running ESLint..."
     bun run lint || exit 1
     
-    echo "  - Running Prettier..."
-    bun run format || exit 1
+    echo "  - Running Prettier (check only)..."
+    # `format` would rewrite files during the commit without re-staging them,
+    # so the commit could still land unformatted and fail CI's format:check.
+    # Fail here instead and let the author run `bun run format`.
+    bun run format:check || exit 1
     
     echo "  - Running TypeScript check..."
     bun run typecheck || exit 1
@@ -41,13 +44,8 @@ fi
 
 # Check if any Python files are staged (for legacy app)
 if echo "$STAGED_FILES" | grep -E "\.py$" > /dev/null; then
-    echo "🐍 Checking Python code..."
-    
-    # Run flake8 if available
-    if command -v flake8 > /dev/null; then
-        echo "  - Running flake8..."
-        flake8 apps/desktop/src/core/python/ || exit 1
-    fi
+    echo "🐍 Python files staged, but the legacy desktop app has been removed."
+    echo "   (apps/desktop/src/core/python/ no longer exists — skipping.)"
 fi
 
 echo "✅ All checks passed!"

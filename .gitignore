@@ -80,6 +80,10 @@ xet/
 
 # Agent memory
 .agentmd_memory/
+.workbuddy-ai/
+
+# Machine-local agent settings (contains per-machine tool allow-lists)
+.claude/settings.local.json
 
 # Terminal paste images
 .cp-images/
@@ -91,3 +95,6 @@ xet/
 *.asar
 # ZCode session-local files
 .zcode/
+
+# Vite config hot-reload scratch files
+vite.config.ts.timestamp-*.mjs

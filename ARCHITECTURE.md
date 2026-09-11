@@ -2,7 +2,7 @@
 
 ## Overview
 
-SONU is an offline-first voice typing application built with **Tauri v2** — a Rust backend paired with a React/TypeScript frontend. It runs local ASR models (Parakeet, with Whisper models also supported) for speech-to-text, with optional cloud transcription providers.
+SONU is an offline-first voice typing application built with **Tauri v2** — a Rust backend paired with a React/TypeScript frontend. It runs local ASR models (Parakeet, Whisper, and Moonshine — all three enabled by default) for speech-to-text, with optional cloud transcription providers.
 
 ## Technology Stack
 
@@ -55,7 +55,8 @@ apps/tauri-v2/
 ├── src-tauri/
 │   ├── src/
 │   │   ├── lib.rs          # Tauri plugin/command registration
-│   │   ├── commands/       # IPC command handlers (audio, transcription, settings)
+│   │   ├── commands/       # IPC command handlers (audio, transcription, history, models)
+│   │   ├── managers/       # Business logic (audio, transcription, model, history, cloud)
 │   │   ├── audio_toolkit/  # Audio capture, processing, VAD     
 │   │   └── shortcut.rs     # Global hotkey management
 │   ├── Cargo.toml          # Rust dependencies
@@ -76,5 +77,5 @@ apps/tauri-v2/
 - **Offline-first**: All core functionality works without internet
 - **Type-safe IPC**: Frontend uses auto-generated bindings (`commands.*`) — never raw `invoke()`
 - **Minimal dependencies**: Rust backend avoids unnecessary crates
-- **Privacy**: No telemetry, no data leaves the device unless cloud transcription is explicitly enabled
+- **Privacy**: No telemetry and no analytics. Audio is processed locally unless cloud transcription is explicitly enabled. The only other outbound traffic is model downloads and (if enabled) update checks.
 

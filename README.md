@@ -54,7 +54,7 @@ Powered by **NVIDIA Parakeet**, **Whisper**, and **Moonshine** engines (via tran
 
 ### 🤖 AI Text Enhancement
 
-Optional **LLM post-processing** cleans up filler words, fixes grammar, and formats your text — all locally with offline models, or via cloud providers.
+Optional **LLM post-processing** cleans up filler words, fixes grammar, and formats your text — via cloud providers (OpenAI-compatible, Groq, and others).
 
 </td>
 <td width="50%">
@@ -286,9 +286,9 @@ SONU/
 | **Desktop Framework**   | [Tauri v2](https://v2.tauri.app) (Rust)                               |
 | **Frontend**            | React 18, TypeScript, TailwindCSS                                     |
 | **Speech Engine**       | [transcribe-rs](https://github.com/cjpais/transcribe-rs) (Parakeet TDT · Whisper · Moonshine) |
-| **AI Enhancement**      | Local LLM (GGUF) + Cloud providers (OpenAI, Groq, etc.)               |
+| **AI Enhancement**      | Cloud providers (OpenAI-compatible, Groq, etc.)                       |
 | **Cloud Transcription** | Groq, Deepgram, Custom API endpoints                                  |
-| **Security**            | OS Keychain, Context Isolation, CSP, Input Validation                 |
+| **Security**            | OS Keychain, Tauri capability scoping, CSP                            |
 | **Testing**             | Vitest, Playwright, Rust tests, GitHub Actions CI                     |
 
 ---
@@ -346,11 +346,14 @@ SONU is designed with security-first principles:
 
 - **🔒 No telemetry** — Zero data collection, no analytics, no phone-home
 - **🔐 OS Keychain** — API keys stored in your OS's secure credential store
-- **🧱 Context Isolation** — Renderer process fully sandboxed
-- **🛡️ CSP Headers** — Content Security Policy prevents injection attacks
-- **✅ Input Validation** — All IPC parameters validated against schemas
-- **📁 Path Sanitization** — Prevents path traversal attacks
-- **🚫 No eval()** — ESLint enforces no dynamic code execution
+- **🧱 Process isolation** — Tauri renders in a separate webview process from the Rust backend
+- **🛡️ CSP Headers** — Content Security Policy limits what the webview can load
+- **📁 Path handling** — Recording file names are validated before being resolved on disk
+
+> **Egress note:** SONU makes no telemetry or analytics calls. The only outbound
+> requests are model downloads (from the URLs in `resources/models.json`) and,
+> if you enable them, update checks and cloud transcription / post-processing
+> against the provider you configure.
 
 ---
 
@@ -371,10 +374,8 @@ SONU is designed with security-first principles:
 
 ### 🚧 In Progress
 
-- [ ] Real-time streaming transcription
 - [ ] Custom model fine-tuning
 - [ ] Plugin / extension system
-- [ ] Voice commands & macros
 
 ### 🔮 Future
 
@@ -410,7 +411,8 @@ See [AGENTS.md](AGENTS.md) for development guidelines and coding conventions.
 | [INSTALL.md](INSTALL.md)                                             | Installation guide                           |
 | [docs/AI_FEATURES.md](docs/AI_FEATURES.md)                           | AI post-processing & context-aware dictation |
 | [docs/BRAND_GUIDELINES.md](docs/BRAND_GUIDELINES.md)                 | Brand & logo usage                           |
-| [docs/TAURI_V2_MIGRATION_GUIDE.md](docs/TAURI_V2_MIGRATION_GUIDE.md) | Tauri v2 migration guide                     |
+| [AUDIT.md](AUDIT.md)                                                 | Codebase audit & findings                    |
+| [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md)                           | Prioritised remediation plan                 |
 | [CONTRIBUTING.md](CONTRIBUTING.md)                                   | Contribution guidelines                      |
 
 ---

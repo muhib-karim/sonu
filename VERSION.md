@@ -4,13 +4,22 @@
 
 | Component              | Version | Status |
 | ---------------------- | ------- | ------ |
-| **Desktop v2 (Tauri)** | 2.6.0   | Stable |
+| **Desktop v2 (Tauri)** | 2.6.1   | Stable |
 
-**Last Updated**: 2026-09-03 (2.6.0)
+**Last Updated**: 2026-09-11 (2.6.1)
 
 ## Version History
 
 ### Desktop v2 (Tauri)
+
+#### Version 2.6.1
+
+- Download integrity: every model in the catalog is now checksum-verified before it replaces the previous file — SHA-256 for the HuggingFace-hosted Whisper models, MD5 (including multipart `md5-of-part-digests`) for the Cloudflare R2 hosted ones
+- Hardened crash and data-loss paths across the recorder lifecycle, history database, settings persistence, and clipboard handling
+- Keychain reads are cached in-process with write-through invalidation, removing a blocking OS call from hot paths
+- Type-aware ESLint (`no-floating-promises`, `no-misused-promises`) — 75 dropped-promise sites fixed
+- CI hardening: GitHub Actions pinned to commit SHAs, clippy `-D warnings` gate, Dependabot for cargo/bun/Actions, panic ratchet
+- Rust test suite restored: 50 tests passing (previously unrun on Windows due to an ONNX runtime DLL shadowing issue)
 
 #### Version 2.6.0
 
@@ -86,9 +95,9 @@ SONU follows [Semantic Versioning](https://semver.org/) (SemVer):
 
 | File                                      | Location             |
 | ----------------------------------------- | -------------------- |
-| `apps/tauri-v2/package.json`              | `"version": "2.6.0"` |
-| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.6.0"`  |
-| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.6.0"` |
+| `apps/tauri-v2/package.json`              | `"version": "2.6.1"` |
+| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.6.1"`  |
+| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.6.1"` |
 
 ### Desktop App (Electron) — Removed
 

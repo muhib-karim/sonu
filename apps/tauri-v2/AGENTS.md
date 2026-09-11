@@ -1,114 +1,144 @@
-# AGENTS.md
+# AGENTS.md (apps/tauri-v2)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **Read the repository-root [`AGENTS.md`](../../AGENTS.md) first.** It holds the
+> authoritative build/test/lint commands and code-style rules. This file only
+> adds app-specific context.
+>
+> It previously documented `rdev` (not a dependency), `whisper-rs` as the core
+> engine, and a Whisper-only first-run download. All three were wrong and are
+> corrected below.
 
-## Development Commands
+## What this app is
 
-**Prerequisites:**
+SONU is a cross-platform desktop speech-to-text application: a Tauri v2 Rust
+backend with a React/TypeScript frontend.
 
-- [Rust](https://rustup.rs/) (latest stable)
-- [Bun](https://bun.sh/) package manager
-
-**Core Development:**
+## Development
 
 ```bash
-# Install dependencies
 bun install
-
-# Run in development mode
-bun run tauri dev
-# If cmake error on macOS:
-CMAKE_POLICY_VERSION_MINIMUM=3.5 bun run tauri dev
-
-# Build for production
-bun run tauri build
-
-# Frontend only development
-bun run dev        # Start Vite dev server
-bun run build      # Build frontend (TypeScript + Vite)
-bun run preview    # Preview built frontend
+bun run tauri dev      # full app
+bun run dev            # frontend only (Vite)
+bun run tauri build    # production bundle
 ```
 
-**Model Setup (Required for Development):**
+**Required for local development** — the VAD model is not committed:
 
 ```bash
-# Create models directory
 mkdir -p src-tauri/resources/models
-
-# Download required VAD model
-curl -o src-tauri/resources/models/silero_vad_v4.onnx https://blob.handy.computer/silero_vad_v4.onnx
+curl -o src-tauri/resources/models/silero_vad_v4.onnx \
+  https://blob.handy.computer/silero_vad_v4.onnx
 ```
 
-## Architecture Overview
+**Toolchain notes**
 
-SONU is a cross-platform desktop speech-to-text application built with Tauri (Rust backend + React/TypeScript frontend).
+- `bun` is the only supported package manager. Do not invoke `npm`.
+- The `whisper` Cargo feature requires **libclang** at build time
+  (`whisper-rs`/bindgen). Without LLVM installed, build with:
 
-### Core Components
+  ```bash
+  cargo check --no-default-features --features parakeet,moonshine
+  ```
 
-**Backend (Rust - src-tauri/src/):**
+  CI installs LLVM, so it builds the full feature set.
 
-- `lib.rs` - Main application entry point with Tauri setup, tray menu, and managers
-- `managers/` - Core business logic managers:
-  - `audio.rs` - Audio recording and device management
-  - `model.rs` - Whisper model downloading and management
-  - `transcription.rs` - Speech-to-text processing pipeline
-- `audio_toolkit/` - Low-level audio processing:
-  - `audio/` - Device enumeration, recording, resampling
-  - `vad/` - Voice Activity Detection using Silero VAD
-- `commands/` - Tauri command handlers for frontend communication
-- `shortcut.rs` - Global keyboard shortcut handling
-- `settings.rs` - Application settings management
+**`cargo test` crashes with exit `0xc0000020` on Windows.** The `ort` crate links
+`DirectML` for its DML execution provider, and `ort-sys`'s build script emits
+`cargo:rerun-if-changed` for `target/debug/DirectML.dll` and
+`target/debug/deps/DirectML.dll`. Cargo creates those paths as **0-byte
+placeholders**, and because Windows resolves a DLL next to the executable before
+the real one, the test binary fails to load with no output at all.
 
-**Frontend (React/TypeScript - src/):**
+The real DLL ships inside the `ort` download cache. To run the Rust tests:
 
-- `App.tsx` - Main application component with onboarding flow
-- `components/settings/` - Settings UI components
-- `components/model-selector/` - Model management interface
-- `hooks/` - React hooks for settings and model management
-- `lib/types.ts` - Shared TypeScript type definitions
+```bash
+REAL="$LOCALAPPDATA/ort.pyke.io/dfbin/x86_64-pc-windows-msvc/*/onnxruntime/lib/DirectML.dll"
+cp -f $REAL src-tauri/target/debug/deps/DirectML.dll
+cp -f $REAL src-tauri/target/debug/DirectML.dll
+./target/debug/deps/sonu_app_lib-*.exe     # run the binary directly
+```
 
-### Key Architecture Patterns
+Run the test binary directly rather than through `cargo test`: a rebuild rewrites
+the 0-byte placeholder and the run fails again. If `target/` was hand-modified
+during a build you may hit a rustc ICE writing metadata — delete
+`target/debug/incremental` and rebuild with `CARGO_INCREMENTAL=0`.
 
-**Manager Pattern:** Core functionality is organized into managers (Audio, Model, Transcription) that are initialized at startup and managed by Tauri's state system.
+## Backend layout (`src-tauri/src/`)
 
-**Command-Event Architecture:** Frontend communicates with backend via Tauri commands, backend sends updates via events.
+| Path             | Responsibility                                                                                                            |
+| :--------------- | :------------------------------------------------------------------------------------------------------------------------ |
+| `lib.rs`         | App entry: Tauri setup, tray, manager registration, command export                                                        |
+| `managers/`      | Core business logic — `audio`, `transcription`, `model`, `history`, `cloud_transcription`, `offline_llm`                  |
+| `audio_toolkit/` | Low-level audio: device enumeration, recording (`audio/recorder.rs`), resampling, Silero VAD, text correction (`text.rs`) |
+| `commands/`      | Tauri command handlers exposed to the frontend                                                                            |
+| `shortcut.rs`    | Global hotkey registration and dispatch                                                                                   |
+| `actions.rs`     | What a hotkey actually does (transcribe / cancel / command mode)                                                          |
+| `settings.rs`    | Settings persistence (tauri-plugin-store) + OS keychain for secrets                                                       |
+| `overlay.rs`     | Floating recording overlay window                                                                                         |
 
-**Pipeline Processing:** Audio → VAD → Whisper → Text output with configurable components at each stage.
+## Speech engines
 
-### Technology Stack
+Engine selection is a Cargo feature: **Parakeet** (fast ONNX), **Whisper**
+(multilingual GGML), **Moonshine** (ultra-light ONNX) — all via
+[`transcribe-rs`](https://github.com/cjpais/transcribe-rs). Default features
+enable all three. The catalog lives in `src-tauri/resources/models.json`.
 
-**Core Libraries:**
+## Architecture patterns
 
-- `whisper-rs` - Local Whisper inference with GPU acceleration
-- `cpal` - Cross-platform audio I/O
-- `vad-rs` - Voice Activity Detection
-- `rdev` - Global keyboard shortcuts
-- `rubato` - Audio resampling
-- `rodio` - Audio playback for feedback sounds
+- **Manager pattern** — managers are constructed at startup and held in Tauri state.
+- **Command/event** — frontend calls typed commands; the backend pushes progress via events.
+- **Pipeline** — audio → VAD → resample → ASR → optional post-processing → paste + history.
 
-**Platform-Specific Features:**
+## Locking and panics
 
-- macOS: Metal acceleration for Whisper, accessibility permissions
-- Windows: Vulkan acceleration, code signing
-- Linux: OpenBLAS + Vulkan acceleration
+Two rules that are easy to get wrong here:
 
-### Application Flow
+1. **`panic = "abort"` is set for release builds.** A panic in _any_ thread kills
+   the process. Do not add `unwrap()`/`expect()`/indexing that can panic in
+   non-test code. Prefer `Result` propagation.
+2. **The audio manager serialises its lifecycle transitions through one
+   `lifecycle` mutex.** Its flag mutexes (`is_open`, `did_mute`, `is_recording`,
+   `recorder`, `state`, `mode`) must never be held two-at-a-time — see the
+   comment on `AudioRecordingManager` for why.
 
-1. **Initialization:** App starts minimized to tray, loads settings, initializes managers
-2. **Model Setup:** First-run downloads preferred Whisper model (Small/Medium/Turbo/Large)
-3. **Recording:** Global shortcut triggers audio recording with VAD filtering
-4. **Processing:** Audio sent to Whisper model for transcription
-5. **Output:** Text pasted to active application via system clipboard
+## Application flow
 
-### Settings System
+1. App starts hidden in the tray, loads settings, initialises managers.
+2. First run downloads a model (unless cloud transcription is configured).
+3. A global shortcut starts capture; VAD filters silence.
+4. Audio goes to the local engine or a configured cloud provider.
+5. Text is pasted into the active app and saved to history (SQLite + WAV).
 
-Settings are stored using Tauri's store plugin with reactive updates:
+## Frontend layout (`src/`)
 
-- Keyboard shortcuts (configurable, supports push-to-talk)
-- Audio devices (microphone/output selection)
-- Model preferences (Small/Medium/Turbo/Large Whisper variants)
-- Audio feedback and translation options
+| Path                         | Responsibility                                                        |
+| :--------------------------- | :-------------------------------------------------------------------- |
+| `App.tsx`                    | Section navigation and onboarding gate                                |
+| `components/settings/`       | Settings panels, one per sidebar section                              |
+| `components/model-selector/` | Model catalogue, downloads, extraction state                          |
+| `stores/settingsStore.ts`    | Zustand store — the single source of truth for settings               |
+| `hooks/useSettings.ts`       | Store accessor used by components                                     |
+| `bindings.ts`                | **Generated.** Typed Tauri commands — never edit by hand              |
+| `overlay/`                   | Separate React root for the recording overlay window                  |
+| `i18n/`                      | i18next setup; translations in `i18n/locales/<lang>/translation.json` |
 
-### Single Instance Architecture
+## Frontend rules
 
-The app enforces single instance behavior - launching when already running brings the settings window to front rather than creating a new process.
+- Use `commands.*` from `@/bindings`. Do not call `invoke()` directly for new code.
+- **Commands resolve errors, they do not throw.** A failed command returns
+  `{ status: "error", error }`, so `try/catch` around `await commands.x()` will
+  not fire. Use the `unwrapResult` helper from `@/lib/utils/result`.
+- Route settings writes through the Zustand store (`updateSetting`,
+  `updateBinding`) so navigation and other consumers stay in sync.
+- Every new JSX string needs a translation key (`eslint-plugin-i18next` enforces this).
+
+## Testing
+
+```bash
+bun run test          # Vitest
+bun run test:e2e      # Playwright (manual; not run in CI)
+bun run test:rust     # cargo test
+```
+
+Browser E2E is a manual pre-release step — it is deliberately **not** wired into
+CI. The current specs are rendering smoke tests that do not exercise real IPC.

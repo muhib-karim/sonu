@@ -1,0 +1,33 @@
+# Baseline for scripts/check-panic-ratchet.sh
+#
+# Number of `.unwrap()` + `.expect(` occurrences in src-tauri/src (including
+# test modules, which are allowed to panic).
+#
+# This is a RATCHET: CI fails when the count goes UP. Lower this number
+# whenever you remove a panic site so the improvement cannot be undone.
+#
+# 2026-09-11: initial baseline. `panic = "abort"` is set for release builds, so
+# every one of these is a potential full-app abort. The two that were reachable
+# from ordinary user input (a non-ASCII dictionary word, an unsupported audio
+# sample format) have already been removed.
+#
+# 2026-09-11 (audit pass, v2.6.1): 87 -> 107. The +20 is entirely new *test*
+# coverage — no new production panic site was added, and the production count
+# actually fell:
+#
+#   +13  utils/keychain.rs      new cache invalidation tests (all in mod tests;
+#                               production sites in this file remain 0)
+#   + 8  managers/model.rs      new checksum verification tests (all below the
+#                               #[cfg(test)] boundary at line 1142)
+#   - 7  audio_toolkit/audio/recorder.rs   production unwraps replaced by
+#                                          Result propagation
+#   - 1  shortcut.rs                       production unwrap removed
+#   - 3  tests/*.rs, managers/transcription_tests.rs  folded into the owning
+#                               modules' `mod tests` blocks
+#
+# The script counts both, by design (test modules are allowed to panic). If you
+# want the ratchet to track production only, change the grep to skip anything
+# after the first `#[cfg(test)]` in each file — but keep the test count honest
+# by tracking it separately, so a genuine production regression cannot hide
+# behind test churn.
+107

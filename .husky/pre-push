@@ -1,2 +1,9 @@
-# Run tests before pushing
-npm test --if-present || true
+#!/bin/sh
+# Run the frontend test suite before pushing.
+#
+# Previously this had no shebang, invoked `npm test` from the repository root
+# (which has no package.json), and ended in `|| true` — so it silently did
+# nothing and could never fail.
+
+cd apps/tauri-v2 || exit 1
+bun run test

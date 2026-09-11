@@ -7,6 +7,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.1] - 2026-09-11
+
+Audit-driven hardening pass. Companion to [`AUDIT.md`](AUDIT.md); the
+per-task rationale lives in [`IMPROVEMENT_PLAN.md`](IMPROVEMENT_PLAN.md).
+
+### Added
+
+- **Download checksum verification**: every shipped model now carries a
+  verified integrity hash — SHA-256 for HuggingFace-hosted Whisper models
+  (read from the LFS object id) and MD5 for the object-store-hosted
+  artifacts. Multipart-uploaded files are verified with the same
+  md5-of-part-digests construction the store publishes, so the published
+  `ETag` is reproducible on the client. An artifact that fails verification
+  is discarded rather than installed, and the failure is surfaced instead of
+  failing later at transcription time.
+- **Type-aware frontend linting**: `@typescript-eslint/no-floating-promises`
+  and `no-misused-promises` are now enforced, with 75 pre-existing findings
+  fixed. This catches fire-and-forget IPC calls whose rejection would
+  otherwise be discarded silently.
+- **Keychain read cache**: API-key lookups no longer enter the OS credential
+  store on every settings load. The cache is invalidated on every write and
+  delete.
+- **Panic ratchet** (`scripts/check-panic-ratchet.sh`) plus
+  `scripts/panic-baseline.txt`, wired into CI as a fast dependency-free job
+  that runs before the Rust build.
+- **Dependency automation**: Dependabot config for cargo, bun, and GitHub
+  Actions; advisory `cargo audit` job.
+
+### Changed
+
+- **CI clippy gate tightened** to `cargo clippy --all-targets -- -D warnings`;
+  all 36 lints in the tree were fixed, so warnings are now fatal.
+- GitHub Actions pinned to commit SHAs rather than mutable tags.
+- Git dependencies (`vad-rs`, `rodio`, `tauri-nspanel`) pinned to exact
+  revisions.
+- Unknown/absent checksums are tolerated (the entry is simply unverified),
+  so a catalog without hashes keeps working as before.
+
+### Fixed
+
+- **Crash risks under `panic = "abort"`**: removed panics in the audio
+  recorder worker, made unsupported sample formats return an error, and
+  recovered a poisoned VAD lock instead of aborting the process.
+- **Recording lifecycle**: a single `lifecycle` mutex now serialises every
+  microphone transition, structurally eliminating two lock-order inversions
+  that could deadlock.
+- **Stalled audio device**: the recorder command loop services `Stop` and
+  `Shutdown` via `recv_timeout` rather than blocking indefinitely.
+- **History**: transcription rows are keyed by an explicit saved flag instead
+  of a text-equality heuristic that could merge distinct entries; the SQLite
+  connection is now a single shared handle with WAL and a busy timeout.
+- **Clipboard**: restoration is a drop guard that only fires when the
+  original read succeeded, and now runs on error paths too.
+- **Settings drift**: rollback is field-scoped and version-guarded, and
+  post-process toggles route through the store rather than writing directly.
+- **API keys**: `set_cloud_api_key` with an empty value now removes the
+  keychain entry instead of storing a blank string that left the secret in
+  place while the UI reported no key.
+- **Model downloads**: partials are bound to their source URL via a
+  `.partial.meta` sidecar, so a repointed catalog can no longer splice two
+  different artifacts into one corrupt model.
+- **Shortcuts**: a new binding is registered before the old one is removed,
+  and toggle state only latches on success.
+- **Overlay**: a generation counter prevents a pending delayed hide from
+  hiding a subsequent recording.
+- **Notes mic button** now tracks recording ownership rather than the global
+  flag, so a hotkey dictation can no longer present a "Stop" that cannot
+  stop anything.
+- **Model selection** can no longer auto-switch the active model while a
+  recording is in progress.
+
+### Verified
+
+- Full gate suite green: `cargo fmt --check`, `cargo clippy --all-targets
+  -- -D warnings`, `cargo test` (50 passing), `bun run typecheck`,
+  `bun run lint`, `bun run test` (38 passing), panic ratchet at baseline.
+- The Rust test suite had not been executable on Windows: cargo materialises
+  a 0-byte `DirectML.dll` placeholder next to the test binary (because
+  `ort-sys` registers the path via `cargo:rerun-if-changed`), which shadows
+  the real ONNX Runtime DLL and makes the binary fail at load with exit
+  `0xc0000020`. The workaround is documented in both `AGENTS.md` files.
+- Known gap: CI compiles the `whisper` feature, which needs libclang and
+  cannot be built on the audit machine. Clippy was verified clean for
+  `--no-default-features --features parakeet,moonshine` only.
+
+---
+
 ## [2.6.0] - 2026-09-03
 
 ### Added

@@ -6,8 +6,9 @@ We provide security updates for the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.4.x (Tauri) | :white_check_mark: |
-| 2.2.x – 2.3.x (Tauri) | :white_check_mark: |
+| 2.6.x (Tauri) | :white_check_mark: |
+| 2.4.x – 2.5.x (Tauri) | :white_check_mark: |
+| 2.2.x – 2.3.x (Tauri) | :x:                |
 | 2.0.x – 2.1.x (Tauri) | :x:                |
 | 1.0.x   | :x:                |
 
