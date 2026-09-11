@@ -15,7 +15,7 @@ export const WordCorrectionThreshold: React.FC<
   const { settings, updateSetting } = useSettings();
 
   const handleThresholdChange = (value: number) => {
-    updateSetting("word_correction_threshold", value);
+    void updateSetting("word_correction_threshold", value);
   };
 
   return (

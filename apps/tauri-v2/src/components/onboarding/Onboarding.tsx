@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { commands, type ModelInfo } from "@/bindings";
 import ModelCard from "./ModelCard";
 import SonuLogo from "../icons/SonuLogo";
@@ -16,7 +17,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadModels();
+    void loadModels();
   }, []);
 
   const loadModels = async () => {
@@ -41,17 +42,30 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     // Immediately transition to main app - download will continue in footer
     onModelSelected();
 
+    // Report failures through a toast, not `setError`.
+    //
+    // `onModelSelected()` unmounts this component, so the `setError` calls that
+    // used to live here wrote into a dead tree: the user was dropped into the
+    // app with no model and no explanation of why. The toast renders from the
+    // main app's `<Toaster>`, so it survives the transition.
+    //
+    // Reuses the existing `onboarding.errors.downloadModel` key so every
+    // locale keeps working without a new translation.
     try {
       const result = await commands.downloadModel(modelId);
       if (result.status === "error") {
         console.error("Download failed:", result.error);
-        setError(t("onboarding.errors.downloadModel", { error: result.error }));
-        setDownloading(false);
+        toast.error(
+          t("onboarding.errors.downloadModel", { error: result.error }),
+          { duration: 15000 },
+        );
       }
     } catch (err) {
       console.error("Download failed:", err);
-      setError(t("onboarding.errors.downloadModel", { error: String(err) }));
-      setDownloading(false);
+      toast.error(
+        t("onboarding.errors.downloadModel", { error: String(err) }),
+        { duration: 15000 },
+      );
     }
   };
 

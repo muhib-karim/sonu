@@ -36,7 +36,7 @@ export const AppDataDirectory: React.FC<AppDataDirectoryProps> = ({
       }
     };
 
-    loadAppDirectory();
+    void loadAppDirectory();
   }, []);
 
   const handleOpen = async () => {

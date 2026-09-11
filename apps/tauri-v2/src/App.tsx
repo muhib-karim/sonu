@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
+import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 import "./App.css";
 import { ErrorBoundary } from "./components/error-boundary/ErrorBoundary";
 import {
@@ -28,27 +30,72 @@ function App() {
     useShortcutsHelp();
   const { settings } = useSettings();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const { t } = useTranslation();
 
   useTheme();
   const theme = resolvedTheme(settings?.theme_mode);
 
-  // Check if onboarding is needed
+  // Surface settings-persistence failures. API keys live only in the OS
+  // keychain, so a failed write means the key is unrecoverable — the user must
+  // be told rather than left believing it saved.
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+
+    const setup = async () => {
+      const stop = await listen<string>("settings-persist-error", (event) => {
+        toast.error(
+          t("settings.persist_error", {
+            defaultValue: "Could not save your API key to the system keychain",
+          }),
+          { description: event.payload, duration: 10000 },
+        );
+      });
+      // The listener may resolve after unmount; unregister immediately then.
+      if (cancelled) {
+        stop();
+      } else {
+        unlisten = stop;
+      }
+    };
+
+    // Fire-and-forget on mount: `setup` handles its own errors.
+    void setup();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [t]);
+
+  // Decide whether the first-run setup screen is needed.
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
         const result = await commands.getAppSettings();
-        if (result.status === "ok") {
-          // If no model has been selected yet, show onboarding
-          const s = result.data as any;
-          if (!s.selected_model) {
-            setShowOnboarding(true);
-          }
+        if (result.status !== "ok") return;
+
+        if (result.data.selected_model) {
+          return; // already set up
+        }
+
+        // A working cloud provider is a complete setup on its own — the user
+        // does not need a local model, so don't force them through the download
+        // flow. `has_api_key` is checked via the status command because API keys
+        // are `#[serde(skip)]` and so are never present in `getAppSettings`.
+        const cloudStatus = await commands.getCloudTranscriptionStatus();
+        const cloudReady =
+          cloudStatus.status === "ok" &&
+          cloudStatus.data.enabled &&
+          cloudStatus.data.has_api_key;
+
+        if (!cloudReady) {
+          setShowOnboarding(true);
         }
       } catch {
         // Don't block on onboarding check failure
       }
     };
-    checkOnboarding();
+    void checkOnboarding();
   }, []);
 
   // Maximize handler

@@ -159,7 +159,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <div className="flex flex-col w-full gap-0.5 flex-1">
+      <nav
+        aria-label={t("sidebar.navigation", "Sections")}
+        className="flex flex-col w-full gap-0.5 flex-1"
+      >
         {availableSections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -167,8 +170,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           return (
             <React.Fragment key={section.id}>
-              <div
-                className={`flex gap-3 items-center px-3 py-2 w-full rounded-lg cursor-pointer transition-all duration-200 ${
+              {/*
+                A native <button>, not a div with onClick. Primary navigation
+                has to be reachable by Tab and activatable with Enter/Space;
+                a clickable div is invisible to both keyboard and screen
+                readers.
+              */}
+              <button
+                type="button"
+                aria-current={isActive ? "page" : undefined}
+                title={t(section.labelKey)}
+                className={`flex gap-3 items-center px-3 py-2 w-full rounded-lg cursor-pointer text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   isActive
                     ? "bg-accent-soft text-text"
                     : "text-text-muted hover:text-text hover:bg-surface-hover"
@@ -178,19 +190,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Icon
                   size={18}
                   className={`shrink-0 ${isActive ? "text-accent" : ""}`}
+                  aria-hidden="true"
                 />
-                <p
-                  className="text-sm font-medium truncate"
-                  title={t(section.labelKey)}
-                >
+                <span className="text-sm font-medium truncate">
                   {t(section.labelKey)}
-                </p>
-              </div>
+                </span>
+              </button>
               {showDivider && <div className="w-full h-px bg-border my-3" />}
             </React.Fragment>
           );
         })}
-      </div>
+      </nav>
     </div>
   );
 };

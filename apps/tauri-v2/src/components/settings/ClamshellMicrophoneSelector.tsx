@@ -41,7 +41,7 @@ export const ClamshellMicrophoneSelector: React.FC<ClamshellMicrophoneSelectorPr
         }
       };
 
-      checkIsLaptop();
+      void checkIsLaptop();
     }, []);
 
     // Only render on laptops

@@ -197,7 +197,7 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
 
   const handlePromptSelect = (promptId: string | null) => {
     if (!promptId) return;
-    updateSetting("post_process_selected_prompt_id", promptId);
+    void updateSetting("post_process_selected_prompt_id", promptId);
     setIsCreating(false);
   };
 
@@ -211,7 +211,7 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
       );
       if (result.status === "ok") {
         await refreshSettings();
-        updateSetting("post_process_selected_prompt_id", result.data.id);
+        void updateSetting("post_process_selected_prompt_id", result.data.id);
         setIsCreating(false);
       }
     } catch (error) {

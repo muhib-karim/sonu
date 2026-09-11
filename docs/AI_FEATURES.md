@@ -31,8 +31,11 @@ post-processing instructions accordingly.
 - Toggle **Settings → Style → Context-Aware Dictation** (on by default).
 - Pick a per-category style from the same page. Selections are persisted in
   the app settings store.
-- Requires an LLM post-processing provider (cloud such as OpenAI/Groq, or a
-  local GGUF model). Without one, dictation simply skips enhancement.
+- Requires an LLM post-processing provider (a cloud API such as OpenAI/Groq).
+  Without one, dictation simply skips enhancement.
+  > **Note:** a local GGUF / offline LLM provider is not wired into the
+  > transcription pipeline yet. The toggle and model download exist behind
+  > debug mode but have no effect on output.
 
 ### Platform Support
 Foreground-window detection is currently implemented on **Windows**. On
@@ -70,8 +73,11 @@ pastes it in place of the selection.
 Both features reuse SONU's existing LLM post-processing pipeline:
 
 1. Open **Settings → Post-Processing**.
-2. Choose a provider — a cloud API (OpenAI, Groq, …) or a local GGUF model.
+2. Choose a cloud provider — an OpenAI-compatible endpoint, Groq, or Apple Intelligence.
 3. Enter the model name and API key (cloud providers).
+
+> A local GGUF / offline LLM provider is **not implemented** in the current
+> pipeline — see the note in section 2.
 
 Cloud providers are used only for the short text-enhancement request; audio
 is transcribed locally unless you separately enable cloud transcription.

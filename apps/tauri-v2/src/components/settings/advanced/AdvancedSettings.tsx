@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
-import { commands } from "@/bindings";
-import { invoke } from "@tauri-apps/api/core";
+import { useSettings } from "@/hooks/useSettings";
 import { ShowOverlay } from "../ShowOverlay";
 import { TranslateToEnglish } from "../TranslateToEnglish";
 import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
@@ -14,32 +13,15 @@ import { ClipboardHandlingSetting } from "../ClipboardHandling";
 
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
-  const [llmEnabled, setLlmEnabled] = useState(false);
+  // Read and write through the settings store. This component previously kept
+  // its own `llmEnabled` state and called the backend directly, so the Sidebar
+  // (which reads `post_process_enabled` from the store) never learned the new
+  // value and the Post Processing nav item stayed hidden.
+  const { settings, updateSetting } = useSettings();
+  const llmEnabled = settings?.post_process_enabled ?? false;
 
-  // Load LLM setting from backend
-  useEffect(() => {
-    commands.getAppSettings().then((settings) => {
-      if (settings.status === "ok") {
-        setLlmEnabled(settings.data.post_process_enabled ?? false);
-      }
-    });
-  }, []);
-
-  // Save LLM setting to backend
   const toggleLlm = async (enabled: boolean) => {
-    setLlmEnabled(enabled);
-    try {
-      await invoke("change_post_process_enabled_setting", { enabled });
-      // Also update local storage for style persistence if needed, but backend is source of truth
-      const saved = localStorage.getItem("sonu-styles");
-      const parsed = saved ? JSON.parse(saved) : {};
-      parsed.llmEnabled = enabled;
-      localStorage.setItem("sonu-styles", JSON.stringify(parsed));
-    } catch (error) {
-      console.error("Failed to update post-process setting:", error);
-      // Revert UI on failure
-      setLlmEnabled(!enabled);
-    }
+    await updateSetting("post_process_enabled", enabled);
   };
 
   return (

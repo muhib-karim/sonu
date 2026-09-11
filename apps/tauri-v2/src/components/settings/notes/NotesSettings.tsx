@@ -15,6 +15,8 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { commands, type HistoryEntry } from "@/bindings";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { unwrapResult } from "@/lib/utils/result";
+import { toast } from "sonner";
 
 type ViewMode = "list" | "grid";
 
@@ -31,7 +33,6 @@ const NOTE_COLORS = [
 export const NotesSettings: React.FC = () => {
   const { t } = useTranslation();
   const [notes, setNotes] = useState<HistoryEntry[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -59,12 +60,12 @@ export const NotesSettings: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadNotes();
+    void loadNotes();
 
     // Listen for history updates
     const setupListener = async () => {
       const unlisten = await listen("history-updated", () => {
-        loadNotes();
+        void loadNotes();
       });
       return unlisten;
     };
@@ -72,7 +73,7 @@ export const NotesSettings: React.FC = () => {
     let unlistenPromise = setupListener();
 
     return () => {
-      unlistenPromise.then((unlisten) => {
+      void unlistenPromise.then((unlisten) => {
         if (unlisten) unlisten();
       });
     };
@@ -88,47 +89,80 @@ export const NotesSettings: React.FC = () => {
     };
   }, [audioElement]);
 
-  useEffect(() => {
-    // Sync recording state on mount
-    commands
-      .isRecording()
-      .then(setIsRecording)
-      .catch((err: unknown) =>
-        console.error("Failed to check recording status:", err),
-      );
+  /**
+   * Whether *this component* owns the active recording.
+   *
+   * `commands.isRecording()` reports whether ANY recording is in progress —
+   * including a global dictation started by the hotkey — while the backend only
+   * stops a recording whose binding id matches (`finishNoteRecording` always
+   * sends `"note_recording"`). Driving this button from the global flag meant
+   * it offered a "Stop" that could not stop anything, and then reported idle
+   * while dictation was still running.
+   */
+  const [noteRecording, setNoteRecording] = useState(false);
+  /** A recording is in progress that this component did not start. */
+  const [foreignRecording, setForeignRecording] = useState(false);
+  /** A start/finish command is in flight; blocks double submission. */
+  const [noteBusy, setNoteBusy] = useState(false);
+
+  const refreshRecordingState = useCallback(async () => {
+    try {
+      // On mount Notes cannot own the recording, so any active recording
+      // belongs to something else (the global shortcut, or another surface).
+      setForeignRecording(await commands.isRecording());
+    } catch (err) {
+      console.error("Failed to check recording status:", err);
+    }
   }, []);
 
+  useEffect(() => {
+    void refreshRecordingState();
+  }, [refreshRecordingState]);
+
   const toggleRecording = async () => {
+    if (noteBusy) return;
+    setNoteBusy(true);
     try {
-      if (isRecording) {
-        // Stop recording
+      if (noteRecording) {
         const result = await commands.finishNoteRecording();
-        setIsRecording(false);
         if (result.status === "error") {
           console.error("Failed to finish recording:", result.error);
+          // Do not claim idle on failure: the recording may still be running.
+          // Re-check the real state instead of assuming.
+          await refreshRecordingState();
+          return;
         }
-        // Notes will reload automatically via the history-updated event
+        setNoteRecording(false);
+        // Notes reload automatically via the history-updated event.
       } else {
-        // Start recording
         const result = await commands.startNoteRecording();
-        if (result.status === "ok") {
-          setIsRecording(true);
-        } else {
+        if (result.status === "error") {
           console.error("Failed to start recording:", result.error);
+          return;
         }
+        setNoteRecording(true);
+        setForeignRecording(false);
       }
     } catch (error) {
       console.error("Recording error:", error);
-      setIsRecording(false);
+      await refreshRecordingState();
+    } finally {
+      setNoteBusy(false);
     }
   };
 
+  /** The button is only actionable when idle or when we own the recording. */
+  const micDisabled = noteBusy || (foreignRecording && !noteRecording);
+
   const deleteNote = async (id: number) => {
     try {
-      await commands.deleteHistoryEntry(id);
+      // Unwrap so a backend failure actually reaches the catch below —
+      // `commands.*` resolves errors rather than throwing.
+      unwrapResult(await commands.deleteHistoryEntry(id));
       // Will be updated via event listener
     } catch (error) {
       console.error("Failed to delete note:", error);
+      toast.error(t("notes.deleteError", "Could not delete the note"));
     }
   };
 
@@ -167,7 +201,7 @@ export const NotesSettings: React.FC = () => {
         const audio = new Audio(url);
         audio.onended = () => setPlayingId(null);
         audio.onerror = () => setPlayingId(null);
-        audio.play();
+        void audio.play();
         setAudioElement(audio);
         setPlayingId(entry.id);
       }
@@ -224,24 +258,39 @@ export const NotesSettings: React.FC = () => {
         <div className="relative min-h-[80px] flex items-center">
           <div className="flex-1 text-sm text-text-muted">
             <span className="text-text/70">
-              {isRecording
+              {noteRecording
                 ? t("notes.recording", "Recording... Click the mic to stop")
-                : t(
-                    "notes.placeholder",
-                    "Click the mic or use your global shortcut (Alt) to start dictation",
-                  )}
+                : foreignRecording
+                  ? t(
+                      "notes.otherRecording",
+                      "Another recording is in progress. Stop it with your shortcut first.",
+                    )
+                  : t(
+                      "notes.placeholder",
+                      "Click the mic or use your global shortcut (Alt) to start dictation",
+                    )}
             </span>
           </div>
           <button
+            type="button"
             onClick={toggleRecording}
-            className={`w-14 h-14 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 ${
-              isRecording
-                ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30 hover:bg-red-600"
-                : "bg-muted text-text hover:bg-muted hover:text-white"
+            disabled={micDisabled}
+            aria-label={t(
+              noteRecording ? "notes.stopRecording" : "notes.startRecording",
+              noteRecording
+                ? "Click to stop recording"
+                : "Click to start recording",
+            )}
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+              noteRecording
+                ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30 hover:bg-red-600 cursor-pointer"
+                : micDisabled
+                  ? "bg-muted text-text/30 cursor-not-allowed"
+                  : "bg-muted text-text hover:bg-muted hover:text-white cursor-pointer"
             }`}
             title={t(
-              isRecording ? "notes.stopRecording" : "notes.startRecording",
-              isRecording
+              noteRecording ? "notes.stopRecording" : "notes.startRecording",
+              noteRecording
                 ? "Click to stop recording"
                 : "Click to start recording",
             )}

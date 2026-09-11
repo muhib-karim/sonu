@@ -26,13 +26,13 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
         sanitizedWord.length <= 50 &&
         !customWords.includes(sanitizedWord)
       ) {
-        updateSetting("custom_words", [...customWords, sanitizedWord]);
+        void updateSetting("custom_words", [...customWords, sanitizedWord]);
         setNewWord("");
       }
     };
 
     const handleRemoveWord = (wordToRemove: string) => {
-      updateSetting(
+      void updateSetting(
         "custom_words",
         customWords.filter((word) => word !== wordToRemove),
       );

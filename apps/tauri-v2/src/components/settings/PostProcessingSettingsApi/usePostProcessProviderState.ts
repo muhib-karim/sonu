@@ -79,24 +79,41 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     }));
   }, [providers]);
 
+  // Declared to return `void` to match `Dropdown`'s `onSelect`. The Apple
+  // Intelligence availability probe is genuinely async, so it is wrapped: the
+  // promise is not returned (the consumer is a click handler that cannot await
+  // it) and its rejection is logged rather than escaping as an unhandled
+  // rejection. Previously the declared type claimed `void` while the function
+  // returned a promise — a type lie that TypeScript accepted silently because
+  // a promise is assignable to `void` in a return position.
   const handleProviderSelect = useCallback(
-    async (providerId: string) => {
-      // Clear error state on any selection attempt (allows dismissing the error)
-      setAppleIntelligenceUnavailable(false);
+    (providerId: string): void => {
+      void (async () => {
+        // Clear error state on any selection attempt (allows dismissing the error)
+        setAppleIntelligenceUnavailable(false);
 
-      if (providerId === selectedProviderId) return;
+        if (providerId === selectedProviderId) return;
 
-      // Check Apple Intelligence availability before selecting
-      if (providerId === APPLE_PROVIDER_ID) {
-        const available = await commands.checkAppleIntelligenceAvailable();
-        if (!available) {
-          setAppleIntelligenceUnavailable(true);
-          // Don't return - still set the provider so dropdown shows the selection
-          // The backend gracefully handles unavailable Apple Intelligence
+        // Check Apple Intelligence availability before selecting
+        if (providerId === APPLE_PROVIDER_ID) {
+          try {
+            const available = await commands.checkAppleIntelligenceAvailable();
+            if (!available) {
+              setAppleIntelligenceUnavailable(true);
+              // Don't return - still set the provider so dropdown shows the
+              // selection. The backend gracefully handles unavailable Apple
+              // Intelligence.
+            }
+          } catch (error) {
+            console.error(
+              "Failed to check Apple Intelligence availability:",
+              error,
+            );
+          }
         }
-      }
 
-      void setPostProcessProvider(providerId);
+        void setPostProcessProvider(providerId);
+      })();
     },
     [selectedProviderId, setPostProcessProvider],
   );

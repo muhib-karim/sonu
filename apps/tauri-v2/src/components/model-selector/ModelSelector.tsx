@@ -79,8 +79,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    loadModels();
-    loadCurrentModel();
+    void loadModels();
+    void loadCurrentModel();
 
     // Listen for model state changes
     const modelStateUnlisten = listen<ModelStateEvent>(
@@ -180,16 +180,18 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
           newStats.delete(modelId);
           return newStats;
         });
-        loadModels(); // Refresh models list
+        void loadModels(); // Refresh models list
 
         // Auto-select the newly downloaded model (skip if recording in progress)
-        setTimeout(async () => {
-          const isRecording = await commands.isRecording();
-          if (isRecording) {
-            return; // Skip auto-switch if recording in progress
-          }
-          loadCurrentModel();
-          handleModelSelect(modelId);
+        setTimeout(() => {
+          void (async () => {
+            const isRecording = await commands.isRecording();
+            if (isRecording) {
+              return; // Skip auto-switch if recording in progress
+            }
+            void loadCurrentModel();
+            void handleModelSelect(modelId);
+          })();
         }, 500);
       },
     );
@@ -213,16 +215,18 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
           next.delete(modelId);
           return next;
         });
-        loadModels(); // Refresh models list
+        void loadModels(); // Refresh models list
 
         // Auto-select the newly extracted model (skip if recording in progress)
-        setTimeout(async () => {
-          const isRecording = await commands.isRecording();
-          if (isRecording) {
-            return; // Skip auto-switch if recording in progress
-          }
-          loadCurrentModel();
-          handleModelSelect(modelId);
+        setTimeout(() => {
+          void (async () => {
+            const isRecording = await commands.isRecording();
+            if (isRecording) {
+              return; // Skip auto-switch if recording in progress
+            }
+            void loadCurrentModel();
+            void handleModelSelect(modelId);
+          })();
         }, 500);
       },
     );
@@ -255,12 +259,12 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      modelStateUnlisten.then((fn) => fn());
-      downloadProgressUnlisten.then((fn) => fn());
-      downloadCompleteUnlisten.then((fn) => fn());
-      extractionStartedUnlisten.then((fn) => fn());
-      extractionCompletedUnlisten.then((fn) => fn());
-      extractionFailedUnlisten.then((fn) => fn());
+      void modelStateUnlisten.then((fn) => fn());
+      void downloadProgressUnlisten.then((fn) => fn());
+      void downloadCompleteUnlisten.then((fn) => fn());
+      void extractionStartedUnlisten.then((fn) => fn());
+      void extractionCompletedUnlisten.then((fn) => fn());
+      void extractionFailedUnlisten.then((fn) => fn());
     };
   }, []);
 

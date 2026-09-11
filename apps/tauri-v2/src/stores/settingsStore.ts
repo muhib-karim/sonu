@@ -24,7 +24,7 @@ interface SettingsStore {
   updateSetting: <K extends keyof Settings>(
     key: K,
     value: Settings[K],
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   resetSetting: (key: keyof Settings) => Promise<void>;
   refreshSettings: () => Promise<void>;
   refreshAudioDevices: () => Promise<void>;
@@ -65,6 +65,33 @@ interface SettingsStore {
 
 // Note: Default settings are now fetched from Rust via commands.getDefaultSettings()
 // This ensures platform-specific defaults (like overlay_position, shortcuts, paste_method) work correctly
+
+/**
+ * Monotonic per-key write counter.
+ *
+ * Used so that a failed write only rolls back — and only clears the busy flag —
+ * if no newer write to the same key has landed in the meantime. Without this an
+ * older failure could revert a newer successful value.
+ */
+const mutationVersions = new Map<string, number>();
+
+const nextMutationVersion = (key: string): number => {
+  const next = (mutationVersions.get(key) ?? 0) + 1;
+  mutationVersions.set(key, next);
+  return next;
+};
+
+const isLatestMutation = (key: string, version: number): boolean =>
+  mutationVersions.get(key) === version;
+
+/**
+ * In-flight `initialize()` promise.
+ *
+ * Every mounted `useSettings()` consumer observes `isLoading === true` on its
+ * first render and would otherwise each start the same five backend loads.
+ * Sharing one in-flight run keeps startup to a single round of requests.
+ */
+let initializationPromise: Promise<void> | null = null;
 
 const DEFAULT_AUDIO_DEVICE: AudioDevice = {
   index: "default",
@@ -258,14 +285,19 @@ export const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    // Update a specific setting
+    // Update a specific setting.
+    //
+    // Returns `true` if the write was persisted, `false` if it failed and was
+    // rolled back. Callers that care about failure can check the result;
+    // existing callers that ignore it keep working.
     updateSetting: async <K extends keyof Settings>(
       key: K,
       value: Settings[K],
-    ) => {
+    ): Promise<boolean> => {
       const { settings, setUpdating } = get();
       const updateKey = String(key);
       const originalValue = settings?.[key];
+      const version = nextMutationVersion(updateKey);
 
       setUpdating(updateKey, true);
 
@@ -293,13 +325,31 @@ export const useSettingsStore = create<SettingsStore>()(
         } else if (key !== "bindings" && key !== "selected_model") {
           console.warn(`No handler for setting: ${String(key)}`);
         }
+
+        return true;
       } catch (error) {
         console.error(`Failed to update setting ${String(key)}:`, error);
-        if (settings) {
-          set({ settings: { ...settings, [key]: originalValue } });
+        // Roll back ONLY this field, and only if no newer write to it has
+        // landed. Restoring a captured snapshot of the whole settings object
+        // (which this used to do) discarded unrelated settings that had
+        // succeeded while this write was in flight.
+        if (isLatestMutation(updateKey, version)) {
+          set((state) => ({
+            settings: state.settings
+              ? { ...state.settings, [key]: originalValue }
+              : null,
+          }));
+        } else {
+          console.warn(
+            `Skipping rollback for '${updateKey}': a newer write superseded it`,
+          );
         }
+        return false;
       } finally {
-        setUpdating(updateKey, false);
+        // Only the latest write owns the busy flag.
+        if (isLatestMutation(updateKey, version)) {
+          setUpdating(updateKey, false);
+        }
       }
     },
 
@@ -523,8 +573,16 @@ export const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    // Initialize everything
+    // Initialize everything.
+    //
+    // Single-flight: concurrent callers (every `useSettings()` consumer that
+    // mounts while `isLoading` is still true) share one run instead of each
+    // issuing the same five loads.
     initialize: async () => {
+      if (initializationPromise) {
+        return initializationPromise;
+      }
+
       const {
         refreshSettings,
         refreshAudioDevices,
@@ -532,13 +590,22 @@ export const useSettingsStore = create<SettingsStore>()(
         checkCustomSounds,
         loadDefaultSettings,
       } = get();
-      await Promise.all([
+
+      initializationPromise = Promise.all([
         loadDefaultSettings(),
         refreshSettings(),
         refreshAudioDevices(),
         refreshOutputDevices(),
         checkCustomSounds(),
-      ]);
+      ]).then(() => undefined);
+
+      try {
+        await initializationPromise;
+      } finally {
+        // Cleared once settled so an explicit re-initialization still works;
+        // only *concurrent* calls are deduplicated.
+        initializationPromise = null;
+      }
     },
   })),
 );

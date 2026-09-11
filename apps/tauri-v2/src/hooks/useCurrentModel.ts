@@ -29,7 +29,7 @@ export const useCurrentModel = () => {
     });
 
     return () => {
-      unlisten.then((fn) => fn());
+      void unlisten.then((fn) => fn());
     };
   }, [loadCurrentModel]);
 

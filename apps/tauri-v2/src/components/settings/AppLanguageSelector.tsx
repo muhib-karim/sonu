@@ -24,8 +24,8 @@ export const AppLanguageSelector: React.FC<AppLanguageSelectorProps> =
     }));
 
     const handleLanguageChange = (langCode: string) => {
-      i18n.changeLanguage(langCode);
-      updateSetting("app_language", langCode);
+      void i18n.changeLanguage(langCode);
+      void updateSetting("app_language", langCode);
     };
 
     return (

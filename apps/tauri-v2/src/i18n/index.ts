@@ -58,7 +58,11 @@ const getSupportedLanguage = (
 
 // Initialize i18n with English as default
 // Language will be synced from settings after init
-i18n.use(initReactI18next).init({
+//
+// `init` returns a promise but i18n is usable synchronously for the default
+// bundle, so this is deliberately not awaited — the app must not delay its
+// first paint on i18n. `void` makes that intent explicit.
+void i18n.use(initReactI18next).init({
   resources,
   lng: "en",
   fallbackLng: "en",
@@ -93,6 +97,6 @@ export const syncLanguageFromSettings = async () => {
 };
 
 // Run language sync on init
-syncLanguageFromSettings();
+void syncLanguageFromSettings();
 
 export default i18n;

@@ -1,12 +1,12 @@
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { invoke } from "@tauri-apps/api/core";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CancelIcon } from "../components/icons";
 import { parsePreviewPayload, type PreviewText } from "./preview";
 import "./RecordingOverlay.css";
 import { commands } from "@/bindings";
+import { unwrapResult } from "@/lib/utils/result";
 import { syncLanguageFromSettings } from "@/i18n";
 
 type OverlayState = "recording" | "transcribing" | "done";
@@ -21,93 +21,158 @@ const RecordingOverlay: React.FC = () => {
   const [preview, setPreview] = useState<PreviewText>(EMPTY_PREVIEW);
   const [isCloudMode, setIsCloudMode] = useState(false);
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
+  /** Pending auto-hide timer, tracked so a new recording can cancel it. */
+  const autoHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * Incremented on every show/hide. Async work captures the value it started
+   * with and drops its result if the session has moved on, so a slow response
+   * from an earlier recording cannot overwrite a newer one.
+   */
+  const sessionRef = useRef(0);
 
   useEffect(() => {
+    let disposed = false;
+    // A listener that resolves after unmount must be unregistered immediately.
+    // The previous implementation returned its cleanup from the inner async
+    // function, so React never received it and every remount (including
+    // StrictMode's deliberate double-invoke) leaked another set of listeners.
+    const unlisteners: Array<() => void> = [];
+    const track = (unlisten: () => void) => {
+      if (disposed) {
+        unlisten();
+      } else {
+        unlisteners.push(unlisten);
+      }
+    };
+
+    const clearAutoHide = () => {
+      if (autoHideTimerRef.current !== null) {
+        clearTimeout(autoHideTimerRef.current);
+        autoHideTimerRef.current = null;
+      }
+    };
+
     const setupEventListeners = async () => {
       // Check cloud transcription status
       try {
-        const status = await invoke<{ enabled: boolean }>(
-          "get_cloud_transcription_status",
+        const status = unwrapResult(
+          await commands.getCloudTranscriptionStatus(),
         );
-        setIsCloudMode(status.enabled);
+        if (!disposed) setIsCloudMode(status.enabled);
       } catch {
         // Local mode by default
       }
 
       // Listen for show-overlay event from Rust
-      const unlistenShow = await listen("show-overlay", async (event) => {
-        await syncLanguageFromSettings();
-        const overlayState = event.payload as OverlayState;
-        setState(overlayState);
-        setIsVisible(true);
-        setPreview(EMPTY_PREVIEW);
+      track(
+        await listen("show-overlay", (event) => {
+          // A new session starts here: cancel any pending auto-hide left over
+          // from the previous recording, or it would hide this one mid-way.
+          clearAutoHide();
+          const session = ++sessionRef.current;
 
-        // Re-check cloud status on each show
-        try {
-          const status = await invoke<{ enabled: boolean }>(
-            "get_cloud_transcription_status",
-          );
-          setIsCloudMode(status.enabled);
-        } catch {
-          // Keep previous state
-        }
-      });
+          // Apply the recording state synchronously. This used to await
+          // `syncLanguageFromSettings()` first, so a slow IPC response could
+          // land after a newer show/hide and resurrect stale state.
+          setState(event.payload as OverlayState);
+          setIsVisible(true);
+          setPreview(EMPTY_PREVIEW);
+
+          // Language sync and the cloud re-check are independent of the state
+          // above and must not delay it.
+          void syncLanguageFromSettings();
+
+          void (async () => {
+            try {
+              const status = unwrapResult(
+                await commands.getCloudTranscriptionStatus(),
+              );
+              if (!disposed && sessionRef.current === session) {
+                setIsCloudMode(status.enabled);
+              }
+            } catch {
+              // Keep previous state
+            }
+          })();
+        }),
+      );
 
       // Listen for hide-overlay event from Rust
-      const unlistenHide = await listen("hide-overlay", () => {
-        setIsVisible(false);
-        setPreview(EMPTY_PREVIEW);
-      });
+      track(
+        await listen("hide-overlay", () => {
+          clearAutoHide();
+          sessionRef.current += 1; // invalidate in-flight work
+          setIsVisible(false);
+          setPreview(EMPTY_PREVIEW);
+        }),
+      );
 
       // Listen for mic-level updates
-      const unlistenLevel = await listen<number[]>("mic-level", (event) => {
-        const newLevels = event.payload as number[];
+      track(
+        await listen<number[]>("mic-level", (event) => {
+          const newLevels = event.payload as number[];
 
-        // Apply smoothing to reduce jitter
-        const smoothed = smoothedLevelsRef.current.map((prev, i) => {
-          const target = newLevels[i] || 0;
-          return prev * 0.7 + target * 0.3;
-        });
+          // Apply smoothing to reduce jitter
+          const smoothed = smoothedLevelsRef.current.map((prev, i) => {
+            const target = newLevels[i] || 0;
+            return prev * 0.7 + target * 0.3;
+          });
 
-        smoothedLevelsRef.current = smoothed;
-        setLevels(smoothed.slice(0, 9));
-      });
+          smoothedLevelsRef.current = smoothed;
+          setLevels(smoothed.slice(0, 9));
+        }),
+      );
 
       // Listen for preview text updates (streaming live transcription:
       // { stable, partial } — the confirmed prefix and the volatile tail).
-      const unlistenPreview = await listen("preview-text", (event) => {
-        setPreview(parsePreviewPayload(event.payload));
-      });
+      track(
+        await listen("preview-text", (event) => {
+          setPreview(parsePreviewPayload(event.payload));
+        }),
+      );
 
       // Listen for done state
-      const unlistenDone = await listen("transcription-done", () => {
-        setState("done");
-        // Auto-hide after showing checkmark
-        setTimeout(async () => {
-          setIsVisible(false);
-          // Hide the actual Tauri window after fade-out
-          try {
-            await getCurrentWindow().hide();
-          } catch (e) {
-            console.error("Failed to hide overlay window:", e);
-          }
-        }, 800);
-      });
+      track(
+        await listen("transcription-done", () => {
+          const session = sessionRef.current;
+          setState("done");
 
-      return () => {
-        unlistenShow();
-        unlistenHide();
-        unlistenLevel();
-        unlistenPreview();
-        unlistenDone();
-      };
+          clearAutoHide();
+          // `setTimeout` accepts a void callback; the async work is wrapped so
+          // its rejection is handled rather than escaping as an unhandled
+          // rejection on a timer.
+          autoHideTimerRef.current = setTimeout(() => {
+            autoHideTimerRef.current = null;
+            void (async () => {
+              // A new recording may have started during the delay; if so this
+              // timer belongs to a finished session and must do nothing.
+              if (disposed || sessionRef.current !== session) return;
+
+              setIsVisible(false);
+              // Hide the actual Tauri window after fade-out
+              try {
+                await getCurrentWindow().hide();
+              } catch (e) {
+                console.error("Failed to hide overlay window:", e);
+              }
+            })();
+          }, 800);
+        }),
+      );
     };
 
-    setupEventListeners();
+    void setupEventListeners();
+
+    return () => {
+      disposed = true;
+      clearAutoHide();
+      unlisteners.forEach((unlisten) => unlisten());
+      unlisteners.length = 0;
+    };
   }, []);
 
   const handleCancel = () => {
-    commands.cancelOperation();
+    void commands.cancelOperation();
   };
 
   const getStateClass = () => {

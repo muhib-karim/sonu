@@ -21,7 +21,7 @@ const Footer: React.FC = () => {
       }
     };
 
-    fetchVersion();
+    void fetchVersion();
   }, []);
 
   return (

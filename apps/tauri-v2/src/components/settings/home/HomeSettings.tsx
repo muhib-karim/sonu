@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { commands, type HistoryEntry } from "@/bindings";
+import { unwrapResult } from "@/lib/utils/result";
 import { SonuShortcut } from "../SonuShortcut";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 
@@ -107,11 +107,12 @@ export const HomeSettings: React.FC = () => {
   }, [calculateStats]);
 
   useEffect(() => {
-    loadHistory();
+    void loadHistory();
 
     // Check cloud status
-    invoke<{ enabled: boolean }>("get_cloud_transcription_status")
-      .then((status) => setCloudEnabled(status.enabled))
+    commands
+      .getCloudTranscriptionStatus()
+      .then((result) => setCloudEnabled(unwrapResult(result).enabled))
       .catch((err) => {
         console.error("Failed to load cloud transcription status:", err);
         // Keep cloudEnabled as false on error, don't show toast as this is non-critical
@@ -119,7 +120,7 @@ export const HomeSettings: React.FC = () => {
 
     const setupListener = async () => {
       const unlisten = await listen("history-updated", () => {
-        loadHistory();
+        void loadHistory();
       });
       return unlisten;
     };
@@ -127,7 +128,7 @@ export const HomeSettings: React.FC = () => {
     const unlistenPromise = setupListener();
 
     return () => {
-      unlistenPromise.then((unlisten) => {
+      void unlistenPromise.then((unlisten) => {
         if (unlisten) {
           unlisten();
         }

@@ -83,7 +83,7 @@ export const AppearanceSettings: React.FC = () => {
         ? (current + 1) % THEME_MODES.length
         : (current + THEME_MODES.length - 1) % THEME_MODES.length;
     const mode = THEME_MODES[next];
-    updateSetting("theme_mode", mode);
+    void updateSetting("theme_mode", mode);
     event.currentTarget
       .querySelector<HTMLButtonElement>(`[data-testid="theme-mode-${mode}"]`)
       ?.focus();

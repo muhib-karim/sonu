@@ -38,7 +38,7 @@ export const LogDirectory: React.FC<LogDirectoryProps> = ({
       }
     };
 
-    loadLogDirectory();
+    void loadLogDirectory();
   }, []);
 
   const handleOpen = async () => {

@@ -24,7 +24,7 @@ export const AboutSettings: React.FC = () => {
       }
     };
 
-    fetchVersion();
+    void fetchVersion();
   }, []);
 
   return (

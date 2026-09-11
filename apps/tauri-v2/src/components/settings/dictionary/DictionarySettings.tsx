@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { SettingsGroup } from "../../ui/SettingsGroup";
@@ -8,72 +8,97 @@ import { ToggleSwitch } from "../../ui/ToggleSwitch";
 import { useSettings } from "../../../hooks/useSettings";
 import type { VoiceCommand } from "@/bindings";
 
-interface DictionaryWord {
-  id: string;
-  word: string;
-  replacement?: string;
-}
-
 export const DictionarySettings: React.FC = () => {
   const { t } = useTranslation();
-  const [words, setWords] = useState<DictionaryWord[]>([]);
+  const { settings, updateSetting } = useSettings();
   const [newWord, setNewWord] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingWord, setEditingWord] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const migratedRef = useRef(false);
 
-  // Load from localStorage on mount
+  /**
+   * The vocabulary lives in `settings.custom_words` — that is the list the
+   * transcription pipeline actually consumes via `apply_custom_words`. It used
+   * to be kept only in localStorage, so words added here had no effect on
+   * recognition at all and the app had two unrelated word lists.
+   */
+  const words: string[] = settings?.custom_words ?? [];
+
+  // One-time migration of entries written by the old localStorage-only version,
+  // so nobody loses words they had already added.
   useEffect(() => {
-    const saved = localStorage.getItem("sonu-dictionary");
-    if (saved) {
-      try {
-        setWords(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load dictionary:", e);
+    if (!settings || migratedRef.current) return;
+    migratedRef.current = true;
+
+    const raw = localStorage.getItem("sonu-dictionary");
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as Array<{ word?: string }>;
+      const legacy = parsed
+        .map((entry) => entry?.word?.trim())
+        .filter((word): word is string => Boolean(word));
+
+      if (legacy.length > 0) {
+        const merged = [...words];
+        const seen = new Set(merged.map((w) => w.toLowerCase()));
+        for (const word of legacy) {
+          if (!seen.has(word.toLowerCase())) {
+            merged.push(word);
+            seen.add(word.toLowerCase());
+          }
+        }
+        if (merged.length !== words.length) {
+          void updateSetting("custom_words", merged);
+        }
       }
-    }
-  }, []);
 
-  // Save to localStorage on change
-  useEffect(() => {
-    localStorage.setItem("sonu-dictionary", JSON.stringify(words));
-  }, [words]);
-
-  const addWord = () => {
-    if (newWord.trim()) {
-      const word: DictionaryWord = {
-        id: Date.now().toString(),
-        word: newWord.trim(),
-      };
-      setWords([...words, word]);
-      setNewWord("");
-      setShowAddModal(false);
+      localStorage.removeItem("sonu-dictionary");
+    } catch (e) {
+      console.error("Failed to migrate the legacy dictionary:", e);
     }
+  }, [settings, words, updateSetting]);
+
+  const addWord = async () => {
+    const word = newWord.trim();
+    if (!word) return;
+    setNewWord("");
+    setShowAddModal(false);
+
+    // Case-insensitive de-duplication: the matcher compares lowercased forms.
+    if (words.some((w) => w.toLowerCase() === word.toLowerCase())) {
+      return;
+    }
+    await updateSetting("custom_words", [...words, word]);
   };
 
-  const deleteWord = (id: string) => {
-    setWords(words.filter((w) => w.id !== id));
+  const deleteWord = async (word: string) => {
+    await updateSetting(
+      "custom_words",
+      words.filter((w) => w !== word),
+    );
   };
 
-  const startEdit = (word: DictionaryWord) => {
-    setEditingId(word.id);
-    setEditValue(word.word);
+  const startEdit = (word: string) => {
+    setEditingWord(word);
+    setEditValue(word);
   };
 
-  const saveEdit = () => {
-    if (editingId && editValue.trim()) {
-      setWords(
-        words.map((w) =>
-          w.id === editingId ? { ...w, word: editValue.trim() } : w,
-        ),
-      );
-      setEditingId(null);
-      setEditValue("");
-    }
+  const saveEdit = async () => {
+    const next = editValue.trim();
+    if (!editingWord || !next) return;
+
+    await updateSetting(
+      "custom_words",
+      words.map((w) => (w === editingWord ? next : w)),
+    );
+    setEditingWord(null);
+    setEditValue("");
   };
 
   const cancelEdit = () => {
-    setEditingId(null);
+    setEditingWord(null);
     setEditValue("");
   };
 
@@ -128,16 +153,16 @@ export const DictionarySettings: React.FC = () => {
           <div className="flex flex-col divide-y divide-mid-gray/10">
             {words.map((word) => (
               <div
-                key={word.id}
+                key={word}
                 className="flex items-center justify-between py-3 px-1 group"
               >
-                {editingId === word.id ? (
+                {editingWord === word ? (
                   <div className="flex items-center gap-2 flex-1">
                     <Input
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") saveEdit();
+                        if (e.key === "Enter") void saveEdit();
                         if (e.key === "Escape") cancelEdit();
                       }}
                       autoFocus
@@ -152,16 +177,20 @@ export const DictionarySettings: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <span className="text-sm">{word.word}</span>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-sm">{word}</span>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                       <button
+                        type="button"
+                        aria-label={t("dictionary.editWord", "Edit word")}
                         onClick={() => startEdit(word)}
                         className="p-1.5 hover:bg-mid-gray/20 rounded transition-colors"
                       >
                         <Pencil size={14} className="text-mid-gray" />
                       </button>
                       <button
-                        onClick={() => deleteWord(word.id)}
+                        type="button"
+                        aria-label={t("dictionary.deleteWord", "Delete word")}
+                        onClick={() => deleteWord(word)}
                         className="p-1.5 hover:bg-red-500/20 rounded transition-colors"
                       >
                         <Trash2 size={14} className="text-red-500" />
@@ -204,7 +233,7 @@ const VoiceCommandsSection: React.FC = () => {
     const phrase = newPhrase.trim().toLowerCase();
     const replacement = newReplacement.trim();
     if (!phrase || !replacement) return;
-    updateSetting("voice_commands", [
+    void updateSetting("voice_commands", [
       ...macros,
       { phrase, replacement } as VoiceCommand,
     ]);
@@ -213,7 +242,7 @@ const VoiceCommandsSection: React.FC = () => {
   };
 
   const removeMacro = (index: number) => {
-    updateSetting(
+    void updateSetting(
       "voice_commands",
       macros.filter((_, i) => i !== index),
     );

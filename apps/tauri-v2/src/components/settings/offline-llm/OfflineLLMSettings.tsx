@@ -180,8 +180,8 @@ const OfflineLLMModelSelector: React.FC = () => {
   const enabled = getSetting("offline_post_process_enabled") || false;
 
   useEffect(() => {
-    loadModels();
-    loadCurrentModel();
+    void loadModels();
+    void loadCurrentModel();
 
     const downloadProgressUnlisten = listen<DownloadProgress>(
       "offline-llm-download-progress",
@@ -246,18 +246,18 @@ const OfflineLLMModelSelector: React.FC = () => {
           newStats.delete(modelId);
           return newStats;
         });
-        loadModels();
+        void loadModels();
 
         // Auto-select the newly downloaded model
         setTimeout(() => {
-          handleModelSelect(modelId);
+          void handleModelSelect(modelId);
         }, 500);
       },
     );
 
     return () => {
-      downloadProgressUnlisten.then((fn) => fn());
-      downloadCompleteUnlisten.then((fn) => fn());
+      void downloadProgressUnlisten.then((fn) => fn());
+      void downloadCompleteUnlisten.then((fn) => fn());
     };
   }, []);
 

@@ -13,10 +13,11 @@ interface UseSettingsReturn {
   postProcessModelOptions: Record<string, string[]>;
 
   // Actions
+  /** Returns `true` if persisted, `false` if the write failed and was rolled back. */
   updateSetting: <K extends keyof Settings>(
     key: K,
     value: Settings[K],
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   resetSetting: (key: keyof Settings) => Promise<void>;
   refreshSettings: () => Promise<void>;
   refreshAudioDevices: () => Promise<void>;
@@ -49,7 +50,7 @@ export const useSettings = (): UseSettingsReturn => {
   // Initialize on first mount
   useEffect(() => {
     if (store.isLoading) {
-      store.initialize();
+      void store.initialize();
     }
   }, [store.initialize, store.isLoading]);
 

@@ -19,8 +19,8 @@ import {
   ArrowRight,
   Clock,
   Gauge,
+  Trash2,
 } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
 import type {
@@ -30,6 +30,8 @@ import type {
 import { SettingsGroup } from "@/components/ui";
 import { LANGUAGES } from "@/lib/constants/languages";
 import { cn } from "@/lib/utils/cn";
+import { commands } from "@/bindings";
+import { unwrapResult } from "@/lib/utils/result";
 
 // ─── Provider metadata ──────────────────────────────────────────────────────
 const PROVIDER_META: Record<
@@ -118,6 +120,8 @@ const ProviderCard: React.FC<{
   isSelected: boolean;
   onSelect: () => void;
   onApiKeyChange: (key: string) => void;
+  /** Delete the stored credential for this provider. */
+  onApiKeyRemove: () => void;
   onEndpointChange?: (endpoint: string) => void;
   apiKeyInput: string;
   endpointInput: string;
@@ -128,6 +132,7 @@ const ProviderCard: React.FC<{
   isSelected,
   onSelect,
   onApiKeyChange,
+  onApiKeyRemove,
   onEndpointChange,
   apiKeyInput,
   endpointInput,
@@ -242,6 +247,25 @@ const ProviderCard: React.FC<{
                     )}
                   </button>
                 </div>
+                {/* Removal is only meaningful when something is actually
+                    stored — `has_api_key` reflects the keychain, not the draft. */}
+                {provider.has_api_key && (
+                  <button
+                    type="button"
+                    onClick={onApiKeyRemove}
+                    title={t(
+                      "cloud_transcription.remove_key",
+                      "Remove saved key",
+                    )}
+                    aria-label={t(
+                      "cloud_transcription.remove_key",
+                      "Remove saved key",
+                    )}
+                    className="shrink-0 inline-flex items-center justify-center px-2.5 py-2 rounded-lg border border-border text-text/50 hover:text-red-400 hover:border-red-400/40 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
               {/* Signup hint */}
               {meta.signupUrl && !provider.has_api_key && (
@@ -412,31 +436,34 @@ export const CloudTranscriptionSettings: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       const [statusResult, providersResult] = await Promise.all([
-        invoke<CloudTranscriptionStatus>("get_cloud_transcription_status"),
-        invoke<CloudProviderInfo[]>("get_cloud_providers"),
+        commands.getCloudTranscriptionStatus(),
+        commands.getCloudProviders(),
       ]);
 
-      setStatus(statusResult);
-      setProviders(providersResult);
+      const loadedProviders = unwrapResult(providersResult);
+      setStatus(unwrapResult(statusResult));
+      setProviders(loadedProviders);
 
-      // Load language settings from main settings
+      // Load cloud transcription language settings.
+      //
+      // These must come from `settings.cloud_transcription`, NOT from the
+      // top-level `selected_language` / `translate_to_english` keys — those
+      // describe *local* transcription. Reading the local values here and then
+      // persisting them back into the cloud settings meant that merely opening
+      // this tab overwrote the user's cloud language with their local one.
       try {
-        const settings =
-          await invoke<Record<string, unknown>>("get_app_settings");
-        if (settings) {
-          setSelectedLanguage(
-            (settings["selected_language"] as string) || "auto",
-          );
-          setTranslateToEnglish(
-            (settings["translate_to_english"] as boolean) || false,
-          );
+        const settings = unwrapResult(await commands.getAppSettings());
+        const cloud = settings?.cloud_transcription;
+        if (cloud) {
+          setSelectedLanguage(cloud.selected_language || "auto");
+          setTranslateToEnglish(cloud.translate_to_english || false);
         }
       } catch {
-        // Language settings are part of main settings
+        // Cloud language settings are optional; keep the defaults above.
       }
 
       // Initialize endpoint input from custom provider
-      const customProvider = providersResult.find(
+      const customProvider = loadedProviders.find(
         (p: CloudProviderInfo) => p.id === "custom_cloud",
       );
       if (customProvider) {
@@ -451,27 +478,37 @@ export const CloudTranscriptionSettings: React.FC = () => {
   }, [t]);
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
 
-  // Persist language settings when they change
-  useEffect(() => {
-    if (!isLoading && status?.enabled) {
-      invoke("set_cloud_language", { language: selectedLanguage }).catch(
-        (err) => console.error("Failed to save cloud language:", err),
-      );
-    }
-  }, [selectedLanguage, isLoading, status?.enabled]);
+  // Language and translation are persisted from explicit user actions
+  // (`handleLanguageChange` / `handleTranslateChange`) rather than from
+  // effects on hydration. An effect here fired on mount and wrote the hydrated
+  // value straight back, which clobbered the stored cloud preference whenever
+  // the local and cloud settings disagreed.
+  const handleLanguageChange = useCallback(
+    async (language: string) => {
+      setSelectedLanguage(language);
+      const result = await commands.setCloudLanguage(language);
+      if (result.status === "error") {
+        console.error("Failed to save cloud language:", result.error);
+        toast.error(t("cloud_transcription.load_error"));
+      }
+    },
+    [t],
+  );
 
-  useEffect(() => {
-    if (!isLoading && status?.enabled) {
-      invoke("set_cloud_translate_to_english", {
-        translate: translateToEnglish,
-      }).catch((err) =>
-        console.error("Failed to save cloud translate setting:", err),
-      );
-    }
-  }, [translateToEnglish, isLoading, status?.enabled]);
+  const handleTranslateChange = useCallback(
+    async (translate: boolean) => {
+      setTranslateToEnglish(translate);
+      const result = await commands.setCloudTranslateToEnglish(translate);
+      if (result.status === "error") {
+        console.error("Failed to save cloud translate setting:", result.error);
+        toast.error(t("cloud_transcription.load_error"));
+      }
+    },
+    [t],
+  );
 
   // Listen for cloud transcription events for toast notifications
   useEffect(() => {
@@ -490,13 +527,13 @@ export const CloudTranscriptionSettings: React.FC = () => {
       });
     };
 
-    setup();
+    void setup();
     return () => unlisten?.();
   }, []);
 
   const handleToggle = async (enabled: boolean) => {
     try {
-      await invoke("set_cloud_transcription_enabled", { enabled });
+      unwrapResult(await commands.setCloudTranscriptionEnabled(enabled));
       await loadData();
       toast.success(
         enabled
@@ -511,7 +548,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
 
   const handleProviderSelect = async (providerId: string) => {
     try {
-      await invoke("set_cloud_provider", { providerId });
+      unwrapResult(await commands.setCloudProvider(providerId));
       setTestResult(null);
       await loadData();
     } catch (err) {
@@ -523,7 +560,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
   const handleApiKeyChange = async (providerId: string, apiKey: string) => {
     if (!apiKey) return;
     try {
-      await invoke("set_cloud_api_key", { providerId, apiKey });
+      unwrapResult(await commands.setCloudApiKey(providerId, apiKey));
       setTestResult(null);
       await loadData();
       toast.success(t("cloud_transcription.key_saved"));
@@ -533,10 +570,30 @@ export const CloudTranscriptionSettings: React.FC = () => {
     }
   };
 
+  /**
+   * Delete the stored credential.
+   *
+   * An empty value is how the backend expresses removal — it deletes the OS
+   * keychain entry rather than storing a blank string, which would leave the
+   * secret in place while the UI claimed there was no key.
+   */
+  const handleRemoveApiKey = async (providerId: string) => {
+    try {
+      unwrapResult(await commands.setCloudApiKey(providerId, ""));
+      setApiKeyInputs((prev) => ({ ...prev, [providerId]: "" }));
+      setTestResult(null);
+      await loadData();
+      toast.success(t("cloud_transcription.key_removed", "API key removed"));
+    } catch (err) {
+      console.error("Failed to remove cloud API key:", err);
+      toast.error(t("cloud_transcription.key_error"));
+    }
+  };
+
   const handleEndpointChange = async (providerId: string, endpoint: string) => {
     if (!endpoint) return;
     try {
-      await invoke("set_cloud_endpoint", { providerId, endpoint });
+      unwrapResult(await commands.setCloudEndpoint(providerId, endpoint));
       setTestResult(null);
       await loadData();
     } catch (err) {
@@ -557,11 +614,13 @@ export const CloudTranscriptionSettings: React.FC = () => {
       : null;
 
     try {
-      const result = await invoke<string>("test_cloud_connection", {
-        providerId: status.provider_id,
-        apiKey: apiKey,
-        endpoint: endpoint,
-      });
+      const result = unwrapResult(
+        await commands.testCloudConnection(
+          status.provider_id,
+          apiKey,
+          endpoint,
+        ),
+      );
       setTestResult({ success: true, message: result });
       toast.success(t("cloud_transcription.connection_success"));
     } catch (err) {
@@ -689,6 +748,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
                   isSelected={status?.provider_id === provider.id}
                   onSelect={() => handleProviderSelect(provider.id)}
                   onApiKeyChange={(key) => handleApiKeyChange(provider.id, key)}
+                  onApiKeyRemove={() => handleRemoveApiKey(provider.id)}
                   onEndpointChange={(ep) =>
                     handleEndpointChange(provider.id, ep)
                   }
@@ -771,7 +831,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
                 </div>
                 <CloudLanguageSelector
                   value={selectedLanguage}
-                  onChange={setSelectedLanguage}
+                  onChange={handleLanguageChange}
                 />
               </div>
 
@@ -791,7 +851,7 @@ export const CloudTranscriptionSettings: React.FC = () => {
                     type="checkbox"
                     className="sr-only peer"
                     checked={translateToEnglish}
-                    onChange={(e) => setTranslateToEnglish(e.target.checked)}
+                    onChange={(e) => handleTranslateChange(e.target.checked)}
                   />
                   <div className="w-10 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-md after:transition-all peer-checked:bg-accent" />
                 </label>

@@ -53,7 +53,7 @@ const AccessibilityPermissions: React.FC = () => {
       setPermissionState(hasPermissions ? "granted" : "request");
     };
 
-    initialSetup();
+    void initialSetup();
   }, []);
 
   if (hasAccessibility) {

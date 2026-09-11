@@ -21,7 +21,7 @@ export const HistoryLimit: React.FC<HistoryLimitProps> = ({
   const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(event.target.value, 10);
     if (!isNaN(value) && value >= 0) {
-      updateSetting("history_limit", value);
+      void updateSetting("history_limit", value);
     }
   };
 

@@ -42,7 +42,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
       return;
     }
 
-    checkForUpdates();
+    void checkForUpdates();
 
     // Listen for update check events
     const updateUnlisten = listen("check-for-updates", () => {
@@ -53,7 +53,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
       if (upToDateTimeoutRef.current) {
         clearTimeout(upToDateTimeoutRef.current);
       }
-      updateUnlisten.then((fn) => fn());
+      void updateUnlisten.then((fn) => fn());
     };
   }, [settingsLoaded, updateChecksEnabled]);
 
@@ -92,7 +92,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const handleManualUpdateCheck = () => {
     if (!updateChecksEnabled) return;
     isManualCheckRef.current = true;
-    checkForUpdates();
+    void checkForUpdates();
   };
 
   const installUpdate = async () => {

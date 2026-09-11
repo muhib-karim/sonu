@@ -7,6 +7,8 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { commands, type HistoryEntry } from "@/bindings";
 import { formatDateTime } from "@/utils/dateFormat";
+import { unwrapResult } from "@/lib/utils/result";
+import { toast } from "sonner";
 
 interface OpenRecordingsButtonProps {
   onClick: () => void;
@@ -48,13 +50,13 @@ export const HistorySettings: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadHistoryEntries();
+    void loadHistoryEntries();
 
     // Listen for history update events
     const setupListener = async () => {
       const unlisten = await listen("history-updated", () => {
         console.log("History updated, reloading entries...");
-        loadHistoryEntries();
+        void loadHistoryEntries();
       });
 
       // Return cleanup function
@@ -64,7 +66,7 @@ export const HistorySettings: React.FC = () => {
     let unlistenPromise = setupListener();
 
     return () => {
-      unlistenPromise.then((unlisten) => {
+      void unlistenPromise.then((unlisten) => {
         if (unlisten) {
           unlisten();
         }
@@ -74,10 +76,15 @@ export const HistorySettings: React.FC = () => {
 
   const toggleSaved = async (id: number) => {
     try {
-      await commands.toggleHistoryEntrySaved(id);
+      // `commands.*` resolves backend errors as `{ status: "error" }` rather
+      // than throwing, so the result must be unwrapped for this catch to run.
+      unwrapResult(await commands.toggleHistoryEntrySaved(id));
       // No need to reload here - the event listener will handle it
     } catch (error) {
       console.error("Failed to toggle saved status:", error);
+      toast.error(
+        t("history.toggle_saved_error", "Could not update the entry"),
+      );
     }
   };
 
@@ -103,17 +110,14 @@ export const HistorySettings: React.FC = () => {
   };
 
   const deleteAudioEntry = async (id: number) => {
-    try {
-      await commands.deleteHistoryEntry(id);
-    } catch (error) {
-      console.error("Failed to delete audio entry:", error);
-      throw error;
-    }
+    // Let the failure propagate: the caller shows the alert. Unwrapping is
+    // what makes a backend error reach it at all.
+    unwrapResult(await commands.deleteHistoryEntry(id));
   };
 
   const openRecordingsFolder = async () => {
     try {
-      await commands.openRecordingsFolder();
+      unwrapResult(await commands.openRecordingsFolder());
     } catch (error) {
       console.error("Failed to open recordings folder:", error);
     }
@@ -226,7 +230,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
       const url = await getAudioUrl(entry.file_name);
       setAudioUrl(url);
     };
-    loadAudio();
+    void loadAudio();
   }, [entry.file_name, getAudioUrl]);
 
   const handleCopyText = () => {

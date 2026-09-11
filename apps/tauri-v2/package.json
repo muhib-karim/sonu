@@ -1,8 +1,9 @@
 {
   "name": "sonu-desktop",
   "private": true,
-  "version": "2.6.0",
+  "version": "2.6.1",
   "type": "module",
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -23,7 +24,7 @@
     "test:rust": "cd src-tauri && cargo test",
     "test:rust:verbose": "cd src-tauri && cargo test -- --nocapture",
     "typecheck": "tsc --noEmit",
-    "prepare": "cd ../.. && husky install || true",
+    "prepare": "cd ../.. && git config core.hooksPath .husky || true",
     "analyze": "vite build --mode analyze",
     "clean": "rm -rf dist node_modules src-tauri/target"
   },

@@ -68,7 +68,9 @@ export const SonuShortcut: React.FC<SonuShortcutProps> = ({
       }
     };
 
-    detectOsType();
+    // Fire-and-forget: the failure is reported through `osType` defaulting to
+    // "unknown", which the UI already handles.
+    void detectOsType();
   }, []);
 
   useEffect(() => {
@@ -206,15 +208,29 @@ export const SonuShortcut: React.FC<SonuShortcutProps> = ({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-    window.addEventListener("click", handleClickOutside);
+    // `addEventListener` expects a `void`-returning listener. These handlers are
+    // async (they persist bindings), so the promise must be handed off
+    // explicitly — passing an async function directly meant a rejected
+    // `updateBinding` became an unhandled rejection that no one observed.
+    const onKeyDown = (e: KeyboardEvent) => {
+      void handleKeyDown(e);
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      void handleKeyUp(e);
+    };
+    const onClickOutside = (e: MouseEvent) => {
+      void handleClickOutside(e);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("click", onClickOutside);
 
     return () => {
       cleanup = true;
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-      window.removeEventListener("click", handleClickOutside);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("click", onClickOutside);
     };
   }, [
     keyPressed,
@@ -330,12 +346,16 @@ export const SonuShortcut: React.FC<SonuShortcutProps> = ({
             {formatCurrentKeys()}
           </div>
         ) : (
-          <div
-            className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded cursor-pointer hover:border-logo-primary"
+          // A native button so the shortcut can be re-recorded with the
+          // keyboard alone (Tab to it, Enter/Space to start capturing).
+          <button
+            type="button"
+            aria-label={t("shortcut.change", "Change shortcut")}
+            className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded cursor-pointer hover:border-logo-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-logo-primary"
             onClick={() => startRecording(shortcutId)}
           >
             {formatKeyCombination(binding.current_binding, osType)}
-          </div>
+          </button>
         )}
         <ResetButton
           onClick={() => resetBinding(shortcutId)}
