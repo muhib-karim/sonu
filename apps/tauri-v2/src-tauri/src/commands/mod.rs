@@ -7,8 +7,21 @@ pub mod transcription;
 
 use crate::settings::{get_settings, write_settings, AppSettings, LogLevel};
 use crate::utils::cancel_current_operation;
+use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
+
+/// Shared body for the three `open_*` commands.
+fn open_in_explorer(
+    app: &AppHandle,
+    dir: Result<PathBuf, tauri::Error>,
+    label: &str,
+) -> Result<(), String> {
+    let dir = dir.map_err(|e| format!("Failed to get {}: {}", label, e))?;
+    app.opener()
+        .open_path(dir.to_string_lossy().as_ref(), None::<String>)
+        .map_err(|e| format!("Failed to open {}: {}", label, e))
+}
 
 #[tauri::command]
 #[specta::specta]
@@ -71,51 +84,20 @@ pub fn set_log_level(app: AppHandle, level: LogLevel) -> Result<(), String> {
 #[specta::specta]
 #[tauri::command]
 pub fn open_recordings_folder(app: AppHandle) -> Result<(), String> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-    let recordings_dir = app_data_dir.join("recordings");
-
-    let path = recordings_dir.to_string_lossy().as_ref().to_string();
-    app.opener()
-        .open_path(path, None::<String>)
-        .map_err(|e| format!("Failed to open recordings folder: {}", e))?;
-
-    Ok(())
+    let dir = app.path().app_data_dir().map(|d| d.join("recordings"));
+    open_in_explorer(&app, dir, "recordings folder")
 }
 
 #[specta::specta]
 #[tauri::command]
 pub fn open_log_dir(app: AppHandle) -> Result<(), String> {
-    let log_dir = app
-        .path()
-        .app_log_dir()
-        .map_err(|e| format!("Failed to get log directory: {}", e))?;
-
-    let path = log_dir.to_string_lossy().as_ref().to_string();
-    app.opener()
-        .open_path(path, None::<String>)
-        .map_err(|e| format!("Failed to open log directory: {}", e))?;
-
-    Ok(())
+    open_in_explorer(&app, app.path().app_log_dir(), "log directory")
 }
 
 #[specta::specta]
 #[tauri::command]
 pub fn open_app_data_dir(app: AppHandle) -> Result<(), String> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
-
-    let path = app_data_dir.to_string_lossy().as_ref().to_string();
-    app.opener()
-        .open_path(path, None::<String>)
-        .map_err(|e| format!("Failed to open app data directory: {}", e))?;
-
-    Ok(())
+    open_in_explorer(&app, app.path().app_data_dir(), "app data directory")
 }
 
 /// Check if Apple Intelligence is available on this device.

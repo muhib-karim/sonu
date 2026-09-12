@@ -56,14 +56,14 @@ src/                      # Frontend (React + TypeScript)
 ├── hooks/               # Custom React hooks
 ├── lib/                 # Utilities and types
 ├── overlay/             # Recording overlay window
-└── store/               # Zustand state stores
+└── stores/              # Zustand state stores
 
 src-tauri/               # Backend (Rust)
-└── src/
-    ├── commands/        # Tauri command handlers
-    ├── managers/        # Core business logic
-    ├── audio_toolkit/   # Audio processing
-    └── tests/           # Unit tests
+├── src/
+│   ├── commands/        # Tauri command handlers
+│   ├── managers/        # Core business logic
+│   ├── audio_toolkit/   # Audio processing
+│   └── settings.rs      # Settings persistence
 ```
 
 ### Available Scripts
@@ -85,7 +85,7 @@ bun run format:check     # Check code formatting
 
 # Testing
 cd src-tauri && cargo test    # Run Rust unit tests
-bun test                      # Run frontend tests (when implemented)
+bun run test                 # Run Vitest frontend tests
 ```
 
 ### Troubleshooting
@@ -149,7 +149,6 @@ Please read our [Contributing Guide](../../CONTRIBUTING.md) for details on:
 
 ## Documentation
 
-- [Migration Guide](../../docs/TAURI_V2_MIGRATION_GUIDE.md) - Complete migration guide
 - [Contributing Guide](../../CONTRIBUTING.md) - How to contribute
 
 ## License

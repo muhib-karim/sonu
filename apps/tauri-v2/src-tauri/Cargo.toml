@@ -19,10 +19,6 @@ incremental = true # Compile your binary in smaller steps.
 name = "sonu_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
-# [[bin]]
-# name = "cli"
-# path = "src/audio_toolkit/bin/cli.rs"
-
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 serde_json = "1"

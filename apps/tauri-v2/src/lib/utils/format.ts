@@ -3,19 +3,13 @@ export const formatModelSize = (sizeMb: number | null | undefined): string => {
     return "Unknown size";
   }
 
-  if (sizeMb >= 1024) {
-    const sizeGb = sizeMb / 1024;
-    const formatter = new Intl.NumberFormat(undefined, {
-      minimumFractionDigits: sizeGb >= 10 ? 0 : 1,
-      maximumFractionDigits: sizeGb >= 10 ? 0 : 1,
-    });
-    return `${formatter.format(sizeGb)} GB`;
-  }
-
-  const formatter = new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: sizeMb >= 100 ? 0 : 1,
-    maximumFractionDigits: sizeMb >= 100 ? 0 : 1,
-  });
-
-  return `${formatter.format(sizeMb)} MB`;
+  const isGb = sizeMb >= 1024;
+  const value = isGb ? sizeMb / 1024 : sizeMb;
+  // GB rounds at >=10, MB at >=100 (the two scales' natural display ceiling).
+  const digits = (isGb ? value >= 10 : value >= 100) ? 0 : 1;
+  const unit = isGb ? "GB" : "MB";
+  return `${new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(value)} ${unit}`;
 };
