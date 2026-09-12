@@ -19,6 +19,7 @@ const RecordingOverlay: React.FC = () => {
   const [state, setState] = useState<OverlayState>("recording");
   const [levels, setLevels] = useState<number[]>(Array(9).fill(0));
   const [preview, setPreview] = useState<PreviewText>(EMPTY_PREVIEW);
+  const [doneWordCount, setDoneWordCount] = useState(0);
   const [isCloudMode, setIsCloudMode] = useState(false);
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   /** Pending auto-hide timer, tracked so a new recording can cancel it. */
@@ -77,6 +78,11 @@ const RecordingOverlay: React.FC = () => {
           setState(event.payload as OverlayState);
           setIsVisible(true);
           setPreview(EMPTY_PREVIEW);
+          setDoneWordCount(0);
+          // A fresh recording starts silent — don't flash the previous
+          // recording's mic levels or a stale "Listening" label.
+          setLevels(Array(9).fill(0));
+          smoothedLevelsRef.current = Array(16).fill(0);
 
           // Language sync and the cloud re-check are independent of the state
           // above and must not delay it.
@@ -127,7 +133,12 @@ const RecordingOverlay: React.FC = () => {
       // { stable, partial } — the confirmed prefix and the volatile tail).
       track(
         await listen("preview-text", (event) => {
-          setPreview(parsePreviewPayload(event.payload));
+          const parsed = parsePreviewPayload(event.payload);
+          setPreview(parsed);
+          setDoneWordCount(
+            (parsed.stable + " " + parsed.partial).split(/\s+/).filter(Boolean)
+              .length,
+          );
         }),
       );
 
@@ -225,6 +236,13 @@ const RecordingOverlay: React.FC = () => {
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
+        )}
+        {state === "done" && (
+          <span className="done-summary">
+            {t("overlay.doneSummary", "{{count}} words", {
+              count: doneWordCount,
+            })}
+          </span>
         )}
       </div>
 

@@ -80,14 +80,17 @@ export const HomeSettings: React.FC = () => {
         sum + (e.transcription_text?.split(/\s+/).filter(Boolean).length || 0),
       0,
     );
-    const totalMinutes = entries.length * 2;
+    // Speaking time in minutes at ~150 wpm average dictation rate.
+    // Previously hardcoded to entries.length * 2, which assumed every entry
+    // was 2 minutes regardless of its actual word count.
+    const totalMinutes = totalWords / 150;
     const wpm = totalMinutes > 0 ? Math.round(totalWords / totalMinutes) : 0;
     const typingTime = totalWords / 40;
     const speakingTime = totalWords / 150;
     const timeSaved = Math.max(0, typingTime - speakingTime);
 
     setStats({
-      totalDictationTime: Math.round(totalMinutes),
+      totalDictationTime: Math.round(totalMinutes) || 0,
       wordsDictated: totalWords,
       timeSaved: Math.round(timeSaved),
       averageWpm: wpm || 150,

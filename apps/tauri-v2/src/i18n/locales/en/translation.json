@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "Transcribing...",
     "listening": "Listening...",
-    "cloudProcessing": "Cloud..."
+    "cloudProcessing": "Cloud...",
+    "doneSummary": "{{count}} words"
   },
   "home": {
     "title": "Speak Everywhere",
