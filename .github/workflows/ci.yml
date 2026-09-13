@@ -164,10 +164,15 @@ jobs:
           set +e
           f=clippy-output.txt
           if [ -s "$f" ]; then
-            # The failure is at the end of the log, after the compile progress.
-            # Put it first: annotation messages are truncated from the end, so
-            # anything appended after it is the part that gets lost.
-            body=$(tail -n 12 "$f" | tr -d '\r')
+            # Cargo colourises its output, so an "error:" line carries a leading
+            # escape sequence and never matches a `^error` anchor — strip ANSI
+            # first. Report every error headline and its file:line, not just the
+            # last one, so one run identifies all the sites at once.
+            clean=$(sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' "$f" | tr -d '\r')
+            body=$(printf '%s\n' "$clean" | grep -E '^error|^ *--> ' | head -n 24)
+            if [ -z "$body" ]; then
+              body=$(printf '%s\n' "$clean" | tail -n 15)
+            fi
             tail_="[$(wc -l < "$f") lines / $(wc -c < "$f") bytes]"
           else
             body="clippy-output.txt was empty or missing"
@@ -175,7 +180,7 @@ jobs:
           fi
           # A workflow command must be a single line: escape % and join with %0A.
           msg=$(printf '%s\n%s\n' "$body" "$tail_" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
-          msg=$(printf '%s' "$msg" | cut -c1-1500)
+          msg=$(printf '%s' "$msg" | cut -c1-1900)
           printf '::error title=Clippy failure::%s\n' "$msg"
           exit 0
 
