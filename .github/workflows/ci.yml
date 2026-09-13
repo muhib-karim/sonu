@@ -149,17 +149,24 @@ jobs:
       # Downloading the job log requires admin rights on the repository, and the
       # artifact requires authentication, so a failure here was previously
       # undiagnosable from outside. A check annotation is readable through the
-      # public API and shows up directly in the UI, so publish the tail of the
-      # clippy output as one. (Workflow commands need `%`, CR and LF escaped.)
+      # public API and shows up directly in the UI, so publish the error headlines
+      # (error text plus file:line locations) as one. The surrounding code excerpts
+      # are dropped — the headlines are what identify the problem, and annotations
+      # are length-limited.
       - name: Surface clippy failure
         if: failure()
         shell: bash
         run: |
-          msg=$(tail -n 25 clippy-output.txt 2>/dev/null | tr -d '\r')
+          msg=$(grep -E '^error(\[|:)|^ *--> |^error: could not compile' clippy-output.txt 2>/dev/null \
+                | head -n 20 | tr -d '\r')
           if [ -z "$msg" ]; then
-            msg="clippy-output.txt was empty or missing — the failure was in an earlier step"
+            msg=$(tail -n 20 clippy-output.txt 2>/dev/null | tr -d '\r')
           fi
-          msg=$(printf '%s\n' "$msg" | sed 's/%/%25/g; s/$/%0A/')
+          if [ -z "$msg" ]; then
+            msg="clippy-output.txt was empty or missing - the failure was in an earlier step"
+          fi
+          # A workflow command must be a single line: escape % and join with %0A.
+          msg=$(printf '%s\n' "$msg" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
           printf '::error title=Clippy failure::%s\n' "$msg"
 
   # Advisory: reports known vulnerabilities in the Rust dependency graph.
