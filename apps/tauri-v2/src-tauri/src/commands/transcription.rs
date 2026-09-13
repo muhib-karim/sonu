@@ -1,5 +1,3 @@
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-use crate::apple_intelligence;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::cloud_transcription::CloudTranscriptionManager;
 use crate::managers::history::HistoryManager;

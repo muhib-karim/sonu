@@ -17,6 +17,10 @@ mod signal_handle;
 mod tray;
 mod tray_i18n;
 mod utils;
+// Only used by the `#[cfg(debug_assertions)]` bindings export further down. Without
+// this gate a release build reports both names as unused imports — a warning that
+// never shows up in CI, because CI only ever builds in debug.
+#[cfg(debug_assertions)]
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, Builder};
 
@@ -388,10 +392,13 @@ pub fn run() {
             .build(),
     );
 
+    // `tauri-nspanel` is macOS-only. This has to be a shadowing `let` rather than
+    // `builder = builder.plugin(...)`: the latter needs `let mut builder`, which
+    // then trips `unused_mut` on every other platform — and with `-D warnings`
+    // in CI that is a hard failure. As an assignment it also simply did not
+    // compile on macOS, which no CI job noticed because CI only builds on Linux.
     #[cfg(target_os = "macos")]
-    {
-        builder = builder.plugin(tauri_nspanel::init());
-    }
+    let builder = builder.plugin(tauri_nspanel::init());
 
     builder
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {

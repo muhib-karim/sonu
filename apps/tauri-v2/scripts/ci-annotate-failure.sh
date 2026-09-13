@@ -33,7 +33,22 @@ fi
 
 if [ -s "$log_file" ]; then
   clean=$(sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' "$log_file" | tr -d '\r')
-  body=$(printf '%s\n' "$clean" | grep -E "$pattern" | head -n 24)
+
+  # The headlines identify *what* broke, and list every site at once rather than
+  # only the first.
+  body=$(printf '%s\n' "$clean" | grep -E "$pattern" | head -n 12)
+
+  # ...but for some failures the actionable detail sits *after* the line that
+  # matches: a `custom build command` failure prints the panic line and only then
+  # the cmake output that explains it. So append the lines following the first
+  # match. (The *first*, not the last — the final "could not compile" line has
+  # nothing useful after it.)
+  first=$(printf '%s\n' "$clean" | grep -n -E "$pattern" | head -n 1 | cut -d: -f1)
+  if [ -n "$first" ]; then
+    after=$(printf '%s\n' "$clean" | sed -n "$((first + 1)),$((first + 14))p")
+    body=$(printf '%s\n%s\n' "$body" "$after")
+  fi
+
   if [ -z "$body" ]; then
     body=$(printf '%s\n' "$clean" | tail -n 15)
   fi
