@@ -4,13 +4,22 @@
 
 | Component              | Version | Status |
 | ---------------------- | ------- | ------ |
-| **Desktop v2 (Tauri)** | 2.6.1   | Stable |
+| **Desktop v2 (Tauri)** | 2.6.2   | Stable |
 
-**Last Updated**: 2026-09-11 (2.6.1)
+**Last Updated**: 2026-09-14 (2.6.2)
 
 ## Version History
 
 ### Desktop v2 (Tauri)
+
+#### Version 2.6.2
+
+- Release pipeline repaired: the Windows and macOS builds had been failing since 2026-09-07
+- macOS: fixed a compile error in `lib.rs` where the macOS-only `tauri-nspanel` plugin was attached to an immutable `builder`
+- Windows: updated the `cmake` build dependency so it recognises Visual Studio 2026, which current GitHub runners use
+- CI now compiles the crate for Windows and macOS, and runs the Rust test suite (previously Linux-only, tests unrun)
+- Dependency advisories: 35 of 53 resolved within each crate's compatibility line, including a HIGH-severity `openssl` issue
+- Failed CI steps and release builds now publish their reason as a GitHub check annotation
 
 #### Version 2.6.1
 
@@ -95,9 +104,9 @@ SONU follows [Semantic Versioning](https://semver.org/) (SemVer):
 
 | File                                      | Location             |
 | ----------------------------------------- | -------------------- |
-| `apps/tauri-v2/package.json`              | `"version": "2.6.1"` |
-| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.6.1"`  |
-| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.6.1"` |
+| `apps/tauri-v2/package.json`              | `"version": "2.6.2"` |
+| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.6.2"`  |
+| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.6.2"` |
 
 ### Desktop App (Electron) — Removed
 

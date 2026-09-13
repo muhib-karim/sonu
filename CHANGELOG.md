@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.2] - 2026-09-14
+
+Build and release repair. This is the first release since 2.3.0, so it also ships
+the 2.4.0–2.6.1 work documented below.
+
+### Fixed
+
+- **The macOS build did not compile.** `src/lib.rs` attached the macOS-only
+  `tauri-nspanel` plugin with an assignment to `builder`, which is declared
+  immutable (`error[E0384]`). Nothing caught it because no CI job compiled the
+  crate for macOS.
+- **The Windows build failed against Visual Studio 2026.** The pinned `cmake`
+  crate (0.1.54) could not name the Visual Studio version on current GitHub
+  Windows runners, so it panicked inside its generator lookup before invoking
+  cmake at all. Updated to `cmake` 0.1.58, which recognises VS 2026.
+- **The release pipeline had been broken since 2026-09-07** by the two issues
+  above; Windows and macOS builds now pass.
+- Two release-only `unused_imports` warnings, invisible in CI because CI only
+  builds in debug: the `specta_typescript` imports (used only by the
+  `#[cfg(debug_assertions)]` bindings export) are now gated, and a redundant
+  `apple_intelligence` import was removed.
+- **Dependency advisories.** 35 of 53 advisories in `Cargo.lock` resolved by
+  updating to the newest version inside each crate's own compatibility line —
+  including a HIGH-severity `openssl` bounds assertion, plus `rustls-webpki`,
+  `tar`, `h2`, `quinn-proto`, `time`, `serde_with` and `bytes`.
+- The `rust-audit` CI job had never worked: it passed `workingDirectory` where
+  the action declares `working-directory`, and the workflow granted no
+  permissions, so the action could not publish its results.
+- The pre-commit hook ran clippy with default features, which cannot build
+  without libclang — so it failed unconditionally on such machines and forced
+  `--no-verify` on every Rust commit.
+
+### Added
+
+- **CI compiles the crate for Windows and macOS.** Previously nothing did except
+  a release run, which is how the two build failures above reached `main`.
+- **The Rust test suite now runs in CI** (`cargo test --lib`), with a floor guard
+  so the step cannot report success while running nothing.
+- Failed CI steps and failed release builds now publish the reason as a GitHub
+  check annotation, which is readable without admin access to the job log.
+
+---
+
 ## [2.6.1] - 2026-09-11
 
 Audit-driven hardening pass. Companion to [`AUDIT.md`](AUDIT.md); the

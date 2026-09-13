@@ -5696,7 +5696,7 @@ dependencies = [
 
 [[package]]
 name = "sonu-desktop"
-version = "2.6.1"
+version = "2.6.2"
 dependencies = [
  "anyhow",
  "chrono",
