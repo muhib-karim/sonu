@@ -133,56 +133,51 @@ jobs:
           cargo clippy --all-targets -- -D warnings 2>&1 | tee clippy-output.txt
         # The build.yml reusable workflow handles the full multi-platform build.
 
-      # The Clippy step tees its diagnostics to clippy-output.txt, but a runner is
-      # ephemeral — without this the file dies with it and a clippy failure leaves
-      # no retrievable evidence (which is exactly how the 2026-09-11 regression sat
+      # Clippy compiles the test target but nothing ever *runs* it, so the Rust
+      # suite (52 tests, including the regression tests for the deadlock, crash and
+      # data-loss fixes) was unexercised in CI. The toolchain, Vulkan SDK and
+      # libclang are already set up and the dependencies are already built by this
+      # point, so this costs little. The keychain tests are fine here: `keyring` is
+      # pulled with the `linux-native` feature (kernel keyutils), which needs no
+      # Secret Service daemon.
+      - name: Tests
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo test --lib 2>&1 | tee test-output.txt
+
+      # The Clippy and Tests steps tee their output to files, but a runner is
+      # ephemeral — without this the files die with it and a failure leaves no
+      # retrievable evidence (which is exactly how the 2026-09-11 regression sat
       # undiagnosed). `if-no-files-found: ignore` keeps this from failing the job
       # when the failure came from an earlier step.
-      - name: Upload clippy output
+      - name: Upload logs
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
         with:
-          name: clippy-output
-          path: apps/tauri-v2/src-tauri/clippy-output.txt
+          name: rust-check-logs
+          path: |
+            apps/tauri-v2/src-tauri/clippy-output.txt
+            apps/tauri-v2/src-tauri/test-output.txt
           if-no-files-found: ignore
 
       # Downloading the job log requires admin rights on the repository, and the
-      # artifact requires authentication, so a failure here was previously
+      # artifact requires authentication, so a failure here would otherwise be
       # undiagnosable from outside. A check annotation is readable through the
-      # public API and shows up directly in the UI, so publish the error headlines
-      # (error text plus file:line locations) as one. The surrounding code excerpts
-      # are dropped — the headlines are what identify the problem, and annotations
-      # are length-limited.
+      # public API and shows up in the UI, so publish the error headlines as one.
       - name: Surface clippy failure
         if: failure()
         shell: bash
         run: |
-          # `shell: bash` implies `-eo pipefail`, and `grep | head` raises SIGPIPE
-          # (141) as soon as head has its lines — which aborted this step before it
-          # could report anything. Relax both, and never let this step itself fail.
-          set +o pipefail
-          set +e
-          f=clippy-output.txt
-          if [ -s "$f" ]; then
-            # Cargo colourises its output, so an "error:" line carries a leading
-            # escape sequence and never matches a `^error` anchor — strip ANSI
-            # first. Report every error headline and its file:line, not just the
-            # last one, so one run identifies all the sites at once.
-            clean=$(sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' "$f" | tr -d '\r')
-            body=$(printf '%s\n' "$clean" | grep -E '^error|^ *--> ' | head -n 24)
-            if [ -z "$body" ]; then
-              body=$(printf '%s\n' "$clean" | tail -n 15)
-            fi
-            tail_="[$(wc -l < "$f") lines / $(wc -c < "$f") bytes]"
-          else
-            body="clippy-output.txt was empty or missing"
-            tail_="the failure was in an earlier step"
-          fi
-          # A workflow command must be a single line: escape % and join with %0A.
-          msg=$(printf '%s\n%s\n' "$body" "$tail_" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
-          msg=$(printf '%s' "$msg" | cut -c1-1900)
-          printf '::error title=Clippy failure::%s\n' "$msg"
-          exit 0
+          bash "$GITHUB_WORKSPACE/apps/tauri-v2/scripts/ci-annotate-failure.sh" \
+            clippy-output.txt "Clippy failure"
+
+      - name: Surface test failure
+        if: failure()
+        shell: bash
+        run: |
+          bash "$GITHUB_WORKSPACE/apps/tauri-v2/scripts/ci-annotate-failure.sh" \
+            test-output.txt "Rust test failure"
 
   # Advisory: reports known vulnerabilities in the Rust dependency graph.
   # Non-blocking while the existing advisory backlog is triaged; make it a
