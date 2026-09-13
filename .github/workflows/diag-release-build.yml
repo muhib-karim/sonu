@@ -1,0 +1,38 @@
+# TEMPORARY diagnostic workflow — delete once the release build failure is fixed.
+#
+# The release build fails on Windows and macOS but not Linux, and `release.yml`
+# only runs when `tauri.conf.json` changes (or by manual dispatch), so there was
+# no way to reproduce it without publishing a release. This calls the same
+# reusable `build.yml` with `release-id` empty, so nothing is published and no
+# tag is created, while still running the real build path on real runners.
+#
+# It triggers only when this file itself changes, so it is inert once removed.
+
+name: "Diag: release build"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diag-release-build.yml"
+
+jobs:
+  windows-x64:
+    name: "diag windows x64"
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: windows-latest
+      target: x86_64-pc-windows-msvc
+      sign-binaries: false
+      upload-artifacts: false
+    secrets: inherit
+
+  macos-arm64:
+    name: "diag macos arm64"
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: macos-15
+      target: aarch64-apple-darwin
+      sign-binaries: false
+      upload-artifacts: false
+    secrets: inherit
