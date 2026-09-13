@@ -163,16 +163,18 @@ jobs:
           set +o pipefail
           set +e
           f=clippy-output.txt
-          if [ ! -s "$f" ]; then
-            msg="clippy-output.txt was empty or missing - the failure was in an earlier step"
+          if [ -s "$f" ]; then
+            # The failure is at the end of the log, after the compile progress.
+            # Put it first: annotation messages are truncated from the end, so
+            # anything appended after it is the part that gets lost.
+            body=$(tail -n 12 "$f" | tr -d '\r')
+            tail_="[$(wc -l < "$f") lines / $(wc -c < "$f") bytes]"
           else
-            msg=$(grep -E '^error|^ *--> ' "$f" 2>/dev/null | head -n 12 | tr -d '\r')
-            if [ -z "$msg" ]; then
-              msg=$(head -n 30 "$f" | tr -d '\r')
-            fi
+            body="clippy-output.txt was empty or missing"
+            tail_="the failure was in an earlier step"
           fi
           # A workflow command must be a single line: escape % and join with %0A.
-          msg=$(printf '%s\n' "$msg" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          msg=$(printf '%s\n%s\n' "$body" "$tail_" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
           msg=$(printf '%s' "$msg" | cut -c1-1500)
           printf '::error title=Clippy failure::%s\n' "$msg"
           exit 0
