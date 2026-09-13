@@ -157,17 +157,25 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          msg=$(grep -E '^error(\[|:)|^ *--> |^error: could not compile' clippy-output.txt 2>/dev/null \
-                | head -n 20 | tr -d '\r')
-          if [ -z "$msg" ]; then
-            msg=$(tail -n 20 clippy-output.txt 2>/dev/null | tr -d '\r')
-          fi
-          if [ -z "$msg" ]; then
+          # `shell: bash` implies `-eo pipefail`, and `grep | head` raises SIGPIPE
+          # (141) as soon as head has its lines — which aborted this step before it
+          # could report anything. Relax both, and never let this step itself fail.
+          set +o pipefail
+          set +e
+          f=clippy-output.txt
+          if [ ! -s "$f" ]; then
             msg="clippy-output.txt was empty or missing - the failure was in an earlier step"
+          else
+            msg=$(grep -E '^error|^ *--> ' "$f" 2>/dev/null | head -n 12 | tr -d '\r')
+            if [ -z "$msg" ]; then
+              msg=$(head -n 30 "$f" | tr -d '\r')
+            fi
           fi
           # A workflow command must be a single line: escape % and join with %0A.
           msg=$(printf '%s\n' "$msg" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          msg=$(printf '%s' "$msg" | cut -c1-1500)
           printf '::error title=Clippy failure::%s\n' "$msg"
+          exit 0
 
   # Advisory: reports known vulnerabilities in the Rust dependency graph.
   # Non-blocking while the existing advisory backlog is triaged; make it a
