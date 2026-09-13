@@ -133,6 +133,19 @@ jobs:
           cargo clippy --all-targets -- -D warnings 2>&1 | tee clippy-output.txt
         # The build.yml reusable workflow handles the full multi-platform build.
 
+      # The Clippy step tees its diagnostics to clippy-output.txt, but a runner is
+      # ephemeral — without this the file dies with it and a clippy failure leaves
+      # no retrievable evidence (which is exactly how the 2026-09-11 regression sat
+      # undiagnosed). `if-no-files-found: ignore` keeps this from failing the job
+      # when the failure came from an earlier step.
+      - name: Upload clippy output
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.0
+        with:
+          name: clippy-output
+          path: apps/tauri-v2/src-tauri/clippy-output.txt
+          if-no-files-found: ignore
+
   # Advisory: reports known vulnerabilities in the Rust dependency graph.
   # Non-blocking while the existing advisory backlog is triaged; make it a
   # required check once that is done.
@@ -149,4 +162,9 @@ jobs:
       - uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          workingDirectory: apps/tauri-v2/src-tauri
+          # Must be `working-directory` (kebab-case): that is the input the action
+          # declares. As `workingDirectory` it was silently ignored, so the audit
+          # ran at the repo root where there is no Cargo.toml and died with
+          # "Unexpected end of JSON input". The job-level `defaults.run` above
+          # does not apply here because this is a `uses:` step, not a `run:` step.
+          working-directory: apps/tauri-v2/src-tauri

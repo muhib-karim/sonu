@@ -622,6 +622,13 @@ impl Drop for TranscriptionManager {
 #[cfg(test)]
 mod tests {
     use crate::managers::model::EngineType;
+    // `whisper_inference_params` lives in the parent module and is itself gated on
+    // the `whisper` feature, so the import has to carry the same gate. Without it
+    // this module only failed to compile in builds that enable `whisper` — which
+    // is exactly the configuration a machine without libclang can never build, so
+    // the breakage was invisible locally and only showed up in CI.
+    #[cfg(feature = "whisper")]
+    use super::whisper_inference_params;
 
     /// Whether a given engine type can be dispatched in the current build
     /// (i.e. its cargo feature is compiled in and `LoadedEngine` has the

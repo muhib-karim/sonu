@@ -37,7 +37,18 @@ if echo "$STAGED_FILES" | grep -E "\.rs$" > /dev/null; then
     cargo fmt -- --check || exit 1
     
     echo "  - Running clippy..."
-    cargo clippy -- -D warnings || exit 1
+    # `cargo clippy` with default features builds `whisper`, which needs libclang
+    # at build time (whisper-rs/bindgen). Without LLVM that invocation can never
+    # succeed, so this hook used to fail unconditionally on such machines and
+    # trained everyone to pass `--no-verify` — making it a formality. Fall back to
+    # the feature set that is actually buildable here so the hook still catches
+    # real lints; CI covers the whisper path.
+    if [ -n "${LIBCLANG_PATH:-}" ] || command -v clang >/dev/null 2>&1 || command -v clang-cl >/dev/null 2>&1; then
+        cargo clippy --all-targets -- -D warnings || exit 1
+    else
+        echo "    (no libclang found: checking parakeet + moonshine only; CI covers whisper)"
+        cargo clippy --all-targets --no-default-features --features parakeet,moonshine -- -D warnings || exit 1
+    fi
     
     cd ../../..
 fi
