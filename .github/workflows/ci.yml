@@ -145,6 +145,21 @@ jobs:
         run: |
           set -o pipefail
           cargo test --lib 2>&1 | tee test-output.txt
+          # Guard against the suite silently running nothing: `cargo test` exits 0
+          # when zero tests match a filter, which is the same "gate reports green
+          # while doing nothing" failure mode that hid the clippy regression for
+          # two days. The suite is 52 tests; 45 is the floor, so adding tests is
+          # fine but quietly losing the suite is not.
+          #
+          # `grep -m1` rather than `grep | head`: head would raise SIGPIPE under the
+          # `pipefail` set above.
+          line=$(grep -m1 -oE 'test result: ok\. [0-9]+ passed' test-output.txt || true)
+          ran=$(printf '%s' "$line" | tr -dc '0-9')
+          if [ -z "$ran" ] || [ "$ran" -lt 45 ]; then
+            printf '::error title=Rust test failure::expected at least 45 Rust tests to run, saw "%s"\n' "${ran:-none}"
+            exit 1
+          fi
+          echo "Rust tests ran: $ran"
 
       # The Clippy and Tests steps tee their output to files, but a runner is
       # ephemeral — without this the files die with it and a failure leaves no
