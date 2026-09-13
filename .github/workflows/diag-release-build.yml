@@ -16,6 +16,13 @@ on:
     paths:
       - ".github/workflows/diag-release-build.yml"
 
+# build.yml's job requests `contents: write`, and a caller cannot grant less than
+# the called workflow asks for — without this the run dies as a startup_failure
+# ("The nested job 'build' is requesting 'contents: write', but is only allowed
+# 'contents: read'"). Nothing here publishes: `release-id` is empty.
+permissions:
+  contents: write
+
 jobs:
   windows-x64:
     name: "diag windows x64"
