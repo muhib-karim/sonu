@@ -45,7 +45,7 @@ if [ -s "$log_file" ]; then
   # nothing useful after it.)
   first=$(printf '%s\n' "$clean" | grep -n -E "$pattern" | head -n 1 | cut -d: -f1)
   if [ -n "$first" ]; then
-    after=$(printf '%s\n' "$clean" | sed -n "$((first + 1)),$((first + 14))p")
+    after=$(printf '%s\n' "$clean" | sed -n "$((first + 1)),$((first + 20))p")
     body=$(printf '%s\n%s\n' "$body" "$after")
   fi
 

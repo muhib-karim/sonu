@@ -306,7 +306,8 @@ jobs:
             printf '::error title=Release build failure::The Rust compile succeeds on its own, so the failure is in bundling or packaging, not the code.\n'
           fi
           bash "$GITHUB_WORKSPACE/apps/tauri-v2/scripts/ci-annotate-failure.sh" \
-            build-output.txt "Release build failure (cargo)"
+            build-output.txt "Release build failure (cargo)" \
+            '^error|panicked at|CMake Error|CMake Warning|Could NOT find|glslc|ulkan|FAILED|ninja:|^ *--> '
 
       - name: Upload artifacts (macOS)
         if: inputs.upload-artifacts && contains(inputs.platform, 'macos')

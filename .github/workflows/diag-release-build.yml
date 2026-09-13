@@ -15,6 +15,8 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/diag-release-build.yml"
+      - ".github/workflows/build.yml"
+      - "apps/tauri-v2/scripts/ci-annotate-failure.sh"
 
 # build.yml's job requests `contents: write`, and a caller cannot grant less than
 # the called workflow asks for — without this the run dies as a startup_failure
