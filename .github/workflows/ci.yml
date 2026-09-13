@@ -191,6 +191,13 @@ jobs:
     name: Rust Dependency Audit
     runs-on: ubuntu-latest
     continue-on-error: true
+    # The workflow declares no permissions, so the token is read-only and
+    # rustsec/audit-check cannot publish its results — it failed with "Resource
+    # not accessible by integration". It needs to create a check run. The job
+    # stays advisory (`continue-on-error`), so this cannot block a merge.
+    permissions:
+      contents: read
+      checks: write
     defaults:
       run:
         working-directory: apps/tauri-v2/src-tauri
