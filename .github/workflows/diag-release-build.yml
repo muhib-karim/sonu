@@ -43,3 +43,6 @@ jobs:
       sign-binaries: false
       upload-artifacts: false
     secrets: inherit
+
+# Re-run trigger (this file only fires when it changes): re-verify after the
+# macOS fix in 7f4d127 and capture the Windows whisper-rs-sys cmake error.
