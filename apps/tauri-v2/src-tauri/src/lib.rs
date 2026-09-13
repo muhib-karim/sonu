@@ -155,7 +155,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     }
 
     #[cfg(unix)]
-    let signals = Signals::new(&[SIGUSR2]).unwrap();
+    let signals = Signals::new([SIGUSR2]).unwrap();
     // Set up SIGUSR2 signal handler for toggling transcription
     #[cfg(unix)]
     signal_handle::setup_signal_handler(app_handle.clone(), signals);
