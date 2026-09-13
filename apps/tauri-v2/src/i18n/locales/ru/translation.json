@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "Расшифровка...",
     "listening": "Слушаю...",
-    "cloudProcessing": "Облако..."
+    "cloudProcessing": "Облако...",
+    "doneSummary": "{{count}} слов"
   },
   "style": {
     "contextAwareness": {
@@ -555,6 +556,11 @@
     },
     "history": {
       "title": "Недавние"
+    },
+    "suggestion": {
+      "title": "Только что расшифровано",
+      "copy": "Копировать",
+      "dismiss": "Скрыть"
     },
     "copied": "Скопировано в буфер обмена",
     "mode": {

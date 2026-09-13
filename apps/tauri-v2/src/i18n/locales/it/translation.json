@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "Trascrizione...",
     "listening": "In ascolto...",
-    "cloudProcessing": "Cloud..."
+    "cloudProcessing": "Cloud...",
+    "doneSummary": "{{count}} parole"
   },
   "home": {
     "title": "Parla ovunque",
@@ -518,6 +519,11 @@
     },
     "history": {
       "title": "Recenti"
+    },
+    "suggestion": {
+      "title": "Appena trascritto",
+      "copy": "Copia",
+      "dismiss": "Ignora"
     },
     "copied": "Copiato negli appunti",
     "mode": {

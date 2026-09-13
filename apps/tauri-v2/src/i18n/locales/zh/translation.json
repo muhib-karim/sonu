@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "正在转录...",
     "listening": "正在聆听...",
-    "cloudProcessing": "云端..."
+    "cloudProcessing": "云端...",
+    "doneSummary": "{{count}} 词"
   },
   "style": {
     "contextAwareness": {
@@ -555,6 +556,11 @@
     },
     "history": {
       "title": "最近"
+    },
+    "suggestion": {
+      "title": "刚刚转录",
+      "copy": "复制",
+      "dismiss": "忽略"
     },
     "copied": "已复制到剪贴板",
     "mode": {

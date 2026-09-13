@@ -10,6 +10,7 @@ import {
   Cloud,
   Cpu,
   Activity,
+  Sparkles,
 } from "lucide-react";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { commands, type HistoryEntry } from "@/bindings";
@@ -73,6 +74,9 @@ export const HomeSettings: React.FC = () => {
   });
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [cloudEnabled, setCloudEnabled] = useState(false);
+  /** The newest transcription, shown once in a suggestion banner after a new
+   *  dictation lands while this page is visible. */
+  const [latestEntry, setLatestEntry] = useState<HistoryEntry | null>(null);
 
   const calculateStats = useCallback((entries: HistoryEntry[]) => {
     const totalWords = entries.reduce(
@@ -80,10 +84,15 @@ export const HomeSettings: React.FC = () => {
         sum + (e.transcription_text?.split(/\s+/).filter(Boolean).length || 0),
       0,
     );
-    // Speaking time in minutes at ~150 wpm average dictation rate.
-    // Previously hardcoded to entries.length * 2, which assumed every entry
-    // was 2 minutes regardless of its actual word count.
-    const totalMinutes = totalWords / 150;
+    // Real recording duration from history when available (duration_ms on entries
+    // written since the migration), fall back to word-count estimate for legacy
+    // entries that have duration_ms === 0.
+    const knownDurationMs = entries.reduce(
+      (sum, e) => sum + (e.duration_ms > 0 ? e.duration_ms : 0),
+      0,
+    );
+    const totalMinutes =
+      knownDurationMs > 0 ? knownDurationMs / 60000 : totalWords / 150;
     const wpm = totalMinutes > 0 ? Math.round(totalWords / totalMinutes) : 0;
     const typingTime = totalWords / 40;
     const speakingTime = totalWords / 150;
@@ -103,6 +112,7 @@ export const HomeSettings: React.FC = () => {
       if (result.status === "ok" && result.data) {
         setHistory(result.data);
         calculateStats(result.data);
+        return result.data;
       }
     } catch (error) {
       console.error("Failed to load history:", error);
@@ -123,7 +133,13 @@ export const HomeSettings: React.FC = () => {
 
     const setupListener = async () => {
       const unlisten = await listen("history-updated", () => {
-        void loadHistory();
+        void loadHistory().then((data) => {
+          // Surface the newest entry as a quick suggestion. Entries come back
+          // descending, so the first item is the freshest.
+          if (data && data.length > 0) {
+            setLatestEntry(data[0]);
+          }
+        });
       });
       return unlisten;
     };
@@ -247,6 +263,44 @@ export const HomeSettings: React.FC = () => {
           gradient="from-emerald-500 to-teal-500"
         />
       </div>
+
+      {/* ── New Transcription Suggestion Chips ────────────────────────── */}
+      {latestEntry && (
+        <div className="group relative rounded-xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/[0.04] to-purple-500/[0.04] p-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-start gap-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-text/40 font-medium uppercase tracking-wider mb-1">
+                {t("home.suggestion.title", "Just transcribed")}
+              </p>
+              <p className="text-sm text-text/70 line-clamp-1 break-all">
+                {latestEntry.transcription_text}
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-400 text-xs font-medium hover:bg-indigo-500/20 transition-colors"
+                  onClick={() =>
+                    copyToClipboard(latestEntry.transcription_text)
+                  }
+                >
+                  <Copy className="w-3 h-3" />
+                  {t("home.suggestion.copy", "Copy")}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface text-text/50 text-xs font-medium hover:text-text/70 hover:bg-surface-hover transition-colors"
+                  onClick={() => setLatestEntry(null)}
+                >
+                  {t("home.suggestion.dismiss", "Dismiss")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Voice Activation Shortcut ─────────────────────────────────── */}
       <SettingsGroup title={t("home.shortcut.title", "Voice Activation")}>

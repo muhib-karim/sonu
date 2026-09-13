@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "Transkrypcja...",
     "listening": "Słucham...",
-    "cloudProcessing": "Chmura..."
+    "cloudProcessing": "Chmura...",
+    "doneSummary": "{{count}} słów"
   },
   "style": {
     "contextAwareness": {
@@ -555,6 +556,11 @@
     },
     "history": {
       "title": "Ostatnie"
+    },
+    "suggestion": {
+      "title": "Właśnie transkrybowano",
+      "copy": "Kopiuj",
+      "dismiss": "Odrzuć"
     },
     "copied": "Skopiowano do schowka",
     "mode": {

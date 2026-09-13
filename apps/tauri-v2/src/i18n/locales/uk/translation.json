@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "Обробка...",
     "listening": "Слухаю...",
-    "cloudProcessing": "Хмара..."
+    "cloudProcessing": "Хмара...",
+    "doneSummary": "{{count}} слів"
   },
   "style": {
     "contextAwareness": {
@@ -555,6 +556,11 @@
     },
     "history": {
       "title": "Нещодавні"
+    },
+    "suggestion": {
+      "title": "Щойно розшифровано",
+      "copy": "Копіювати",
+      "dismiss": "Приховати"
     },
     "copied": "Скопійовано в буфер обміну",
     "mode": {

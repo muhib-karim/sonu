@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "Transcribiendo...",
     "listening": "Escuchando...",
-    "cloudProcessing": "Nube..."
+    "cloudProcessing": "Nube...",
+    "doneSummary": "{{count}} palabras"
   },
   "style": {
     "contextAwareness": {
@@ -555,6 +556,11 @@
     },
     "history": {
       "title": "Recientes"
+    },
+    "suggestion": {
+      "title": "Recién transcrito",
+      "copy": "Copiar",
+      "dismiss": "Descartar"
     },
     "copied": "Copiado al portapapeles",
     "mode": {

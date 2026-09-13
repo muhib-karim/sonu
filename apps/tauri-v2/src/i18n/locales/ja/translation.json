@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "文字起こし中...",
     "listening": "聞き取り中...",
-    "cloudProcessing": "クラウド処理中..."
+    "cloudProcessing": "クラウド処理中...",
+    "doneSummary": "{{count}} ワード"
   },
   "home": {
     "title": "どこでも話せる",
@@ -518,6 +519,11 @@
     },
     "history": {
       "title": "最近の履歴"
+    },
+    "suggestion": {
+      "title": "たった今の文字起こし",
+      "copy": "コピー",
+      "dismiss": "閉じる"
     },
     "copied": "クリップボードにコピーしました",
     "mode": {

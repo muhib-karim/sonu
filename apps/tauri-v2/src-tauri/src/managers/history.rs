@@ -33,6 +33,7 @@ static MIGRATIONS: &[M] = &[
     ),
     M::up("ALTER TABLE transcription_history ADD COLUMN post_processed_text TEXT;"),
     M::up("ALTER TABLE transcription_history ADD COLUMN post_process_prompt TEXT;"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN duration_ms INTEGER NOT NULL DEFAULT 0;"),
 ];
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
@@ -45,6 +46,9 @@ pub struct HistoryEntry {
     pub transcription_text: String,
     pub post_processed_text: Option<String>,
     pub post_process_prompt: Option<String>,
+    /// Recording length in milliseconds. Legacy entries written before this column
+    /// existed default to 0; UI should treat 0 as "unknown".
+    pub duration_ms: i64,
 }
 
 pub struct HistoryManager {
@@ -259,6 +263,8 @@ impl HistoryManager {
         let timestamp = now.timestamp();
         let title = self.format_timestamp_title(timestamp);
         let file_name = self.unique_recording_file_name(now.timestamp_millis());
+        // Recording runs at 16 kHz (see save_wav_file).
+        let duration_ms = (audio_samples.len() as f64 / 16_000.0 * 1000.0).round() as i64;
 
         // Save WAV file
         let file_path = self.recordings_dir.join(&file_name);
@@ -274,6 +280,7 @@ impl HistoryManager {
             post_processed_text,
             post_process_prompt,
             saved,
+            duration_ms,
         ) {
             Ok(id) => id,
             Err(e) => {
@@ -308,11 +315,12 @@ impl HistoryManager {
         post_processed_text: Option<String>,
         post_process_prompt: Option<String>,
         saved: bool,
+        duration_ms: i64,
     ) -> Result<i64> {
         let conn = self.conn()?;
         conn.execute(
-            "INSERT INTO transcription_history (file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            params![file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt],
+            "INSERT INTO transcription_history (file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, duration_ms) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, duration_ms],
         )?;
 
         let id = conn.last_insert_rowid();
@@ -451,7 +459,7 @@ impl HistoryManager {
     pub async fn get_history_entries(&self) -> Result<Vec<HistoryEntry>> {
         let conn = self.conn()?;
         let mut stmt = conn.prepare(
-            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt FROM transcription_history ORDER BY timestamp DESC"
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, duration_ms FROM transcription_history ORDER BY timestamp DESC"
         )?;
 
         let rows = stmt.query_map([], |row| {
@@ -464,6 +472,7 @@ impl HistoryManager {
                 transcription_text: row.get("transcription_text")?,
                 post_processed_text: row.get("post_processed_text")?,
                 post_process_prompt: row.get("post_process_prompt")?,
+                duration_ms: row.get("duration_ms")?,
             })
         })?;
 

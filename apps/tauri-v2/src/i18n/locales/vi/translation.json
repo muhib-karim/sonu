@@ -498,7 +498,8 @@
   "overlay": {
     "transcribing": "Đang chuyển đổi...",
     "listening": "Đang lắng nghe...",
-    "cloudProcessing": "Đám mây..."
+    "cloudProcessing": "Đám mây...",
+    "doneSummary": "{{count}} từ"
   },
   "style": {
     "contextAwareness": {
@@ -555,6 +556,11 @@
     },
     "history": {
       "title": "Gần đây"
+    },
+    "suggestion": {
+      "title": "Vừa chuyển đổi",
+      "copy": "Sao chép",
+      "dismiss": "Bỏ qua"
     },
     "copied": "Đã sao chép vào khay nhớ tạm",
     "mode": {

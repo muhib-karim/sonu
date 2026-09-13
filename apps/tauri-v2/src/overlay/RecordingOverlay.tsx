@@ -144,9 +144,14 @@ const RecordingOverlay: React.FC = () => {
 
       // Listen for done state
       track(
-        await listen("transcription-done", () => {
+        await listen<{ word_count?: number }>("transcription-done", (event) => {
           const session = sessionRef.current;
           setState("done");
+          // Prefer the authoritative word count from the backend's final text;
+          // fall back to the last preview-derived count we tracked.
+          if (typeof event.payload?.word_count === "number") {
+            setDoneWordCount(event.payload.word_count);
+          }
 
           clearAutoHide();
           // `setTimeout` accepts a void callback; the async work is wrapped so

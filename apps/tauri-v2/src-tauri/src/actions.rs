@@ -12,6 +12,7 @@ use crate::utils::{self, show_recording_overlay, show_transcribing_overlay};
 use crate::ManagedToggleState;
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error};
+use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::LazyLock;
@@ -22,6 +23,20 @@ use tauri::Manager;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use crate::input::EnigoState;
+
+/// Payload for transcription-done events sent to the overlay.
+/// Extend this struct with additional fields as the overlay grows.
+#[derive(Clone, Serialize, serde::Deserialize)]
+struct TranscriptionDonePayload {
+    word_count: usize,
+}
+
+/// Helper: build the done payload from the final transcribed text.
+fn done_payload(text: &str) -> TranscriptionDonePayload {
+    TranscriptionDonePayload {
+        word_count: text.split_whitespace().count(),
+    }
+}
 
 /// Text captured from the focused application when Command Mode starts.
 static COMMAND_SELECTED_TEXT: LazyLock<std::sync::Mutex<Option<String>>> =
@@ -508,6 +523,7 @@ impl ShortcutAction for TranscribeAction {
                             // Paste the final text (either processed or original)
                             let ah_clone = ah.clone();
                             let paste_time = Instant::now();
+                            let done_payload = done_payload(&final_text);
                             ah.run_on_main_thread(move || {
                                 match utils::paste(final_text, ah_clone.clone()) {
                                     Ok(()) => debug!(
@@ -516,9 +532,9 @@ impl ShortcutAction for TranscribeAction {
                                     ),
                                     Err(e) => error!("Failed to paste transcription: {}", e),
                                 }
-                                // Emit transcription-done event to show checkmark in overlay
-                                // The overlay will auto-hide after 800ms
-                                let _ = ah_clone.emit("transcription-done", ());
+                                // Emit transcription-done event with the final word count so the
+                                // overlay can show a meaningful summary (e.g. "✓ 23 words").
+                                let _ = ah_clone.emit("transcription-done", &done_payload);
                                 change_tray_icon(&ah_clone, TrayIconState::Idle);
                             })
                             .unwrap_or_else(|e| {
@@ -837,12 +853,13 @@ impl ShortcutAction for CommandAction {
 
             // Paste the result (replaces the selection when one was captured)
             let ah_clone = ah.clone();
+            let done_payload = done_payload(&final_text);
             ah.run_on_main_thread(move || {
                 match utils::paste(final_text, ah_clone.clone()) {
                     Ok(()) => debug!("Command Mode: text pasted successfully"),
                     Err(e) => error!("Command Mode: failed to paste text: {}", e),
                 }
-                let _ = ah_clone.emit("transcription-done", ());
+                let _ = ah_clone.emit("transcription-done", &done_payload);
                 change_tray_icon(&ah_clone, TrayIconState::Idle);
             })
             .unwrap_or_else(|e| {
