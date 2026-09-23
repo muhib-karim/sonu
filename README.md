@@ -411,8 +411,6 @@ See [AGENTS.md](AGENTS.md) for development guidelines and coding conventions.
 | [INSTALL.md](INSTALL.md)                                             | Installation guide                           |
 | [docs/AI_FEATURES.md](docs/AI_FEATURES.md)                           | AI post-processing & context-aware dictation |
 | [docs/BRAND_GUIDELINES.md](docs/BRAND_GUIDELINES.md)                 | Brand & logo usage                           |
-| [AUDIT.md](AUDIT.md)                                                 | Codebase audit & findings                    |
-| [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md)                           | Prioritised remediation plan                 |
 | [CONTRIBUTING.md](CONTRIBUTING.md)                                   | Contribution guidelines                      |
 
 ---

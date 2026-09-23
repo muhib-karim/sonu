@@ -52,8 +52,7 @@ the 2.4.0–2.6.1 work documented below.
 
 ## [2.6.1] - 2026-09-11
 
-Audit-driven hardening pass. Companion to [`AUDIT.md`](AUDIT.md); the
-per-task rationale lives in [`IMPROVEMENT_PLAN.md`](IMPROVEMENT_PLAN.md).
+Audit-driven hardening pass.
 
 ### Added
 
