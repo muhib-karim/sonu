@@ -200,7 +200,7 @@ Choose AI dictation style presets organized by category: _Personal_, _Work_, _Em
 
 |                                                 Platform                                                 |                                          Download                                          |            Architecture             |
 | :------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------: | :---------------------------------: |
-| <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" /> |    **[Download Installer (.exe)](https://github.com/muhib-karim/sonu/releases/latest)**    |             x64, ARM64              |
+| <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" /> |    **[Download Installer (.exe)](https://github.com/muhib-karim/sonu/releases/latest)**    | x64 (ARM64 paused, [#30](https://github.com/muhib-karim/sonu/issues/30)) |
 |   <img src="https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white" />   |          **[Download DMG](https://github.com/muhib-karim/sonu/releases/latest)**           | Intel (x64) + Apple Silicon (ARM64) |
 |   <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" />   | **[Download AppImage / .deb / .rpm](https://github.com/muhib-karim/sonu/releases/latest)** |                 x64                 |
 

@@ -34,6 +34,12 @@ Maintenance and security release. First published build of the 2.4.0–2.6.2 wor
   typescript-eslint supports it (it broke lint and typecheck).
 - LICENSE restores the upstream Handy copyright notice, as the MIT license requires.
 
+### Known issues
+
+- No Windows ARM64 installer in this release: the `aarch64-pc-windows-msvc` build
+  fails in whisper-rs binding generation ([#30](https://github.com/muhib-karim/sonu/issues/30)).
+  Windows on ARM can run the x64 installer under emulation.
+
 ---
 
 ## [2.6.2] - 2026-09-14
