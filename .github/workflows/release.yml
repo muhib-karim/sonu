@@ -127,9 +127,11 @@ jobs:
           - platform: "windows-latest"
             args: ""
             target: "x86_64-pc-windows-msvc"
-          - platform: "windows-11-arm"
-            args: "--target aarch64-pc-windows-msvc"
-            target: "aarch64-pc-windows-msvc"
+          # Windows ARM64 (windows-11-arm / aarch64-pc-windows-msvc) is paused:
+          # whisper-rs-sys bindgen emits an opaque whisper_full_params on that
+          # runner, so the leg cannot compile and blocked every release.
+          # Tracked in https://github.com/muhib-karim/sonu/issues/30 — re-add the
+          # matrix entry once the bindings generate correctly there.
 
     uses: ./.github/workflows/build.yml
     with:
