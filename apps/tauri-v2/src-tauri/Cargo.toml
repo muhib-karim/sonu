@@ -79,7 +79,7 @@ flate2 = "1.0"
 # Full engine set is enabled via the crate's `default` features above:
 # Whisper (multilingual, GGML), Parakeet (fast ONNX), Moonshine (ultra-light ONNX).
 transcribe-rs = { version = "0.2" }
-ferrous-opencc = "0.2.3"
+ferrous-opencc = "0.4.0"
 thiserror = "1.0"
 keyring = { version = "3", features = ["linux-native", "windows-native", "apple-native"] }
 specta = "=2.0.0-rc.22"
