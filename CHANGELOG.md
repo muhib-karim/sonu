@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.3] - 2026-10-03
+
+Maintenance and security release. First published build of the 2.4.0–2.6.2 work
+(2.6.2 was built but never published).
+
+### Fixed
+
+- **Auto-update feed pointed at the old repository owner.** `tauri.conf.json`
+  fetched `latest.json` from the previous account name, which only resolved through
+  GitHub's rename redirect. The feed, the About link and the HTTP referer now use
+  `github.com/muhib-karim/sonu`.
+
+### Security
+
+- `rustls` 0.23.34 → 0.23.45 (RUSTSEC-2026-0285).
+- `quick-xml` 0.37.5 / 0.38.3 → 0.41.0 (RUSTSEC-2026-0194, RUSTSEC-2026-0195) by updating
+  `wayland-scanner` to 0.31.11 and `plist` to 1.10.0.
+
+### Changed
+
+- Dependabot groups now carry only minor/patch updates; TypeScript 7 is held until
+  typescript-eslint supports it (it broke lint and typecheck).
+- LICENSE restores the upstream Handy copyright notice, as the MIT license requires.
+
+---
+
 ## [2.6.2] - 2026-09-14
 
 Build and release repair. This is the first release since 2.3.0, so it also ships
