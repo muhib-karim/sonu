@@ -236,6 +236,10 @@ jobs:
           # "Unexpected end of JSON input". The job-level `defaults.run` above
           # does not apply here because this is a `uses:` step, not a `run:` step.
           working-directory: apps/tauri-v2/src-tauri
+          # The action builds its own cargo-audit flags and does not read
+          # .cargo/audit.toml, so the documented exception is repeated here.
+          # Reason: apps/tauri-v2/src-tauri/.cargo/audit.toml.
+          ignore: RUSTSEC-2026-0235
 
   # Nothing else in CI compiles the Rust code for Windows or macOS: the clippy and
   # test jobs are Linux-only, and build.yml only runs on a release. Every
