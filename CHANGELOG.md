@@ -24,6 +24,9 @@ Maintenance and security release. First published build of the 2.4.0–2.6.2 wor
 - `rustls` 0.23.34 → 0.23.45 (RUSTSEC-2026-0285).
 - `quick-xml` 0.37.5 / 0.38.3 → 0.41.0 (RUSTSEC-2026-0194, RUSTSEC-2026-0195) by updating
   `wayland-scanner` to 0.31.11 and `plist` to 1.10.0.
+- The remaining advisory, RUSTSEC-2026-0235 (rkyv 0.7, pulled in by byte-unit via
+  rust_decimal), is documented and ignored in `.cargo/audit.toml`: SONU never
+  validates rkyv archives, and the 0.7 series has no upstream fix.
 
 ### Changed
 
