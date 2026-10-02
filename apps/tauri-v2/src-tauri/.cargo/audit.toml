@@ -1,0 +1,11 @@
+# cargo-audit configuration (read by the "Rust Dependency Audit" CI job).
+
+[advisories]
+ignore = [
+    # RUSTSEC-2026-0235: rkyv 0.7 can return out-of-bounds slices when validating
+    # an *untrusted* archive. rkyv arrives only through byte-unit -> rust_decimal
+    # (an optional serialization feature); SONU never reads rkyv archives, so the
+    # vulnerable validation path is not reachable. The 0.7 series has no upstream
+    # fix; drop this entry once rust_decimal moves to rkyv >= 0.8.17.
+    "RUSTSEC-2026-0235",
+]

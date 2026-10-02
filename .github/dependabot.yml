@@ -12,6 +12,9 @@ updates:
     groups:
       cargo-dependencies:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+    # Major bumps (cpal, rubato, env_filter, thiserror, ...) change APIs and have
+    # broken the build as a group; they get their own PRs so each can be ported.
 
   - package-ecosystem: bun
     directory: /apps/tauri-v2
@@ -24,6 +27,12 @@ updates:
     groups:
       bun-dependencies:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # TypeScript 7 removed `baseUrl` and is not yet supported by
+      # typescript-eslint; stay on 5.x until the toolchain catches up.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
