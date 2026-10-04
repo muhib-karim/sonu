@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f0f1a"/><stop offset="1" stop-color="#1e1b4b"/></linearGradient>
+    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#818cf8"/><stop offset="1" stop-color="#6366f1"/></linearGradient>
+  </defs>
+  <rect width="1280" height="320" rx="24" fill="url(#bg)"/>
+  <g transform="translate(110,160)" fill="url(#ac)">
+    <rect x="0" y="-18" width="14" height="36" rx="7"/><rect x="26" y="-44" width="14" height="88" rx="7"/>
+    <rect x="52" y="-70" width="14" height="140" rx="7"/><rect x="78" y="-36" width="14" height="72" rx="7"/>
+    <rect x="104" y="-58" width="14" height="116" rx="7"/><rect x="130" y="-26" width="14" height="52" rx="7"/>
+    <rect x="156" y="-12" width="14" height="24" rx="7"/>
+  </g>
+  <text x="340" y="160" font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif" font-size="104" font-weight="800" letter-spacing="6" fill="#ffffff">SONU</text>
+  <text x="344" y="214" font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif" font-size="32" fill="#c7d2fe">Open-source voice typing. Fully offline. Fully private.</text>
+  <text x="344" y="258" font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif" font-size="24" fill="#a5b4fc">Windows · macOS · Linux  —  Parakeet · Whisper · Moonshine</text>
+</svg>
