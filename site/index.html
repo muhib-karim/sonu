@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SONU: open-source, offline voice typing for Windows, macOS and Linux</title>
+<meta name="description" content="Dictate into any app. Local Parakeet, Whisper and Moonshine models, optional AI clean-up, 50+ languages. Free and open source.">
+<meta property="og:title" content="SONU: open-source voice typing">
+<meta property="og:description" content="Type at the speed of thought. Fully offline. Fully private.">
+<meta property="og:image" content="shot-dark-home.png">
+<link rel="icon" href="icon.png">
+<style>
+:root{--bg:#0b0b14;--card:#14142a;--line:#26264a;--fg:#eef0ff;--mut:#a3a8c8;--acc:#6366f1;--acc2:#818cf8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:var(--acc2)}.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+header{padding:28px 0 0}header img{width:100%;border-radius:14px}
+h1{font-size:clamp(28px,4vw,46px);margin:28px 0 8px;line-height:1.15}h2{margin:48px 0 12px;font-size:26px}
+.lead{color:var(--mut);font-size:19px;max-width:760px}
+.dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:22px 0}
+.dl a{display:block;padding:14px 16px;border-radius:12px;text-decoration:none;color:var(--fg);background:var(--card);border:1px solid var(--line)}
+.dl a.p{background:linear-gradient(90deg,var(--acc),var(--acc2));border:0;color:#fff}.dl small{display:block;color:inherit;opacity:.75}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card b{display:block;margin-bottom:4px}.card p{margin:0;color:var(--mut);font-size:15px}
+.shot{width:100%;border-radius:12px;border:1px solid var(--line)}
+footer{color:var(--mut);padding:40px 0;border-top:1px solid var(--line);margin-top:56px;font-size:14px}
+</style>
+</head>
+<body><div class="wrap">
+<header><img src="banner.svg" alt="SONU: open-source voice typing"></header>
+<h1>Dictate into any app. Nothing leaves your machine.</h1>
+<p class="lead">SONU is a free, open-source voice typing app for Windows, macOS and Linux. Press a shortcut, speak, and your words are typed into whatever you are using, transcribed locally by Parakeet, Whisper or Moonshine.</p>
+<p class="lead" id="ver">Latest release: <a href="https://github.com/muhib-karim/sonu/releases/latest">see GitHub</a></p>
+<div class="dl" id="dl">
+<a class="p" data-k="win" href="https://github.com/muhib-karim/sonu/releases/latest">Windows<small>x64 installer (.exe)</small></a>
+<a data-k="macarm" href="https://github.com/muhib-karim/sonu/releases/latest">macOS · Apple Silicon<small>.dmg</small></a>
+<a data-k="macx64" href="https://github.com/muhib-karim/sonu/releases/latest">macOS · Intel<small>.dmg</small></a>
+<a data-k="appimage" href="https://github.com/muhib-karim/sonu/releases/latest">Linux<small>AppImage</small></a>
+<a data-k="deb" href="https://github.com/muhib-karim/sonu/releases/latest">Linux<small>.deb</small></a>
+<a data-k="rpm" href="https://github.com/muhib-karim/sonu/releases/latest">Linux<small>.rpm</small></a>
+</div>
+<img class="shot" src="shot-dark-home.png" alt="SONU home dashboard, dark theme" loading="lazy">
+
+<h2>Why SONU</h2>
+<div class="grid">
+<div class="card"><b>100% offline by default</b><p>Transcription runs on your device. No account, no subscription, no audio uploaded unless you turn on a cloud engine.</p></div>
+<div class="card"><b>Real-time</b><p>Live preview while you speak, then a full-accuracy final pass.</p></div>
+<div class="card"><b>Types anywhere</b><p>Browser, IDE, email, Slack, Discord, Word: anywhere you can type.</p></div>
+<div class="card"><b>50+ languages</b><p>Parakeet V3 auto-detects; Whisper covers 99 languages.</p></div>
+<div class="card"><b>Context-aware</b><p>Adapts tone and formatting to the app you are typing in.</p></div>
+<div class="card"><b>Optional AI clean-up</b><p>Removes filler words and fixes grammar with an OpenAI-compatible provider of your choice.</p></div>
+</div>
+
+<h2>Docs</h2>
+<div class="grid">
+<div class="card"><b><a href="https://github.com/muhib-karim/sonu/blob/main/INSTALL.md">Install guide</a></b><p>Per-platform steps, including first-run permissions.</p></div>
+<div class="card"><b><a href="https://github.com/muhib-karim/sonu/blob/main/ARCHITECTURE.md">Architecture</a></b><p>Tauri v2 (Rust) core, React UI, transcribe-rs engines.</p></div>
+<div class="card"><b><a href="https://github.com/muhib-karim/sonu/blob/main/docs/AI_FEATURES.md">AI features</a></b><p>Enhancement, providers and prompts.</p></div>
+<div class="card"><b><a href="https://github.com/muhib-karim/sonu/blob/main/SECURITY.md">Security</a></b><p>Privacy model and how to report issues.</p></div>
+<div class="card"><b><a href="https://github.com/muhib-karim/sonu/blob/main/CHANGELOG.md">Changelog</a></b><p>Every release, newest first.</p></div>
+<div class="card"><b><a href="https://github.com/muhib-karim/sonu/blob/main/CONTRIBUTING.md">Contributing</a></b><p>Build from source and send a PR.</p></div>
+</div>
+<footer>MIT licensed · <a href="https://github.com/muhib-karim/sonu">GitHub</a> · <a href="https://ko-fi.com/ai_dev_2024">Support on Ko-fi</a></footer>
+</div>
+<script>
+fetch("https://api.github.com/repos/muhib-karim/sonu/releases/latest").then(r=>r.json()).then(rel=>{
+  if(!rel||!rel.assets)return;
+  document.getElementById("ver").innerHTML='Latest release: <a href="'+rel.html_url+'">'+rel.tag_name+'</a>';
+  const pick={win:/_x64-setup\.exe$/,macarm:/_aarch64\.dmg$/,macx64:/_x64\.dmg$/,appimage:/\.AppImage$/,deb:/\.deb$/,rpm:/\.rpm$/};
+  document.querySelectorAll("#dl a").forEach(a=>{const m=rel.assets.find(x=>pick[a.dataset.k].test(x.name));if(m)a.href=m.browser_download_url;});
+}).catch(()=>{});
+</script>
+</body></html>
