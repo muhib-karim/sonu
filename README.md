@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="apps/tauri-v2/src-tauri/icons/icon.png" alt="SONU" width="120" />
+<img src="docs/assets/banner.svg" alt="SONU: open-source voice typing" width="100%" />
 
 # SONU
 
@@ -16,7 +16,7 @@
 [![ZAI Community](https://img.shields.io/badge/Part%20of-ZAI%20Start--up%20Community-8b5cf6?style=for-the-badge)](https://startup.z.ai/)
 [![Ko-fi](https://img.shields.io/badge/☕_Support_on_Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/ai_dev_2024)
 
-[Download](#-download) · [Features](#-features) · [Showcase](#-showcase--tauri-v2-app) · [Compare](#-how-sonu-compares) · [Docs](#-documentation) · [Contribute](#-contributing)
+[Website](https://muhib-karim.github.io/sonu/) · [Download](#-download) · [Features](#-features) · [Showcase](#-showcase--tauri-v2-app) · [Compare](#-how-sonu-compares) · [Docs](#-documentation) · [Contribute](#-contributing)
 
 </div>
 
