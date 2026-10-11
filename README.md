@@ -6,7 +6,7 @@
 
 ### The Open-Source Voice Typing Platform
 
-**Type at the speed of thought. Fully offline. Fully private.**
+**Local voice typing by default. Optional cloud features stay opt-in.**
 
 [![Latest Release](https://img.shields.io/github/v/release/muhib-karim/sonu?style=for-the-badge&label=Latest&color=6366f1)](https://github.com/muhib-karim/sonu/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/muhib-karim/sonu/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
@@ -29,6 +29,17 @@
 </div>
 
 ---
+
+## Verification scope
+
+Optional AI cleanup sends text to the remote provider you configure. It is not local-only processing.
+
+
+README/site-only changes do not trigger the Rust CI workflow because its path filters cover the app and workflow files. No CI run is promised for this documentation patch.
+
+The CI workflow checks frontend lint, types and unit tests, plus Rust formatting and Clippy. Rust runtime tests and dependency audit are advisory in the current workflow; a green overall CI badge can coexist with their failure. Windows and macOS checks compile the Parakeet/Moonshine feature set, not every engine or complete desktop interaction.
+
+Before relying on a release, test first-run permissions, model download, shortcut recording, transcription and insertion into your target app on your operating system. The model catalogue and UI screenshots are not proof of accuracy or end-to-end coverage. Cloud transcription and AI cleanup send data to the provider you configure; model downloads and enabled update checks also use the network.
 
 ## ✨ Features
 
@@ -93,7 +104,7 @@ Select any text, press the Command Mode shortcut, and speak an instruction like 
 
 ### ☁️ Cloud Transcription (Optional)
 
-Connect to **Groq**, **Deepgram**, or any **custom API endpoint** for cloud-powered transcription when you want maximum accuracy.
+Connect to **Groq**, **Deepgram**, or any **custom API endpoint** for cloud-powered transcription when you want model-dependent accuracy.
 
 </td>
 </tr>
@@ -127,8 +138,8 @@ Define shorthand codes that expand into full text blocks — perfect for emails,
 
 SONU ships with bundled Geist typography, light/dark/system themes, six accent
 presets, semantic design tokens, and a low-latency floating recording overlay.
-The local live preview begins showing text while you speak; the final pass keeps
-full accuracy and existing AI enhancement behavior.
+The local live preview begins showing text while you speak. A final transcription
+pass produces the completed text; optional AI enhancement follows the configured settings.
 
 ![SONU dark theme dashboard](apps/tauri-v2/shot-dark-home.png)
 
@@ -247,22 +258,7 @@ Choose AI dictation style presets organized by category: _Personal_, _Work_, _Em
 
 SONU supports multiple speech recognition engines and models:
 
-| Model              | Download Size | Speed      | Accuracy | Best For                            |
-| ------------------ | ------------- | ---------- | -------- | ----------------------------------- |
-| **Moonshine Base** | 58 MB         | ⚡⚡⚡⚡⚡ | ★★★☆☆    | Ultra-light English dictation       |
-| **Whisper Tiny**   | 75 MB         | ⚡⚡⚡⚡⚡ | ★★☆☆☆    | Quick tests, very old hardware      |
-| **Whisper Base**   | 142 MB        | ⚡⚡⚡⚡   | ★★★☆☆    | Lightweight multilingual dictation  |
-| **Whisper Small**  | 487 MB        | ⚡⚡⚡⚡   | ★★★☆☆    | Balanced multilingual dictation     |
-| **Whisper Medium** | 492 MB        | ⚡⚡⚡     | ★★★★☆    | High-accuracy work (quantized)      |
-| **Whisper Large**  | 1.1 GB        | ⚡         | ★★★★★    | Maximum accuracy (quantized)        |
-| **Whisper Turbo**  | 1.6 GB        | ⚡⚡       | ★★★★☆    | Large-v3 speed/accuracy balance     |
-| **Parakeet V2** ⭐ | 473 MB        | ⚡⚡⚡⚡   | ★★★★★    | English — best speed/accuracy ratio |
-| **Parakeet V3** ⭐ | 478 MB        | ⚡⚡⚡⚡   | ★★★★☆    | Multilingual — default pick         |
-
-⭐ Recommended by SONU (Parakeet V3 is the default for new installs; V2 for
-English-only). Download sizes reflect the quantized builds served by SONU's
-model catalog. All models run locally on your device — they download
-automatically on first use.
+Model families in the catalogue include Moonshine, Whisper and Parakeet. Speed, accuracy and language support depend on the model, audio, device and settings. No comparative benchmark is claimed here. Check the app's current catalogue for download sizes and supported languages; download and test the model you need before working offline.
 
 ---
 
