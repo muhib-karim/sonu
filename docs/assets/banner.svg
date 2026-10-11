@@ -11,6 +11,6 @@
     <rect x="156" y="-12" width="14" height="24" rx="7"/>
   </g>
   <text x="340" y="160" font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif" font-size="104" font-weight="800" letter-spacing="6" fill="#ffffff">SONU</text>
-  <text x="344" y="214" font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif" font-size="32" fill="#c7d2fe">Open-source voice typing. Fully offline. Fully private.</text>
-  <text x="344" y="258" font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif" font-size="24" fill="#a5b4fc">Windows · macOS · Linux  —  Parakeet · Whisper · Moonshine</text>
+  <text x="344" y="214" font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif" font-size="32" fill="#c7d2fe">Voice typing. Local transcription by default.</text>
+  <text x="344" y="258" font-family="Geist, Segoe UI, Helvetica, Arial, sans-serif" font-size="24" fill="#a5b4fc">Windows · macOS · Linux  ·  Parakeet · Whisper · Moonshine</text>
 </svg>
