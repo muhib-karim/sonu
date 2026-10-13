@@ -52,6 +52,11 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      # `tsc && vite build`: catches bundling errors (bad imports, asset paths)
+      # that `tsc --noEmit` alone does not.
+      - name: Build frontend
+        run: bun run build
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
