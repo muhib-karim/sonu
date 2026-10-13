@@ -53,6 +53,7 @@ const OVERLAY_BOTTOM_OFFSET: f64 = 40.0;
 /// This is more reliable than Tauri's set_always_on_top which can be overridden
 #[cfg(target_os = "windows")]
 fn force_overlay_topmost(overlay_window: &tauri::webview::WebviewWindow) {
+    use windows::Win32::Foundation::HWND;
     use windows::Win32::UI::WindowsAndMessaging::{
         SetWindowPos, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW,
     };
@@ -62,7 +63,12 @@ fn force_overlay_topmost(overlay_window: &tauri::webview::WebviewWindow) {
 
     // Make sure the Win32 call happens on the UI thread
     let _ = overlay_clone.clone().run_on_main_thread(move || {
-        if let Ok(hwnd) = overlay_clone.hwnd() {
+        if let Ok(tauri_hwnd) = overlay_clone.hwnd() {
+            // `hwnd()` returns the HWND from the `windows` crate version Tauri
+            // links against, which can differ from ours (Tauri >= 2.10 uses
+            // 0.62, this crate uses 0.61). Rewrap the raw handle so the call
+            // compiles regardless of which versions are in the graph.
+            let hwnd = HWND(tauri_hwnd.0);
             unsafe {
                 // Force Z-order: make this window topmost without changing size/pos or stealing focus
                 let _ = SetWindowPos(
