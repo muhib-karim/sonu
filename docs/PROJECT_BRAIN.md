@@ -47,9 +47,16 @@ Plan for slice 1:
   whisper-rs-sys forwards only WHISPER_*/CMAKE_* env to cmake, and the
   WHISPER_NATIVE alias cannot switch native off.
 
+- First branch CI run (d2c87bd): every job green except the advisory audit,
+  which flagged rustls-webpki/webpki-roots advisories published 2026-10-19/20;
+  lockfile bumped. CodeQL: 0 open alerts. Regression: whisper-tiny got the JFK
+  line right, 25.1 s for 11 s of audio (RTF 2.29) in the debug test binary on
+  ubuntu-24.04. For the slice-2 latency table measure a release build and
+  check whether whisper chose Vulkan/lavapipe or the CPU backend.
+
 ## Next step
-- Push, then watch CI (Rust Check, 3x Tauri Build, CodeQL) until green with
-  zero open code-scanning alerts on the branch.
+- Confirm CI green on the lockfile bump, then slice 2 (items 4, 6, 7, 8).
 
 ## Session log
 - 2026-10-21 21:50Z claude-opus-5-5: slice 1 implemented (tests, CI, release, provenance); next: push and get CI green.
+- 2026-10-21 22:20Z claude-opus-5-5: CI green on first push except the audit (new advisories); lockfile patched and pushed.
