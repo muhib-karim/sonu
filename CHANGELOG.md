@@ -7,6 +7,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2026-10-21
+
+Engineering and verification release: every pull request now builds the real
+installers on all three desktop platforms, the Rust tests block merges again,
+and releases ship with checksums and build provenance.
+
+### Added
+
+- **Full `tauri build` on every PR** for Windows x64 (MSI, NSIS), macOS arm64
+  (app, DMG) and Linux x64 (deb, AppImage), through the same reusable
+  `build.yml` the release uses; installers are uploaded as workflow artifacts.
+- **Whisper transcription regression in CI**: the smallest catalog model
+  (Whisper tiny) transcribes 11 s of a public-domain recording (JFK, 1961)
+  after a round trip through the app's resampler; the key phrases must match.
+- **Measured latency / real-time factor per model** on the GitHub-hosted
+  `ubuntu-24.04` runner (`benchmark.yml`, `managers/benchmark.rs`), published
+  in the README and on the website with runner, CPU, date and run id.
+- **CodeQL** (JavaScript/TypeScript) and **gitleaks** (full history and tree).
+- **Release from a tag**: `release.yml` also runs on `v*` tags (which must match
+  `tauri.conf.json`); main-push and tag runs are serialised and never build the
+  same version twice. Every release asset is listed in `SHA256SUMS` and gets a
+  Sigstore build-provenance attestation; macOS signing turns on when the Apple
+  secrets exist.
+- Unit tests: resampler (duration, pitch, split invariance), VAD smoothing
+  (onset, prefill, hangover, reset), Silero threshold guard, text
+  post-processing, settings migration (legacy log levels, oldest file shape,
+  unknown keys, idempotent backfills); Vitest for the settings input rules.
+- README section "Upstream and what this fork adds".
+
+### Fixed
+
+- **Installers depended on the build machine's CPU.** whisper.cpp compiled with
+  `-march=native` (MSVC: FindSIMD), so a binary from a runner with AVX-512
+  could crash with an illegal instruction elsewhere. It is now built with
+  `GGML_NATIVE=OFF` (portable AVX2/FMA baseline) via
+  `cmake/ggml-portable.cmake`; CI asserts the flag reached cmake. The same bug
+  caused the intermittent `SIGILL` that had made the Rust test job advisory.
+- **Crash on an empty custom-dictionary entry**: `natural::soundex` indexed the
+  first character unconditionally; with `panic = "abort"` that killed the app.
+- The custom-words add button now applies the same sanitising and duplicate
+  rules as the add action; the history limit rejects fractional input and is
+  capped at 1000.
+
+### Changed
+
+- `cargo test` is a blocking CI gate again (floor: 75 tests).
+- CI runs on every PR (no path filter) and on `upgrade/**` pushes; the cheap
+  `cargo check` platform job is replaced by the full build matrix.
+- `build.yml` inherits token permissions from its caller instead of demanding
+  `contents: write`.
+- README refreshed: per-platform build badges, install and verification steps,
+  privacy section, measured performance.
+
+### Security
+
+- `rustls` 0.23.45 → 0.23.46 (RUSTSEC-2026-0346..0349), `quinn-proto` 0.11.17 →
+  0.11.19 (RUSTSEC-2026-0338/0340/0343), `rustls-webpki` 0.103.15 → 0.103.16
+  (RUSTSEC-2026-0382), `webpki-roots` / `webpki-root-certs` 1.0.3 → 1.0.10
+  (RUSTSEC-2026-0381/0383).
+- `zip` 4.6.1 (RUSTSEC-2026-0367..0369) is documented in `.cargo/audit.toml`:
+  only `tauri-plugin-updater` uses it, only on Windows and after signature
+  verification, and no updater release allows zip ≥ 9 yet.
+
+### Known issues
+
+- On Linux, Whisper models run through whisper.cpp's Vulkan backend. Without a
+  GPU driver they fall back to Mesa's software renderer (llvmpipe), which is
+  slow (see the measured table). With no Vulkan device at all, the bundled
+  whisper.cpp calls `GGML_ABORT` (from reading its source; not reproduced).
+  transcribe-rs 0.2 offers no way to request the CPU backend.
+  Parakeet and Moonshine are unaffected.
+- Windows installers are not code-signed yet (needs a `signCommand` and
+  certificate); Windows ARM64 remains paused ([#30](https://github.com/muhib-karim/sonu/issues/30)).
+
+---
+
 ## [2.6.3] - 2026-10-03
 
 Maintenance and security release. First published build of the 2.4.0–2.6.2 work
