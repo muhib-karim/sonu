@@ -36,27 +36,18 @@ Plan for slice 1:
 6. README "Upstream and what this fork adds" section.
 
 ## Status
-- Slice 1 code complete and committed: Rust unit tests (resampler, VAD,
-  Silero guard, text, settings migration), vitest for settings inputs,
-  whisper-tiny regression test, CI matrix + gitleaks, CodeQL, release
-  checksums/provenance, portable ggml build, README provenance section.
-- Fixed on the way: empty custom word panicked in soundex; rustls and
-  quinn-proto advisories (lockfile only); zip advisory documented (no fix
-  upstream).
-- Gotchas: many source files are CRLF in the index; keep CRLF when editing.
-  whisper-rs-sys forwards only WHISPER_*/CMAKE_* env to cmake, and the
-  WHISPER_NATIVE alias cannot switch native off.
-
-- First branch CI run (d2c87bd): every job green except the advisory audit,
-  which flagged rustls-webpki/webpki-roots advisories published 2026-10-19/20;
-  lockfile bumped. CodeQL: 0 open alerts. Regression: whisper-tiny got the JFK
-  line right, 25.1 s for 11 s of audio (RTF 2.29) in the debug test binary on
-  ubuntu-24.04. For the slice-2 latency table measure a release build and
-  check whether whisper chose Vulkan/lavapipe or the CPU backend.
+- Slice 1 (CI, release, tests, provenance) and slice 2 (benchmark, README and
+  site refresh, CHANGELOG 2.7.0, version bump, SKILLS_USED, TASKS, HANDOFF)
+  done on `upgrade/v2.7.0`; code head `01ea3b9` green (CI 39687868677,
+  CodeQL 39687868624, Benchmark 39687868674), 0 code-scanning alerts.
+- Details and RUN/INFERRED labels: TASKS.md; reviewer notes: HANDOFF.md.
 
 ## Next step
-- Confirm CI green on the lockfile bump, then slice 2 (items 4, 6, 7, 8).
+- Coordinator: merge, then the release runs from main (or a v2.7.0 tag).
+- Follow-ups in HANDOFF.md "Next steps" (Whisper CPU path on Linux, AppImage
+  post-processing, Windows signing).
 
 ## Session log
 - 2026-10-21 21:50Z claude-opus-5-5: slice 1 implemented (tests, CI, release, provenance); next: push and get CI green.
 - 2026-10-21 22:20Z claude-opus-5-5: CI green on first push except the audit (new advisories); lockfile patched and pushed.
+- 2026-10-21 23:20Z claude-opus-5-5: slice 2 done (benchmark, docs, site, version 2.7.0); final docs push pending CI.

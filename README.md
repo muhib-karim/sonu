@@ -106,7 +106,7 @@ and logo are not open source, so SONU uses its own branding.
 ## Measured performance
 
 Measured in CI by [`benchmark.yml`](.github/workflows/benchmark.yml)
-([run 39685635867](https://github.com/muhib-karim/sonu/actions/runs/39685635867), commit `b201521`, **2026-10-21**) on a
+([run 39687868674](https://github.com/muhib-karim/sonu/actions/runs/39687868674), commit `01ea3b9`, **2026-10-21**) on a
 GitHub-hosted **`ubuntu-24.04`** runner: 4 vCPU (AMD EPYC 7763), 15 GB RAM,
 **no GPU**. Each model transcribes the same 11.0 s public-domain clip (JFK's
 1961 inaugural address) through the app's own engine code
@@ -118,20 +118,20 @@ per model load.
 
 | Model | Engine | Download | Load | First run | Median run (n) | RTF | Transcript |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Moonshine Base | Moonshine (ONNX Runtime) | 58 MB | 0.82 s | 1.04 s | 1.09 s (3) | **0.10** | matches |
-| Whisper Tiny | Whisper (whisper.cpp) | 75 MB | 4.42 s | 23.12 s | 14.24 s (3) | **1.29** | matches |
-| Whisper Base | Whisper (whisper.cpp) | 142 MB | 0.13 s | 27.54 s | 26.92 s (3) | **2.45** | “asked not” (one word off) |
-| Whisper Small | Whisper (whisper.cpp) | 487 MB | 0.40 s | 81.10 s | 81.76 s (2) | **7.43** | matches |
-| Parakeet V2 | Parakeet (ONNX Runtime) | 473 MB | 0.99 s | 2.18 s | 2.05 s (3) | **0.19** | matches |
-| Parakeet V3 | Parakeet (ONNX Runtime) | 478 MB | 0.97 s | 2.27 s | 2.23 s (3) | **0.20** | matches |
+| Moonshine Base | Moonshine (ONNX Runtime) | 58 MB | 0.85 s | 1.77 s | 1.79 s (3) | **0.16** | matches |
+| Whisper Tiny | Whisper (whisper.cpp) | 75 MB | 4.22 s | 23.14 s | 14.48 s (3) | **1.32** | matches |
+| Whisper Base | Whisper (whisper.cpp) | 142 MB | 0.12 s | 27.68 s | 27.51 s (3) | **2.50** | “asked not” (one word off) |
+| Whisper Small | Whisper (whisper.cpp) | 487 MB | 0.46 s | 81.02 s | 81.83 s (2) | **7.44** | matches |
+| Parakeet V2 | Parakeet (ONNX Runtime) | 473 MB | 1.11 s | 2.67 s | 2.26 s (3) | **0.21** | matches |
+| Parakeet V3 | Parakeet (ONNX Runtime) | 478 MB | 1.16 s | 2.08 s | 2.22 s (3) | **0.20** | matches |
 | Whisper Medium | Whisper (whisper.cpp) | 492 MB | not measured | | | | Whisper Small already takes 82 s per 11 s clip here |
 | Whisper Large | Whisper (whisper.cpp) | 1100 MB | not measured | | | | larger than Small; same reason |
 | Whisper Turbo | Whisper (whisper.cpp) | 1600 MB | not measured | | | | larger than Small; same reason |
 
 How to read it:
 
-- **Parakeet and Moonshine run on the CPU through ONNX Runtime** and are 5–10×
-  faster than real time on this 4-vCPU runner. Parakeet V3 is the app's default.
+- **Parakeet and Moonshine run on the CPU through ONNX Runtime** and run at least
+  5× faster than real time on this 4-vCPU runner. Parakeet V3 is the app's default.
 - **Whisper is slow here for a specific reason**: on Linux it is built with the
   Vulkan backend, and with no GPU the only Vulkan device is Mesa's `llvmpipe`, a
   software renderer emulating a GPU on the CPU (the log shows
@@ -140,6 +140,9 @@ How to read it:
   Whisper Tiny's load time includes the one-off Vulkan initialisation.
 - **Not measured** (INFERRED, no numbers given): GPU performance on any platform,
   Windows and macOS (macOS uses Metal), and the three largest Whisper models.
+- **Run-to-run spread**: across this run and an earlier one the same day
+  ([39685635867](https://github.com/muhib-karim/sonu/actions/runs/39685635867), runner image 20261012) RTF ranged: Moonshine Base 0.10–0.16, Whisper Tiny 1.29–1.32, Whisper Base 2.45–2.50, Whisper Small 7.43–7.44, Parakeet V2 0.19–0.21, Parakeet V3 0.20–0.20.
+  Treat differences under about 0.07 between CPU rows as noise.
 - The "Transcript" column checks for the phrase "ask not what your country can do
   for you"; it is a sanity check on one clip, not an accuracy benchmark.
 

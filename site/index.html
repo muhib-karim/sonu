@@ -81,18 +81,18 @@ footer{color:var(--mut);padding:40px 0;border-top:1px solid var(--line);margin-t
 <div class="tbl"><table>
 <thead><tr><th>Model</th><th>Runtime</th><th class="n">Download</th><th class="n">Load</th><th class="n">First run</th><th class="n">Median run</th><th class="n">RTF</th><th>Transcript</th></tr></thead>
 <tbody>
-<tr><td>Moonshine Base</td><td>ONNX Runtime, CPU</td><td class="n">58 MB</td><td class="n">0.82 s</td><td class="n">1.04 s</td><td class="n">1.09 s <span class="mut">(3)</span></td><td class="n fast">0.10</td><td>matches</td></tr>
-<tr><td>Whisper Tiny</td><td>whisper.cpp, Vulkan</td><td class="n">75 MB</td><td class="n">4.42 s</td><td class="n">23.12 s</td><td class="n">14.24 s <span class="mut">(3)</span></td><td class="n slow">1.29</td><td>matches</td></tr>
-<tr><td>Whisper Base</td><td>whisper.cpp, Vulkan</td><td class="n">142 MB</td><td class="n">0.13 s</td><td class="n">27.54 s</td><td class="n">26.92 s <span class="mut">(3)</span></td><td class="n slow">2.45</td><td class="w">“asked not” (one word off)</td></tr>
-<tr><td>Whisper Small</td><td>whisper.cpp, Vulkan</td><td class="n">487 MB</td><td class="n">0.40 s</td><td class="n">81.10 s</td><td class="n">81.76 s <span class="mut">(2)</span></td><td class="n slow">7.43</td><td>matches</td></tr>
-<tr><td>Parakeet V2</td><td>ONNX Runtime, CPU</td><td class="n">473 MB</td><td class="n">0.99 s</td><td class="n">2.18 s</td><td class="n">2.05 s <span class="mut">(3)</span></td><td class="n fast">0.19</td><td>matches</td></tr>
-<tr><td>Parakeet V3</td><td>ONNX Runtime, CPU</td><td class="n">478 MB</td><td class="n">0.97 s</td><td class="n">2.27 s</td><td class="n">2.23 s <span class="mut">(3)</span></td><td class="n fast">0.20</td><td>matches</td></tr>
+<tr><td>Moonshine Base</td><td>ONNX Runtime, CPU</td><td class="n">58 MB</td><td class="n">0.85 s</td><td class="n">1.77 s</td><td class="n">1.79 s <span class="mut">(3)</span></td><td class="n fast">0.16</td><td>matches</td></tr>
+<tr><td>Whisper Tiny</td><td>whisper.cpp, Vulkan</td><td class="n">75 MB</td><td class="n">4.22 s</td><td class="n">23.14 s</td><td class="n">14.48 s <span class="mut">(3)</span></td><td class="n slow">1.32</td><td>matches</td></tr>
+<tr><td>Whisper Base</td><td>whisper.cpp, Vulkan</td><td class="n">142 MB</td><td class="n">0.12 s</td><td class="n">27.68 s</td><td class="n">27.51 s <span class="mut">(3)</span></td><td class="n slow">2.50</td><td class="w">“asked not” (one word off)</td></tr>
+<tr><td>Whisper Small</td><td>whisper.cpp, Vulkan</td><td class="n">487 MB</td><td class="n">0.46 s</td><td class="n">81.02 s</td><td class="n">81.83 s <span class="mut">(2)</span></td><td class="n slow">7.44</td><td>matches</td></tr>
+<tr><td>Parakeet V2</td><td>ONNX Runtime, CPU</td><td class="n">473 MB</td><td class="n">1.11 s</td><td class="n">2.67 s</td><td class="n">2.26 s <span class="mut">(3)</span></td><td class="n fast">0.21</td><td>matches</td></tr>
+<tr><td>Parakeet V3</td><td>ONNX Runtime, CPU</td><td class="n">478 MB</td><td class="n">1.16 s</td><td class="n">2.08 s</td><td class="n">2.22 s <span class="mut">(3)</span></td><td class="n fast">0.20</td><td>matches</td></tr>
 <tr><td>Whisper Medium</td><td>whisper.cpp, Vulkan</td><td class="n">492 MB</td><td colspan="5" class="mut w">not measured: Whisper Small already takes 82 s per 11 s clip here</td></tr>
 <tr><td>Whisper Large</td><td>whisper.cpp, Vulkan</td><td class="n">1100 MB</td><td colspan="5" class="mut w">not measured: larger than Small; same reason</td></tr>
 <tr><td>Whisper Turbo</td><td>whisper.cpp, Vulkan</td><td class="n">1600 MB</td><td colspan="5" class="mut w">not measured: larger than Small; same reason</td></tr>
 </tbody>
 </table></div>
-<p class="meta">Measured in CI on 2026-10-21 by <a href="https://github.com/muhib-karim/sonu/actions/runs/39685635867">benchmark run 39685635867</a>: GitHub-hosted <code>ubuntu-24.04</code> runner, 4 vCPU AMD EPYC 7763, 15 GB RAM, no GPU. Parakeet and Moonshine run on the CPU via ONNX Runtime. Whisper uses its Vulkan backend, which on a machine without a GPU means Mesa&rsquo;s llvmpipe software renderer, so its rows are a GPU-less worst case, not native CPU or GPU speed. GPU, Windows and macOS speeds are not measured. The transcript column checks one phrase on one clip; it is not an accuracy benchmark.</p>
+<p class="meta">Measured in CI on 2026-10-21 by <a href="https://github.com/muhib-karim/sonu/actions/runs/39687868674">benchmark run 39687868674</a>: GitHub-hosted <code>ubuntu-24.04</code> runner, 4 vCPU AMD EPYC 7763, 15 GB RAM, no GPU. Parakeet and Moonshine run on the CPU via ONNX Runtime. Whisper uses its Vulkan backend, which on a machine without a GPU means Mesa&rsquo;s llvmpipe software renderer, so its rows are a GPU-less worst case, not native CPU or GPU speed. An earlier run the same day (<a href="https://github.com/muhib-karim/sonu/actions/runs/39685635867">39685635867</a>) agreed within 0.07 RTF on every row. GPU, Windows and macOS speeds are not measured. The transcript column checks one phrase on one clip; it is not an accuracy benchmark.</p>
 
 <h2>Privacy</h2>
 <div class="cols">
