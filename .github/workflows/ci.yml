@@ -1,16 +1,17 @@
 name: "CI"
 
+# Runs on every PR (no path filter: a docs-only PR must still produce the
+# required checks, and the build matrix is the merge gate), on main, and on
+# pushes to upgrade/** branches so release work is verified before its PR.
 on:
   push:
-    branches: [main]
-    paths:
-      - "apps/tauri-v2/**"
-      - ".github/workflows/ci.yml"
+    branches: [main, "upgrade/**"]
   pull_request:
     branches: [main]
-    paths:
-      - "apps/tauri-v2/**"
-      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -85,12 +86,48 @@ jobs:
       - name: Check for new unwrap()/expect() sites
         run: bash scripts/check-panic-ratchet.sh
 
+  # Secret scan over the full history and the working tree. The binary is
+  # pinned by version and sha256 instead of using gitleaks-action, which needs
+  # a licence key for organisation accounts and an API token for PR commit
+  # listing. Known historical fixtures are fingerprinted in .gitleaksignore.
+  gitleaks:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/gitleaks.tar.gz"
+          curl -fsSL --retry 3 -o "$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $archive" | sha256sum -c -
+          tar -xzf "$archive" -C "$RUNNER_TEMP" gitleaks
+
+      - name: Scan git history
+        run: '"$RUNNER_TEMP/gitleaks" git --no-banner --redact --verbose .'
+
+      - name: Scan working tree
+        run: '"$RUNNER_TEMP/gitleaks" dir --no-banner --redact .'
+
   rust-check:
     name: Rust Check
     runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: apps/tauri-v2/src-tauri
+    env:
+      # whisper.cpp otherwise compiles with -march=native; see the file.
+      CMAKE_PROJECT_INCLUDE_BEFORE: ${{ github.workspace }}/apps/tauri-v2/src-tauri/cmake/ggml-portable.cmake
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
 
@@ -101,6 +138,10 @@ jobs:
       - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.8.2
         with:
           workspaces: "./apps/tauri-v2/src-tauri -> target"
+          # whisper-rs-sys has no rerun-if-env-changed for cmake flags, so the
+          # cache key is what forces the portable rebuild. Bump it whenever
+          # cmake/ggml-portable.cmake changes.
+          key: portable-ggml-v1
 
       - name: Install system dependencies
         run: |
@@ -138,23 +179,16 @@ jobs:
           cargo clippy --all-targets -- -D warnings 2>&1 | tee clippy-output.txt
         # The build.yml reusable workflow handles the full multi-platform build.
 
-      # Clippy compiles the test target but nothing ever *runs* it, so the Rust
-      # suite (52 tests, including the regression tests for the deadlock, crash and
-      # data-loss fixes) was unexercised in CI. The toolchain, Vulkan SDK and
-      # libclang are already set up and the dependencies are already built by this
-      # point, so this costs little. The keychain tests are fine here: `keyring` is
-      # pulled with the `linux-native` feature (kernel keyutils), which needs no
-      # Secret Service daemon.
+      # The Rust suite is a blocking gate. It used to be `continue-on-error`
+      # because the test binary sometimes died with `SIGILL` before running a
+      # test. Root cause: whisper.cpp was compiled with -march=native and
+      # rust-cache restored those objects onto runners with a different CPU.
+      # The portable ggml build above removes that, so a failure here is real.
+      #
+      # The keychain tests are fine here: `keyring` is pulled with the
+      # `linux-native` feature (kernel keyutils), which needs no Secret Service
+      # daemon.
       - name: Tests
-        id: tests
-        # Advisory, not blocking. The test binary links the prebuilt ONNX Runtime
-        # (via `ort`) and whisper.cpp, and on some runner CPUs it aborts with
-        # `SIGILL: illegal instruction` before a single test executes — the same
-        # code passed on three earlier runs and failed on a fourth. It is an
-        # environment capability difference, not a test failure, so a retry would
-        # not help (same CPU). Until the offending instruction is identified,
-        # report the result instead of blocking on it.
-        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
@@ -162,18 +196,71 @@ jobs:
           # Guard against the suite silently running nothing: `cargo test` exits 0
           # when zero tests match a filter, which is the same "gate reports green
           # while doing nothing" failure mode that hid the clippy regression for
-          # two days. The suite is 52 tests; 45 is the floor, so adding tests is
+          # two days. The suite is 78 tests; 75 is the floor, so adding tests is
           # fine but quietly losing the suite is not.
           #
           # `grep -m1` rather than `grep | head`: head would raise SIGPIPE under the
           # `pipefail` set above.
           line=$(grep -m1 -oE 'test result: ok\. [0-9]+ passed' test-output.txt || true)
           ran=$(printf '%s' "$line" | tr -dc '0-9')
-          if [ -z "$ran" ] || [ "$ran" -lt 45 ]; then
-            printf '::error title=Rust test failure::expected at least 45 Rust tests to run, saw "%s"\n' "${ran:-none}"
+          if [ -z "$ran" ] || [ "$ran" -lt 75 ]; then
+            printf '::error title=Rust test failure::expected at least 75 Rust tests to run, saw "%s"\n' "${ran:-none}"
             exit 1
           fi
           echo "Rust tests ran: $ran"
+
+      # Proves the portable flag reached whisper.cpp's cmake configure rather
+      # than trusting the env var: the cache must record GGML_NATIVE=OFF.
+      - name: Verify portable whisper.cpp build
+        shell: bash
+        run: |
+          set -euo pipefail
+          caches=$(find target/debug/build -path '*whisper-rs-sys-*/out/build/CMakeCache.txt')
+          [ -n "$caches" ] || { echo "::error::no whisper-rs-sys CMakeCache.txt found"; exit 1; }
+          grep -h '^GGML_NATIVE:' $caches
+          if grep -hq '^GGML_NATIVE:BOOL=ON' $caches; then
+            echo "::error title=Non-portable build::whisper.cpp was configured with GGML_NATIVE=ON"
+            exit 1
+          fi
+
+      - name: Cache regression fixtures
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/sonu-regression
+          key: regression-ggml-tiny-be07e048-jfk-59dfb9a4
+
+      # End-to-end check on real speech: the smallest catalog model (Whisper
+      # tiny, 75 MB) on 11 s of JFK's 1961 inaugural address (public domain,
+      # from the whisper.cpp samples). Both downloads are sha256-pinned; the
+      # model hash is the one in resources/models.json. Runs in seconds once
+      # the test binary is built, well inside the 10-minute budget.
+      - name: Transcription regression (whisper tiny)
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="$HOME/.cache/sonu-regression"
+          mkdir -p "$dir"
+          fetch() {
+            local url=$1 out=$2 sha=$3
+            if ! echo "$sha  $out" | sha256sum -c --status 2>/dev/null; then
+              curl -fsSL --retry 3 -o "$out" "$url"
+              echo "$sha  $out" | sha256sum -c -
+            fi
+          }
+          fetch https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin \
+            "$dir/ggml-tiny.bin" be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21
+          fetch https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.7.5/samples/jfk.wav \
+            "$dir/jfk.wav" 59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e
+          export SONU_REGRESSION_MODEL="$dir/ggml-tiny.bin" SONU_REGRESSION_WAV="$dir/jfk.wav"
+          cargo test --lib regression_tests -- --ignored --nocapture 2>&1 | tee regression-output.txt
+          grep -q 'test result: ok\. 1 passed' regression-output.txt || {
+            echo "::error title=Transcription regression::the regression test did not run"
+            exit 1
+          }
+          # Surface wall time and real-time factor as an annotation.
+          summary=$(grep -m1 -o 'regression: audio=.*' regression-output.txt || true)
+          echo "::notice title=Transcription regression::${summary:-no timing line}"
 
       # The Clippy and Tests steps tee their output to files, but a runner is
       # ephemeral — without this the files die with it and a failure leaves no
@@ -181,15 +268,14 @@ jobs:
       # undiagnosed). `if-no-files-found: ignore` keeps this from failing the job
       # when the failure came from an earlier step.
       - name: Upload logs
-        # `steps.tests.outcome` as well as `failure()`: the Tests step is
-        # `continue-on-error`, so its failure does not fail the job.
-        if: failure() || steps.tests.outcome == 'failure'
+        if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.0
         with:
           name: rust-check-logs
           path: |
             apps/tauri-v2/src-tauri/clippy-output.txt
             apps/tauri-v2/src-tauri/test-output.txt
+            apps/tauri-v2/src-tauri/regression-output.txt
           if-no-files-found: ignore
 
       # Downloading the job log requires admin rights on the repository, and the
@@ -200,17 +286,19 @@ jobs:
         if: failure()
         shell: bash
         run: |
+          [ -f clippy-output.txt ] || exit 0
           bash "$GITHUB_WORKSPACE/apps/tauri-v2/scripts/ci-annotate-failure.sh" \
             clippy-output.txt "Clippy failure"
 
       - name: Surface test failure
-        # `failure()` would not fire: the Tests step is `continue-on-error`, so it
-        # does not put the job into a failed state. Key off the step's own outcome.
-        if: steps.tests.outcome == 'failure'
+        if: failure()
         shell: bash
         run: |
-          bash "$GITHUB_WORKSPACE/apps/tauri-v2/scripts/ci-annotate-failure.sh" \
-            test-output.txt "Rust test failure"
+          for log in test-output.txt regression-output.txt; do
+            [ -f "$log" ] || continue
+            bash "$GITHUB_WORKSPACE/apps/tauri-v2/scripts/ci-annotate-failure.sh" \
+              "$log" "Rust test failure ($log)"
+          done
 
   # Advisory: reports known vulnerabilities in the Rust dependency graph.
   # Non-blocking while the existing advisory backlog is triaged; make it a
@@ -242,42 +330,42 @@ jobs:
           # does not apply here because this is a `uses:` step, not a `run:` step.
           working-directory: apps/tauri-v2/src-tauri
           # The action builds its own cargo-audit flags and does not read
-          # .cargo/audit.toml, so the documented exception is repeated here.
+          # .cargo/audit.toml, so the documented exceptions are repeated here.
           # Reason: apps/tauri-v2/src-tauri/.cargo/audit.toml.
-          ignore: RUSTSEC-2026-0235
+          ignore: RUSTSEC-2026-0235,RUSTSEC-2026-0367,RUSTSEC-2026-0368,RUSTSEC-2026-0369
 
-  # Nothing else in CI compiles the Rust code for Windows or macOS: the clippy and
-  # test jobs are Linux-only, and build.yml only runs on a release. Every
-  # platform-gated bug in this repo's history came from that blind spot — the
-  # Unix-gated clippy lints, a macOS `E0384` in lib.rs, and a Windows
-  # cmake/Visual-Studio-2026 failure that broke releases for a week.
+  # Full `tauri build` on every PR for the three shipped platforms, through
+  # the same reusable workflow the release uses. This replaces the old
+  # `cargo check` platform job: every platform-gated break in this repo's
+  # history (Unix-only clippy lints, a macOS E0384, a Windows cmake/VS failure
+  # that blocked releases for a week) was invisible until release time.
   #
-  # This is the cheap half of the guard: `--no-default-features --features
-  # parakeet,moonshine` skips `whisper`, so neither libclang nor the Vulkan SDK is
-  # needed and the job is a few minutes per leg. It would have caught the `E0384`
-  # immediately. Failures in the whisper/CMake path itself still need the full
-  # build, which build.yml covers on release.
-  platform-check:
-    name: Platform Check (${{ matrix.platform }})
-    runs-on: ${{ matrix.platform }}
+  # No secrets are passed, so these builds are unsigned and updater artifacts
+  # are switched off (they require the minisign private key). Installers are
+  # uploaded as workflow artifacts for 30 days.
+  tauri-build:
+    name: Tauri Build (${{ matrix.name }})
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest, macos-15]
-    defaults:
-      run:
-        working-directory: apps/tauri-v2/src-tauri
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
-
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-
-      - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.8.2
-        with:
-          workspaces: "./apps/tauri-v2/src-tauri -> target"
-
-      # `--all-targets` so platform-gated *test* code is compiled too: the
-      # whisper-gated `mod tests` that broke CI on 2026-09-11 was only ever
-      # compiled by clippy's `--all-targets` on Linux.
-      - name: cargo check
-        run: cargo check --all-targets --no-default-features --features parakeet,moonshine
+        include:
+          - name: Windows x64
+            platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: --bundles msi,nsis
+          - name: macOS arm64
+            platform: macos-15
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin --bundles app,dmg
+          - name: Linux x64
+            platform: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            args: --bundles deb,appimage
+    uses: ./.github/workflows/build.yml
+    with:
+      platform: ${{ matrix.platform }}
+      target: ${{ matrix.target }}
+      build-args: >-
+        ${{ matrix.args }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
+      asset-prefix: sonu-ci
+      upload-artifacts: true
