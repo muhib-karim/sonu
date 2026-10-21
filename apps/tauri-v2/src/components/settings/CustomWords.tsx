@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSettings } from "../../hooks/useSettings";
+import { normalizeCustomWord } from "../../lib/utils/settingsInput";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 import { SettingContainer } from "../ui/SettingContainer";
@@ -16,17 +17,11 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
     const { getSetting, updateSetting, isUpdating } = useSettings();
     const [newWord, setNewWord] = useState("");
     const customWords = getSetting("custom_words") || [];
+    const wordToAdd = normalizeCustomWord(newWord, customWords);
 
     const handleAddWord = () => {
-      const trimmedWord = newWord.trim();
-      const sanitizedWord = trimmedWord.replace(/[<>"'&]/g, "");
-      if (
-        sanitizedWord &&
-        !sanitizedWord.includes(" ") &&
-        sanitizedWord.length <= 50 &&
-        !customWords.includes(sanitizedWord)
-      ) {
-        void updateSetting("custom_words", [...customWords, sanitizedWord]);
+      if (wordToAdd !== null) {
+        void updateSetting("custom_words", [...customWords, wordToAdd]);
         setNewWord("");
       }
     };
@@ -66,12 +61,7 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
             />
             <Button
               onClick={handleAddWord}
-              disabled={
-                !newWord.trim() ||
-                newWord.includes(" ") ||
-                newWord.trim().length > 50 ||
-                isUpdating("custom_words")
-              }
+              disabled={wordToAdd === null || isUpdating("custom_words")}
               variant="primary"
               size="md"
             >
