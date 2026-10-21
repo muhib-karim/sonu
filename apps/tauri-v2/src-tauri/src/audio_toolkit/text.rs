@@ -46,6 +46,13 @@ pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -
         let mut best_score = f64::MAX;
 
         for (i, custom_word_lower) in custom_words_lower.iter().enumerate() {
+            // `natural::soundex` indexes the first character unconditionally,
+            // so an empty entry (possible in a hand-edited settings file)
+            // would panic and, with `panic = "abort"`, kill the app.
+            if custom_word_lower.is_empty() {
+                continue;
+            }
+
             // Skip if lengths are too different (optimization)
             let len_diff = (cleaned_word.len() as i32 - custom_word_lower.len() as i32).abs();
             if len_diff > 5 {
@@ -219,5 +226,43 @@ mod tests {
         let custom_words = vec![];
         let result = apply_custom_words(text, &custom_words, 0.5);
         assert_eq!(result, "hello world");
+    }
+
+    /// Regression: `natural::soundex` indexes `chars[0]`, so comparing against
+    /// an empty custom word panicked (and aborted the release build).
+    #[test]
+    fn test_empty_custom_word_entry_does_not_panic() {
+        let custom_words = vec![String::new(), "hello".to_string()];
+        let result = apply_custom_words("helo there", &custom_words, 0.5);
+        assert_eq!(result, "hello there");
+    }
+
+    #[test]
+    fn test_threshold_zero_disables_correction() {
+        // The comparison is strict (`score < threshold`), so 0.0 turns the
+        // feature off even for words that differ only in case.
+        let custom_words = vec!["Hello".to_string()];
+        assert_eq!(
+            apply_custom_words("hello helo", &custom_words, 0.0),
+            "hello helo"
+        );
+    }
+
+    #[test]
+    fn test_phonetic_match_is_preferred_at_default_threshold() {
+        // 0.18 is the shipped default (`default_word_correction_threshold`).
+        let custom_words = vec!["Smith".to_string()];
+        // "smyth" sounds like "smith" (Soundex S530): 1/5 edits * 0.3 = 0.06.
+        assert_eq!(apply_custom_words("smyth", &custom_words, 0.18), "Smith");
+        // "smitz" is also one edit away but sounds different (S532): 0.2 is
+        // above the threshold, so it is left alone.
+        assert_eq!(apply_custom_words("smitz", &custom_words, 0.18), "smitz");
+    }
+
+    #[test]
+    fn test_overlong_words_are_not_corrected() {
+        let long = "a".repeat(60);
+        let custom_words = vec![long.to_uppercase()];
+        assert_eq!(apply_custom_words(&long, &custom_words, 0.5), long);
     }
 }
