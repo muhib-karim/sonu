@@ -46,8 +46,10 @@ on:
 
 jobs:
   build:
-    permissions:
-      contents: write
+    # No job-level `permissions`: they are inherited from the caller. The
+    # release job grants `contents: write` (tauri-action uploads assets); CI
+    # calls this with a read-only token, and a nested job may not ask for more
+    # than its caller has.
     runs-on: ${{ inputs.platform }}
     steps:
       - name: Checkout repository
@@ -101,7 +103,18 @@ jobs:
         uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.8.2
         with:
           workspaces: "./apps/tauri-v2/src-tauri -> target"
-          key: ${{ inputs.platform }}-${{ inputs.target }}
+          # `portable-ggml-v1` forces whisper.cpp to rebuild with the flag below
+          # (its build script does not rerun when cmake env vars change).
+          key: ${{ inputs.platform }}-${{ inputs.target }}-portable-ggml-v1
+
+      # whisper.cpp defaults to -march=native (MSVC: FindSIMD), which tunes the
+      # installer to the runner's CPU, so users without e.g. AVX-512 crashed
+      # with an illegal instruction. See src-tauri/cmake/ggml-portable.cmake.
+      # Forward slashes because cmake treats backslashes in paths as escapes.
+      - name: Use portable whisper.cpp build
+        shell: bash
+        run: |
+          echo "CMAKE_PROJECT_INCLUDE_BEFORE=${GITHUB_WORKSPACE//\\//}/apps/tauri-v2/src-tauri/cmake/ggml-portable.cmake" >> "$GITHUB_ENV"
 
       - name: Install dependencies (Ubuntu 24.04)
         if: contains(inputs.platform, 'ubuntu-24.04')
@@ -244,8 +257,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          WHISPER_NO_AVX: ${{ contains(inputs.platform, 'ubuntu') && 'ON' || '' }}
-          WHISPER_NO_AVX2: ${{ contains(inputs.platform, 'ubuntu') && 'ON' || '' }}
         with:
           projectPath: apps/tauri-v2
           tagName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
@@ -271,8 +282,6 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          WHISPER_NO_AVX: ${{ contains(inputs.platform, 'ubuntu') && 'ON' || '' }}
-          WHISPER_NO_AVX2: ${{ contains(inputs.platform, 'ubuntu') && 'ON' || '' }}
         with:
           projectPath: apps/tauri-v2
           tagName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
@@ -294,9 +303,6 @@ jobs:
         if: failure()
         shell: bash
         working-directory: apps/tauri-v2/src-tauri
-        env:
-          WHISPER_NO_AVX: ${{ contains(inputs.platform, 'ubuntu') && 'ON' || '' }}
-          WHISPER_NO_AVX2: ${{ contains(inputs.platform, 'ubuntu') && 'ON' || '' }}
         run: |
           set +e
           # `--bundles` is a Tauri flag, not a cargo one, so only the target is
