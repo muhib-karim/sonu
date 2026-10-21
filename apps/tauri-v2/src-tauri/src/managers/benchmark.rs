@@ -42,7 +42,8 @@ const MAX_TIMED_RUNS: usize = 3;
 enum Engine {
     Whisper(WhisperEngine),
     Parakeet(ParakeetEngine),
-    Moonshine(MoonshineEngine),
+    // Boxed: the Moonshine engine is over 1 KB, the others a few hundred bytes.
+    Moonshine(Box<MoonshineEngine>),
 }
 
 impl Engine {
@@ -71,7 +72,7 @@ impl Engine {
                 engine
                     .load_model_with_params(path, params)
                     .map_err(failed)?;
-                Engine::Moonshine(engine)
+                Engine::Moonshine(Box::new(engine))
             }
         })
     }
