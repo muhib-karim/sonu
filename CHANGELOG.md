@@ -15,8 +15,9 @@ and releases ship with checksums and build provenance.
 
 ### Added
 
-- **Full `tauri build` on every PR** for Windows x64 (MSI, NSIS), macOS arm64
-  (app, DMG) and Linux x64 (deb, AppImage), through the same reusable
+- **Full `tauri build` on every PR** for every release target: Windows x64
+  (MSI, NSIS), macOS arm64 and x64 (app, DMG) and Linux x64 (deb, AppImage,
+  rpm), through the same reusable
   `build.yml` the release uses; installers are uploaded as workflow artifacts.
 - **Whisper transcription regression in CI**: the smallest catalog model
   (Whisper tiny) transcribes 11 s of a public-domain recording (JFK, 1961)

@@ -4,12 +4,21 @@
 
 **Private, offline voice typing for your desktop: press a shortcut, speak, and the text is typed into the app you're using.**
 
-[![License: MIT](https://img.shields.io/github/license/muhib-karim/sonu)](LICENSE)
-[![Top language](https://img.shields.io/github/languages/top/muhib-karim/sonu)](https://github.com/muhib-karim/sonu)
-[![CI](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml/badge.svg)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
+[![CI](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
+[![Windows build](https://img.shields.io/github/check-runs/muhib-karim/sonu/main?nameFilter=Tauri%20Build%20%28Windows%20x64%29%20%2F%20build&label=Windows%20build&logo=windows)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
+[![macOS build](https://img.shields.io/github/check-runs/muhib-karim/sonu/main?nameFilter=Tauri%20Build%20%28macOS%20arm64%29%20%2F%20build&label=macOS%20build&logo=apple)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
+[![Linux build](https://img.shields.io/github/check-runs/muhib-karim/sonu/main?nameFilter=Tauri%20Build%20%28Linux%20x64%29%20%2F%20build&label=Linux%20build&logo=linux)](https://github.com/muhib-karim/sonu/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/muhib-karim/sonu/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/muhib-karim/sonu/actions/workflows/codeql.yml)
+<br/>
 [![Latest release](https://img.shields.io/github/v/release/muhib-karim/sonu)](https://github.com/muhib-karim/sonu/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/muhib-karim/sonu/total)](https://github.com/muhib-karim/sonu/releases)
+[![License: MIT](https://img.shields.io/github/license/muhib-karim/sonu)](LICENSE)
 
-[Website](https://muhib-karim.github.io/sonu/) · [Download](#download) · [Features](#key-features) · [Architecture](#architecture) · [Testing](#testing)
+[Website](https://muhib-karim.github.io/sonu/) · [Download](#download) · [Features](#key-features) · [Performance](#measured-performance) · [Privacy](#privacy) · [Architecture](#architecture) · [Testing](#testing)
+
+<img src="apps/tauri-v2/shot-dark-home.png" alt="SONU home dashboard in the dark theme" width="88%" />
+
+<sub>Home dashboard, captured from the Windows build of the Tauri v2 app.</sub>
 
 </div>
 
@@ -56,7 +65,7 @@ and logo are not open source, so SONU uses its own branding.
 | Spoken commands ("new line", "new paragraph") and user-defined voice macros | 2.6.0 | [`apply_voice_commands`](apps/tauri-v2/src-tauri/src/actions.rs) |
 | Model download integrity checks (sha256, or the object-store ETag) and resumable partials | 2.6.1 | [`managers/model.rs`](apps/tauri-v2/src-tauri/src/managers/model.rs) |
 | Crash hardening under `panic = "abort"`, with a CI ratchet against new `unwrap()`/`expect()` sites | 2.6.1 | [`check-panic-ratchet.sh`](apps/tauri-v2/scripts/check-panic-ratchet.sh) |
-| Full `tauri build` on every PR for Windows x64, macOS arm64 and Linux x64; blocking Rust tests including a Whisper transcription regression; CodeQL; gitleaks | 2.7.0 | [`ci.yml`](.github/workflows/ci.yml), [`codeql.yml`](.github/workflows/codeql.yml) |
+| Full `tauri build` on every PR for every release target (Windows x64, macOS arm64 and x64, Linux x64); blocking Rust tests including a Whisper transcription regression; CodeQL; gitleaks | 2.7.0 | [`ci.yml`](.github/workflows/ci.yml), [`codeql.yml`](.github/workflows/codeql.yml) |
 | Portable whisper.cpp build (no `-march=native`, so installers no longer depend on the build machine's CPU) | 2.7.0 | [`ggml-portable.cmake`](apps/tauri-v2/src-tauri/cmake/ggml-portable.cmake) |
 | Tagged releases with `SHA256SUMS` and Sigstore build-provenance attestations | 2.7.0 | [`release.yml`](.github/workflows/release.yml) |
 
@@ -76,14 +85,6 @@ and logo are not open source, so SONU uses its own branding.
 | **Themes & i18n** | Light, dark and system themes, accent presets, and a translated UI (i18next). |
 | **Secrets in the OS keychain** | API keys are stored with the platform credential store (`keyring`), not in plain settings files. |
 
-<div align="center">
-
-![SONU dark theme home dashboard](apps/tauri-v2/shot-dark-home.png)
-
-<sub>Home dashboard, captured from the Windows build of the Tauri v2 app.</sub>
-
-</div>
-
 ### Verification scope
 
 - Optional AI cleanup and cloud transcription send text or audio to the remote
@@ -92,13 +93,77 @@ and logo are not open source, so SONU uses its own branding.
 - CI checks frontend lint, types, build and unit tests; Rust formatting, Clippy
   (`-D warnings`) and the Rust unit tests, all blocking; a Whisper-tiny
   transcription regression on a public-domain recording; and a full
-  `tauri build` for Windows x64, macOS arm64 and Linux x64. The dependency audit
+  `tauri build` for Windows x64, macOS arm64 and x64, and Linux x64. The dependency audit
   is advisory. None of this exercises real microphones, OS permissions or
   insertion into other apps.
 - Before relying on a release, test first-run permissions, model download,
   shortcut recording, transcription and insertion into your target app on your
-  OS. The model catalogue and screenshots are not proof of accuracy. No
-  speed or accuracy benchmark is claimed here.
+  OS. The model catalogue and screenshots are not proof of accuracy. Speed
+  figures come only from the CI runner described under
+  [Measured performance](#measured-performance); no accuracy benchmark is
+  claimed.
+
+## Measured performance
+
+Measured in CI by [`benchmark.yml`](.github/workflows/benchmark.yml)
+([run 39685635867](https://github.com/muhib-karim/sonu/actions/runs/39685635867), commit `b201521`, **2026-10-21**) on a
+GitHub-hosted **`ubuntu-24.04`** runner: 4 vCPU (AMD EPYC 7763), 15 GB RAM,
+**no GPU**. Each model transcribes the same 11.0 s public-domain clip (JFK's
+1961 inaugural address) through the app's own engine code
+([`managers/benchmark.rs`](apps/tauri-v2/src-tauri/src/managers/benchmark.rs)),
+built with the shipped `release` profile. **RTF** = median processing time ÷
+audio length; below 1 is faster than real time. "First run" includes one-off
+setup (Vulkan pipeline compilation, ONNX Runtime graph optimisation) paid once
+per model load.
+
+| Model | Engine | Download | Load | First run | Median run (n) | RTF | Transcript |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Moonshine Base | Moonshine (ONNX Runtime) | 58 MB | 0.82 s | 1.04 s | 1.09 s (3) | **0.10** | matches |
+| Whisper Tiny | Whisper (whisper.cpp) | 75 MB | 4.42 s | 23.12 s | 14.24 s (3) | **1.29** | matches |
+| Whisper Base | Whisper (whisper.cpp) | 142 MB | 0.13 s | 27.54 s | 26.92 s (3) | **2.45** | “asked not” (one word off) |
+| Whisper Small | Whisper (whisper.cpp) | 487 MB | 0.40 s | 81.10 s | 81.76 s (2) | **7.43** | matches |
+| Parakeet V2 | Parakeet (ONNX Runtime) | 473 MB | 0.99 s | 2.18 s | 2.05 s (3) | **0.19** | matches |
+| Parakeet V3 | Parakeet (ONNX Runtime) | 478 MB | 0.97 s | 2.27 s | 2.23 s (3) | **0.20** | matches |
+| Whisper Medium | Whisper (whisper.cpp) | 492 MB | not measured | | | | Whisper Small already takes 82 s per 11 s clip here |
+| Whisper Large | Whisper (whisper.cpp) | 1100 MB | not measured | | | | larger than Small; same reason |
+| Whisper Turbo | Whisper (whisper.cpp) | 1600 MB | not measured | | | | larger than Small; same reason |
+
+How to read it:
+
+- **Parakeet and Moonshine run on the CPU through ONNX Runtime** and are 5–10×
+  faster than real time on this 4-vCPU runner. Parakeet V3 is the app's default.
+- **Whisper is slow here for a specific reason**: on Linux it is built with the
+  Vulkan backend, and with no GPU the only Vulkan device is Mesa's `llvmpipe`, a
+  software renderer emulating a GPU on the CPU (the log shows
+  `Vulkan0: llvmpipe (LLVM 20.1.2)`). These rows are what a GPU-less Linux
+  machine gets, not what whisper.cpp's native CPU backend or a real GPU would do.
+  Whisper Tiny's load time includes the one-off Vulkan initialisation.
+- **Not measured** (INFERRED, no numbers given): GPU performance on any platform,
+  Windows and macOS (macOS uses Metal), and the three largest Whisper models.
+- The "Transcript" column checks for the phrase "ask not what your country can do
+  for you"; it is a sanity check on one clip, not an accuracy benchmark.
+
+## Privacy
+
+- **Audio stays on your machine by default.** Recording, voice activity
+  detection and transcription run locally; history (text and, if kept,
+  recordings) is a SQLite database and WAV files in the app's data folder, with
+  a retention setting.
+- **No telemetry.** The code contains no analytics, crash reporting or usage
+  tracking.
+- **What does use the network:**
+  - model downloads, from `huggingface.co` (Whisper tiny/base) and
+    `blob.handy.computer` (the upstream Handy model mirror), each checked
+    against the checksum in [`models.json`](apps/tauri-v2/src-tauri/resources/models.json)
+    before use;
+  - the update check against this repository's GitHub releases (on by default,
+    can be turned off in settings; updates are signature-verified);
+  - cloud transcription and AI cleanup, **only** if you enable them and add a
+    key; audio or text then goes to the provider you chose.
+- **API keys** live in the OS credential store (Keychain, Credential Manager,
+  kernel keyutils), never in the settings file.
+- The webview's content security policy only allows connections to those
+  hosts ([`tauri.conf.json`](apps/tauri-v2/src-tauri/tauri.conf.json)).
 
 ## Download
 
@@ -134,6 +199,20 @@ and logo are not open source, so SONU uses its own branding.
 3. Press your shortcut (default `Ctrl+Space`) and speak.
 
 </details>
+
+### Verify a download
+
+Every release lists each asset in `SHA256SUMS` and carries a
+[build-provenance attestation](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations)
+proving it was built by this repository's release workflow:
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS        # macOS: shasum -a 256 -c
+gh attestation verify SONU_2.7.0_amd64.deb --repo muhib-karim/sonu
+```
+
+macOS builds are ad-hoc signed and Windows installers are not code-signed yet,
+so the OS will warn on first launch.
 
 See [INSTALL.md](INSTALL.md) for more detail.
 
@@ -221,17 +300,23 @@ Run from `apps/tauri-v2`:
 bun install --frozen-lockfile
 bun run lint                          # ESLint (type-aware rules, i18n literal check)
 bun run typecheck                     # tsc --noEmit
-bun run test                          # Vitest: 38 tests in 5 files
+bun run test                          # Vitest: 54 tests in 6 files
 bun run build                         # tsc + Vite production bundle
 bash scripts/check-panic-ratchet.sh   # unwrap()/expect() count must not grow
 bun run test:rust                     # cargo test (needs the Rust toolchain + LLVM)
 bun run test:e2e                      # Playwright; manual pre-release step, not in CI
 ```
 
-The Rust backend has 55 `#[test]` functions (some are feature-gated).
-[CI](.github/workflows/ci.yml) runs the frontend checks, `cargo fmt`, `cargo clippy -D warnings`,
-the Rust tests (advisory) and `cargo audit` (advisory) on Linux, plus a `cargo check`
-on Windows and macOS.
+The Rust backend has 85 `#[test]` functions (some feature-gated, two ignored by
+default because they need downloaded models). On every pull request
+[CI](.github/workflows/ci.yml) runs the frontend checks, `cargo fmt`,
+`cargo clippy -D warnings`, the Rust tests (blocking, at least 75 must run), the
+Whisper-tiny transcription regression, gitleaks, `cargo audit` (advisory) and a
+full `tauri build` for every release target (Windows x64, macOS arm64 and x64,
+Linux x64);
+[CodeQL](.github/workflows/codeql.yml) scans the TypeScript.
+[`benchmark.yml`](.github/workflows/benchmark.yml) produces the performance
+table above.
 
 ## Project structure
 
@@ -248,7 +333,7 @@ sonu/
 │   └── scripts/              CI helper scripts (panic ratchet)
 ├── site/                     GitHub Pages landing page
 ├── docs/                     Banner, AI features and brand docs
-└── .github/workflows/        ci, build, release (5 platform builds), pages
+└── .github/workflows/        ci, build (reusable), release, codeql, benchmark, pages
 ```
 
 ## Roadmap and limitations
@@ -256,6 +341,9 @@ sonu/
 - Context-aware dictation is implemented for Windows only.
 - AI cleanup and Command Mode use cloud LLMs today; local LLM post-processing is planned.
 - Windows ARM64 builds are paused ([#30](https://github.com/muhib-karim/sonu/issues/30)).
+- On Linux without a GPU driver, Whisper runs on Mesa's software Vulkan device and is
+  slow; Parakeet and Moonshine run on the CPU and are unaffected (see
+  [Measured performance](#measured-performance)).
 - Language coverage depends on the model: Whisper is multilingual, Parakeet V3 covers English
   and European languages, and Moonshine Base is English.
 - Planned: custom model fine-tuning, a plugin/extension system.
