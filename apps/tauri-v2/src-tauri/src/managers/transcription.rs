@@ -705,3 +705,90 @@ mod tests {
         assert!(params.translate);
     }
 }
+
+/// End-to-end transcription regression on real speech.
+///
+/// Ignored by default because it needs a downloaded model. CI fetches the
+/// smallest catalog model (Whisper `tiny`, 75 MB, sha256-pinned in
+/// `resources/models.json`) and a public-domain recording (11 s of John F.
+/// Kennedy's 1961 inaugural address, a US federal government work, as shipped
+/// in the whisper.cpp samples) and runs it with `--ignored`.
+#[cfg(all(test, feature = "whisper"))]
+mod regression_tests {
+    use super::whisper_inference_params;
+    use crate::audio_toolkit::audio::FrameResampler;
+    use std::path::PathBuf;
+    use std::time::{Duration, Instant};
+    use transcribe_rs::engines::whisper::{WhisperEngine, WhisperModelParams};
+    use transcribe_rs::TranscriptionEngine;
+
+    fn resample(samples: &[f32], from_hz: usize, to_hz: usize) -> Vec<f32> {
+        let mut resampler = FrameResampler::new(from_hz, to_hz, Duration::from_millis(30));
+        let mut out = Vec::with_capacity(samples.len() * to_hz / from_hz + 4_096);
+        resampler.push(samples, |frame| out.extend_from_slice(frame));
+        resampler.finish(|frame| out.extend_from_slice(frame));
+        out
+    }
+
+    /// Lowercase, punctuation stripped, whitespace collapsed.
+    fn normalise(text: &str) -> String {
+        let kept: String = text
+            .chars()
+            .filter(|c| c.is_alphanumeric() || c.is_whitespace())
+            .collect();
+        kept.to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    #[test]
+    #[ignore = "needs SONU_REGRESSION_MODEL and SONU_REGRESSION_WAV; run by CI"]
+    fn whisper_tiny_transcribes_reference_recording() -> anyhow::Result<()> {
+        let model = PathBuf::from(std::env::var("SONU_REGRESSION_MODEL")?);
+        let wav = PathBuf::from(std::env::var("SONU_REGRESSION_WAV")?);
+
+        let mut reader = hound::WavReader::open(&wav)?;
+        let spec = reader.spec();
+        anyhow::ensure!(
+            spec.channels == 1 && spec.sample_rate == 16_000 && spec.bits_per_sample == 16,
+            "expected 16 kHz 16-bit mono, got {spec:?}"
+        );
+        let samples = reader
+            .samples::<i16>()
+            .map(|s| s.map(|v| f32::from(v) / 32_768.0))
+            .collect::<Result<Vec<f32>, _>>()?;
+        let audio_secs = samples.len() as f64 / 16_000.0;
+
+        // Simulate a 48 kHz microphone: up-sample, then run the recorder's own
+        // 48 kHz -> 16 kHz path so the resampler is part of the regression.
+        let mic = resample(&samples, 16_000, 48_000);
+        let input = resample(&mic, 48_000, 16_000);
+
+        let mut engine = WhisperEngine::new();
+        engine
+            .load_model_with_params(&model, WhisperModelParams::default())
+            .map_err(|e| anyhow::anyhow!("model load failed: {e}"))?;
+
+        let start = Instant::now();
+        let result = engine
+            .transcribe_samples(input, Some(whisper_inference_params("en", false)))
+            .map_err(|e| anyhow::anyhow!("transcription failed: {e}"))?;
+        let elapsed = start.elapsed().as_secs_f64();
+
+        println!(
+            "regression: audio={audio_secs:.2}s elapsed={elapsed:.2}s rtf={:.3} text={:?}",
+            elapsed / audio_secs,
+            result.text
+        );
+
+        let text = normalise(&result.text);
+        for phrase in [
+            "ask not what your country can do for you",
+            "ask what you can do for your country",
+        ] {
+            anyhow::ensure!(text.contains(phrase), "missing {phrase:?} in {text:?}");
+        }
+        Ok(())
+    }
+}
