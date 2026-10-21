@@ -738,6 +738,28 @@ impl AppSettings {
     }
 }
 
+/// Adds any default shortcut binding the stored settings do not have yet (a
+/// settings file written before that binding existed). Bindings the user
+/// already has, including customised ones, are left untouched. Returns
+/// whether anything was added, so the caller knows to persist.
+fn merge_default_bindings(
+    settings: &mut AppSettings,
+    defaults: HashMap<String, ShortcutBinding>,
+) -> bool {
+    let mut updated = false;
+    // Written as an `entry` match rather than `contains_key` + `insert`
+    // (clippy::map_entry) so the lookup happens once. `entry.key()` is used
+    // for the log line so the key is not moved before it is read.
+    for (key, value) in defaults {
+        if let Entry::Vacant(entry) = settings.bindings.entry(key) {
+            debug!("Adding missing binding: {}", entry.key());
+            entry.insert(value);
+            updated = true;
+        }
+    }
+    updated
+}
+
 pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
     // Initialize store
     let store = app
@@ -750,23 +772,8 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
             Ok(mut settings) => {
                 debug!("Found existing settings: {:?}", settings);
                 let default_settings = get_default_settings();
-                let mut updated = false;
 
-                // Merge default bindings into existing settings.
-                //
-                // Written as an `entry` match rather than
-                // `contains_key` + `insert` (clippy::map_entry) so the lookup
-                // happens once. `entry.key()` is used for the log line so the
-                // key is not moved before it is read.
-                for (key, value) in default_settings.bindings {
-                    if let Entry::Vacant(entry) = settings.bindings.entry(key) {
-                        debug!("Adding missing binding: {}", entry.key());
-                        entry.insert(value);
-                        updated = true;
-                    }
-                }
-
-                if updated {
+                if merge_default_bindings(&mut settings, default_settings.bindings) {
                     debug!("Settings updated with new bindings");
                     store.set("settings", serde_json::to_value(&settings).unwrap());
                 }
@@ -1051,5 +1058,168 @@ mod voice_commands_tests {
         let parsed: AppSettings = serde_json::from_value(value).unwrap();
         assert!(parsed.voice_commands_enabled);
         assert!(parsed.voice_commands.is_empty());
+    }
+}
+
+/// Settings migration: a settings file written by any earlier release must
+/// load without losing the user's choices, and the backfills that run on
+/// every launch must be idempotent so the store is not rewritten each time.
+#[cfg(test)]
+mod migration_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn legacy_numeric_log_level_is_migrated() -> Result<(), serde_json::Error> {
+        let legacy = [
+            (1, LogLevel::Trace),
+            (2, LogLevel::Debug),
+            (3, LogLevel::Info),
+            (4, LogLevel::Warn),
+            (5, LogLevel::Error),
+        ];
+        for (stored, expected) in legacy {
+            assert_eq!(serde_json::from_value::<LogLevel>(json!(stored))?, expected);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn string_log_level_is_case_insensitive() -> Result<(), serde_json::Error> {
+        assert_eq!(
+            serde_json::from_value::<LogLevel>(json!("WARN"))?,
+            LogLevel::Warn
+        );
+        assert_eq!(
+            serde_json::from_value::<LogLevel>(json!("error"))?,
+            LogLevel::Error
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_log_level_is_rejected() {
+        for stored in [json!(0), json!(6), json!(-1), json!("verbose")] {
+            assert!(
+                serde_json::from_value::<LogLevel>(stored.clone()).is_err(),
+                "{stored} must not parse"
+            );
+        }
+    }
+
+    #[test]
+    fn oldest_settings_shape_fills_missing_keys_with_defaults() -> Result<(), serde_json::Error> {
+        // Only the fields that have no serde default, plus a numeric log level
+        // as written before the string form existed.
+        let defaults = get_default_settings();
+        let stored = json!({
+            "bindings": defaults.bindings,
+            "push_to_talk": false,
+            "audio_feedback": true,
+            "log_level": 4,
+        });
+
+        let parsed: AppSettings = serde_json::from_value(stored)?;
+
+        assert!(!parsed.push_to_talk);
+        assert!(parsed.audio_feedback);
+        assert_eq!(parsed.log_level, LogLevel::Warn);
+        assert_eq!(parsed.history_limit, default_history_limit());
+        assert_eq!(parsed.selected_language, "auto");
+        assert_eq!(parsed.theme_mode, default_theme_mode());
+        assert!(parsed.custom_words.is_empty());
+        assert_eq!(
+            parsed.post_process_providers.len(),
+            default_post_process_providers().len()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn keys_from_a_newer_version_are_ignored() -> Result<(), serde_json::Error> {
+        // Downgrading must not reset settings: unknown keys are tolerated.
+        let mut stored = serde_json::to_value(get_default_settings())?;
+        if let Some(obj) = stored.as_object_mut() {
+            obj.insert("setting_from_the_future".to_string(), json!(true));
+            obj.insert("history_limit".to_string(), json!(42));
+        }
+
+        let parsed: AppSettings = serde_json::from_value(stored)?;
+
+        assert_eq!(parsed.history_limit, 42);
+        Ok(())
+    }
+
+    #[test]
+    fn missing_default_bindings_are_added_and_custom_ones_kept() {
+        let defaults = get_default_settings().bindings;
+        let mut settings = get_default_settings();
+        settings.bindings.remove("command_mode");
+        if let Some(transcribe) = settings.bindings.get_mut("transcribe") {
+            transcribe.current_binding = "ctrl+alt+t".to_string();
+        }
+
+        assert!(merge_default_bindings(&mut settings, defaults.clone()));
+
+        assert!(settings.bindings.contains_key("command_mode"));
+        assert_eq!(
+            settings
+                .bindings
+                .get("transcribe")
+                .map(|b| b.current_binding.as_str()),
+            Some("ctrl+alt+t")
+        );
+        // A second launch has nothing to add, so nothing is persisted.
+        assert!(!merge_default_bindings(&mut settings, defaults));
+    }
+
+    #[test]
+    fn fresh_defaults_need_no_post_process_backfill() {
+        let mut settings = get_default_settings();
+        assert!(!ensure_post_process_defaults(&mut settings));
+    }
+
+    #[test]
+    fn post_process_provider_added_in_a_later_release_is_backfilled_once() {
+        let mut settings = get_default_settings();
+        let Some(removed) = settings.post_process_providers.pop() else {
+            panic!("there must be at least one default post-process provider");
+        };
+        settings.post_process_api_keys.remove(&removed.id);
+        settings.post_process_models.remove(&removed.id);
+
+        assert!(ensure_post_process_defaults(&mut settings));
+
+        assert!(settings
+            .post_process_providers
+            .iter()
+            .any(|p| p.id == removed.id));
+        assert_eq!(
+            settings
+                .post_process_api_keys
+                .get(&removed.id)
+                .map(String::as_str),
+            Some("")
+        );
+        assert_eq!(
+            settings.post_process_models.get(&removed.id),
+            Some(&default_model_for_provider(&removed.id))
+        );
+        assert!(!ensure_post_process_defaults(&mut settings));
+    }
+
+    #[test]
+    fn user_chosen_post_process_models_are_kept() {
+        let mut settings = get_default_settings();
+        for model in settings.post_process_models.values_mut() {
+            *model = "my-model".to_string();
+        }
+
+        assert!(!ensure_post_process_defaults(&mut settings));
+
+        assert!(settings
+            .post_process_models
+            .values()
+            .all(|m| m == "my-model"));
     }
 }

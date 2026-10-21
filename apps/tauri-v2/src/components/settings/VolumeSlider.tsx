@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Slider } from "../ui/Slider";
 import { useSettings } from "../../hooks/useSettings";
+import { formatVolume } from "../../lib/utils/settingsInput";
 
 export const VolumeSlider: React.FC<{ disabled?: boolean }> = ({
   disabled = false,
@@ -23,7 +24,7 @@ export const VolumeSlider: React.FC<{ disabled?: boolean }> = ({
       description={t("settings.sound.volume.description")}
       descriptionMode="tooltip"
       grouped
-      formatValue={(value) => `${Math.round(value * 100)}%`}
+      formatValue={formatVolume}
       disabled={disabled}
     />
   );

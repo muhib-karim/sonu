@@ -1,0 +1,144 @@
+name: "Benchmark"
+
+# Measures model load time, first-run latency, steady-state latency and
+# real-time factor (RTF = processing time / audio length; below 1 is faster
+# than real time) for catalog models on a GitHub-hosted Linux runner. The
+# numbers in README.md and on the website come from this job's summary.
+#
+# It runs the ignored `managers::benchmark` test in the shipped `release`
+# profile, through the app's own catalog, checksum check, archive handling
+# and engine parameters, on 11 s of public-domain speech (JFK, 1961).
+#
+# Not a merge gate: it takes a while and only re-runs when the inference
+# path, the catalog or the dependencies change.
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: "Comma-separated catalog ids"
+        required: false
+        default: "moonshine-base,tiny,base,small,parakeet-tdt-0.6b-v2,parakeet-tdt-0.6b-v3"
+  push:
+    branches: [main, "upgrade/**"]
+    paths:
+      - "apps/tauri-v2/src-tauri/src/managers/benchmark.rs"
+      - "apps/tauri-v2/src-tauri/src/managers/transcription.rs"
+      - "apps/tauri-v2/src-tauri/resources/models.json"
+      - "apps/tauri-v2/src-tauri/Cargo.lock"
+      - ".github/workflows/benchmark.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: Model latency (ubuntu-24.04)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: apps/tauri-v2/src-tauri
+        shell: bash
+    env:
+      # Same portable whisper.cpp build as the shipped binaries.
+      CMAKE_PROJECT_INCLUDE_BEFORE: ${{ github.workspace }}/apps/tauri-v2/src-tauri/cmake/ggml-portable.cmake
+      MODELS: ${{ inputs.models || 'moonshine-base,tiny,base,small,parakeet-tdt-0.6b-v2,parakeet-tdt-0.6b-v3' }}
+      BENCH_DIR: /tmp/sonu-bench
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+
+      - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.8.2
+        with:
+          workspaces: "./apps/tauri-v2/src-tauri -> target"
+          key: benchmark-release-portable-ggml-v1
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libappindicator3-dev librsvg2-dev patchelf libasound2-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev \
+            libwebkit2gtk-4.1-0=2.44.0-2 \
+            libwebkit2gtk-4.1-dev=2.44.0-2 \
+            libjavascriptcoregtk-4.1-0=2.44.0-2 \
+            libjavascriptcoregtk-4.1-dev=2.44.0-2 \
+            gir1.2-javascriptcoregtk-4.1=2.44.0-2 \
+            gir1.2-webkit2-4.1=2.44.0-2
+
+      # whisper.cpp is built with Vulkan on Linux and aborts when no Vulkan
+      # device exists, so a driver is required. The runner has no GPU: Mesa's
+      # llvmpipe (a software Vulkan device running on the CPU) is what Whisper
+      # gets, exactly as on any Linux machine without a GPU driver.
+      - name: Install Vulkan SDK
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-noble.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-noble.list
+          sudo apt update
+          sudo apt install vulkan-sdk -y
+          sudo apt-get install -y mesa-vulkan-drivers
+
+      # Compile before downloading so a build failure costs no bandwidth.
+      - name: Build benchmark (release profile)
+        run: cargo test --release --lib --no-run
+
+      - name: Download models and audio
+        run: |
+          set -euo pipefail
+          mkdir -p "$BENCH_DIR"
+          curl -fsSL --retry 3 -o "$BENCH_DIR/jfk.wav" \
+            https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.7.5/samples/jfk.wav
+          echo "59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e  $BENCH_DIR/jfk.wav" | sha256sum -c -
+          # URLs come from the catalog; the checksum is verified by the
+          # benchmark itself with the app's own verify_checksum.
+          for id in ${MODELS//,/ }; do
+            url=$(jq -r --arg id "$id" '.models[] | select(.id == $id) | .url' resources/models.json)
+            [ -n "$url" ] && [ "$url" != null ] || { echo "::error::$id not in models.json"; exit 1; }
+            echo "$id <- $url"
+            curl -fsSL --retry 3 -o "$BENCH_DIR/${url##*/}" "$url"
+          done
+          du -sh "$BENCH_DIR"
+
+      - name: Run benchmark
+        env:
+          SONU_BENCH_MODELS: ${{ env.MODELS }}
+          SONU_BENCH_DIR: ${{ env.BENCH_DIR }}
+          SONU_BENCH_WAV: ${{ env.BENCH_DIR }}/jfk.wav
+          SONU_BENCH_OUT: ${{ github.workspace }}/benchmark-out
+        run: |
+          set -o pipefail
+          cargo test --release --lib benchmark_catalog_models -- --ignored --nocapture --test-threads=1 2>&1 | tee bench.log
+          grep -q 'test result: ok\. 1 passed' bench.log
+
+      - name: Write summary
+        if: always()
+        run: |
+          set -u
+          out="$GITHUB_WORKSPACE/benchmark-out"
+          mkdir -p "$out"
+          cp bench.log "$out/" 2>/dev/null || true
+          cpu=$(lscpu | sed -n 's/^Model name: *//p' | head -1)
+          backend=$(grep -m1 -oE 'Vulkan0: [^|]*' bench.log || echo "CPU (no Vulkan device reported)")
+          {
+            echo "## Model latency on ubuntu-24.04"
+            echo
+            echo "- Date (UTC): $(date -u +%Y-%m-%d)"
+            echo "- Runner: GitHub-hosted \`ubuntu-24.04\` (image ${ImageVersion:-unknown}), $(nproc) vCPU, $(free -g | awk '/^Mem:/{print $2}') GB RAM"
+            echo "- CPU: ${cpu:-unknown}"
+            echo "- Whisper backend: ${backend} (no GPU on the runner)"
+            echo "- Audio: 11.0 s, 16 kHz mono (JFK inaugural address, public domain)"
+            echo "- Build: \`release\` profile, commit ${GITHUB_SHA::7}, run ${GITHUB_RUN_ID}"
+            echo
+            cat "$out/benchmark.md" 2>/dev/null || echo "_benchmark did not produce a table_"
+          } | tee "$out/summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.0
+        with:
+          name: benchmark-results
+          path: benchmark-out/
+          if-no-files-found: ignore

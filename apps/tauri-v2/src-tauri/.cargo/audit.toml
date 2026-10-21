@@ -8,4 +8,15 @@ ignore = [
     # vulnerable validation path is not reachable. The 0.7 series has no upstream
     # fix; drop this entry once rust_decimal moves to rkyv >= 0.8.17.
     "RUSTSEC-2026-0235",
+    # RUSTSEC-2026-0367 / -0368 / -0369: zip < 9 extraction preserves SUID/SGID
+    # bits, applies archive Unix permissions and creates symlinks with
+    # attacker-controlled targets. zip 4 arrives only through
+    # tauri-plugin-updater, which depends on it solely on Windows (no Unix
+    # permission bits or symlinks there) and only after the update payload's
+    # minisign signature has been verified. Every published tauri-plugin-updater
+    # release, including 3.0.0-alpha, still requires zip ^4, so there is no
+    # upgrade path yet; drop these once it moves to zip >= 9.
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
 ]

@@ -4,13 +4,28 @@
 
 | Component              | Version | Status |
 | ---------------------- | ------- | ------ |
-| **Desktop v2 (Tauri)** | 2.6.2   | Stable |
+| **Desktop v2 (Tauri)** | 2.7.0   | Stable |
 
-**Last Updated**: 2026-09-14 (2.6.2)
+**Last Updated**: 2026-10-21 (2.7.0)
 
 ## Version History
 
 ### Desktop v2 (Tauri)
+
+#### Version 2.7.0
+
+- CI builds the full installer for Windows x64, macOS arm64 and Linux x64 on every pull request
+- Rust unit tests are a blocking gate again (root cause of the intermittent `SIGILL` fixed), plus a Whisper transcription regression on a public-domain recording
+- whisper.cpp is built portably (no `-march=native`), so installers no longer depend on the build machine's CPU
+- CodeQL and gitleaks scanning; release assets ship with `SHA256SUMS` and Sigstore build-provenance attestations; releases can be cut from a `v*` tag
+- Measured per-model latency and real-time factor on the Linux CI runner (README, website)
+- Fixed a crash on an empty custom-dictionary entry; settings migration and audio pipeline covered by unit tests
+- Dependency advisories patched: rustls, rustls-webpki, webpki-roots, quinn-proto
+
+#### Version 2.6.3
+
+- Auto-update feed and About link point at `github.com/muhib-karim/sonu`
+- Security: rustls and quick-xml advisories resolved; upstream Handy copyright notice restored in LICENSE
 
 #### Version 2.6.2
 
@@ -104,9 +119,10 @@ SONU follows [Semantic Versioning](https://semver.org/) (SemVer):
 
 | File                                      | Location             |
 | ----------------------------------------- | -------------------- |
-| `apps/tauri-v2/package.json`              | `"version": "2.6.2"` |
-| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.6.2"`  |
-| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.6.2"` |
+| `apps/tauri-v2/package.json`              | `"version": "2.7.0"` |
+| `apps/tauri-v2/src-tauri/Cargo.toml`      | `version = "2.7.0"`  |
+| `apps/tauri-v2/src-tauri/Cargo.lock`      | `sonu-desktop` entry |
+| `apps/tauri-v2/src-tauri/tauri.conf.json` | `"version": "2.7.0"` |
 
 ### Desktop App (Electron) — Removed
 
@@ -119,10 +135,13 @@ The Electron app no longer exists in this repository.
 3. **Version Bump**: Update version in all locations listed above
 4. **Changelog**: Document all changes in CHANGELOG.md
 5. **Commit**: Commit version changes
-6. **Release**: Dispatch the Release workflow (GitHub Actions → Release →
-   Run workflow). It reads the version from `tauri.conf.json`, creates the
-   `v{version}` draft release and tag, builds all 6 platform targets, and
-   publishes the release on success. No manual tagging is needed.
+6. **Release**: Merge to `main` (a `tauri.conf.json` version change starts the
+   Release workflow), push a `v{version}` tag, or dispatch the workflow
+   manually. Whichever comes first builds the release; the others see the
+   published release and skip. The workflow creates the `v{version}` draft,
+   builds macOS (arm64, x64), Windows x64 and Linux (deb, AppImage, rpm),
+   uploads `SHA256SUMS`, records build-provenance attestations, and publishes.
+   A tag that does not match `tauri.conf.json` fails fast.
 
 ## Build Information
 

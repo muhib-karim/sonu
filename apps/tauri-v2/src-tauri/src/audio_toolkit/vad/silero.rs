@@ -50,3 +50,28 @@ impl VoiceActivityDetector for SileroVad {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frame_is_30ms_at_16khz() {
+        assert_eq!(SILERO_FRAME_SAMPLES, 480);
+    }
+
+    #[test]
+    fn out_of_range_threshold_is_rejected_before_the_model_is_loaded() {
+        // The path does not exist: if validation ran after the model load the
+        // error would be about the file, not the threshold.
+        for threshold in [-0.01, 1.01, f32::NAN, f32::INFINITY] {
+            let Err(err) = SileroVad::new("missing-silero.onnx", threshold) else {
+                panic!("threshold {threshold} must be rejected");
+            };
+            assert!(
+                err.to_string().contains("threshold must be between"),
+                "threshold {threshold}: unexpected error {err}"
+            );
+        }
+    }
+}

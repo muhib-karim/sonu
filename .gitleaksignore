@@ -1,0 +1,11 @@
+# Historical findings that are test fixtures, not credentials. Each entry is a
+# gitleaks fingerprint (commit:file:rule:line); these commits are in published
+# history and cannot be rewritten. New findings still fail the scan.
+#
+# secureStorage.test.js:91 - placeholder provider key in a test of an app that
+# has since been removed from the repository.
+94324a09faa43ae98613756752cdd635decfa0a5:apps/desktop/tests/unit/secureStorage.test.js:generic-api-key:91
+# validation.rs:238 - alphabet placeholder in a key-format unit test; the file
+# has since been removed.
+94324a09faa43ae98613756752cdd635decfa0a5:apps/tauri-v2/src-tauri/src/utils/validation.rs:generic-api-key:238
+28759c7ba0664cea9ad28a9343b60a03deadf2e4:apps/tauri-v2/src-tauri/src/utils/validation.rs:generic-api-key:238

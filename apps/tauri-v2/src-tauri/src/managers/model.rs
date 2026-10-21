@@ -215,7 +215,7 @@ fn hex(bytes: &[u8]) -> String {
 
 /// Result of verifying a finished download against its catalog checksum.
 #[derive(Debug)]
-enum ChecksumOutcome {
+pub(super) enum ChecksumOutcome {
     /// The artifact matched its expected digest.
     Verified,
     /// No usable checksum was recorded for this catalog entry.
@@ -234,7 +234,7 @@ enum ChecksumOutcome {
 /// a catalog without hashes (or a third-party mirror added by a user) must keep
 /// working exactly as it did before verification existed. The check is a safety
 /// net, not a gate that can brick a model the user could previously install.
-fn verify_checksum(
+pub(super) fn verify_checksum(
     path: &Path,
     sha256: Option<&str>,
     md5: Option<&str>,
@@ -292,13 +292,13 @@ fn hash_file<D: sha2::Digest>(path: &Path, hasher: &mut D) -> Result<()> {
 }
 
 /// Parse a model catalog from JSON text (the `resources/models.json` format).
-fn parse_catalog(json: &str) -> Result<Vec<ModelInfo>> {
+pub(super) fn parse_catalog(json: &str) -> Result<Vec<ModelInfo>> {
     Ok(serde_json::from_str::<ModelCatalog>(json)?.models)
 }
 
 /// Embedded fallback catalog, used when `resources/models.json` cannot be
 /// resolved, read, or parsed.
-const FALLBACK_CATALOG_JSON: &str = include_str!("../../resources/models.json");
+pub(super) const FALLBACK_CATALOG_JSON: &str = include_str!("../../resources/models.json");
 
 /// Embedded fallback catalog (kept as parsed models so it can be reused).
 fn fallback_catalog() -> Vec<ModelInfo> {
