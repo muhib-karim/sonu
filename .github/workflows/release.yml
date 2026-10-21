@@ -1,17 +1,29 @@
 name: "Release"
 
-# Manual dispatch, or automatic when the app version changes on main
-# (tauri.conf.json is the single source of truth for the release version).
+# Three ways in, one pipeline:
+#   - push to main that changes tauri.conf.json (the version is the single
+#     source of truth for the release version),
+#   - push of a `v*` tag (must match tauri.conf.json),
+#   - manual dispatch.
+# A fixed concurrency group serialises them, and `should-release` skips a
+# version that already has a published release, so a merge and a tag for the
+# same version never build twice. (Tags created by publishing a release with
+# GITHUB_TOKEN do not trigger workflows at all.)
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "apps/tauri-v2/src-tauri/tauri.conf.json"
+    tags:
+      - "v*"
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   should-release:
@@ -20,11 +32,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       skip: ${{ steps.check.outputs.skip }}
+      tag: ${{ steps.check.outputs.tag }}
+      version: ${{ steps.check.outputs.version }}
+      sign-macos: ${{ steps.signing.outputs.macos }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
 
-      - name: Skip if this version is already released
+      - name: Resolve version and skip if already released
         id: check
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7.0.1
         with:
@@ -34,14 +49,44 @@ jobs:
               fs.readFileSync('apps/tauri-v2/src-tauri/tauri.conf.json', 'utf8')
             );
             const tag = `v${conf.version}`;
-            const { data: releases } = await github.rest.repos.listReleases({
+            if (context.ref.startsWith('refs/tags/') && context.ref !== `refs/tags/${tag}`) {
+              core.setFailed(
+                `pushed ${context.ref} but tauri.conf.json says ${conf.version}; ` +
+                  'bump the version (all manifests) before tagging'
+              );
+              return;
+            }
+            const releases = await github.paginate(github.rest.repos.listReleases, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               per_page: 100,
             });
-            const exists = releases.some((r) => r.tag_name === tag);
-            core.setOutput('skip', exists ? 'true' : 'false');
-            console.log(`tag ${tag}: ${exists ? 'already released, skipping' : 'not released, continuing'}`);
+            // Only a *published* release counts. A draft is what a failed run
+            // leaves behind; create-release reuses it so a re-run finishes it.
+            const published = releases.some((r) => r.tag_name === tag && !r.draft);
+            core.setOutput('skip', published ? 'true' : 'false');
+            core.setOutput('tag', tag);
+            core.setOutput('version', conf.version);
+            console.log(`${tag}: ${published ? 'already published, skipping' : 'releasing'}`);
+
+      # Sign where the credentials exist, never fail where they do not.
+      # macOS: Developer ID signing + notarisation when the Apple secrets are
+      # configured (see build.yml). Windows: needs a `bundle.windows.signCommand`
+      # (trusted-signing-cli) in tauri.conf.json plus the AZURE_* secrets, so it
+      # stays unsigned until both are set up. Every artifact gets a Sigstore
+      # build-provenance attestation and a SHA256SUMS entry regardless.
+      - name: Detect signing credentials
+        id: signing
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$KEYCHAIN_PASSWORD" ]; then
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "macos=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Release signing::Apple signing secrets not set; macOS builds are ad-hoc signed only"
+          fi
 
   create-release:
     permissions:
@@ -51,30 +96,24 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release-id: ${{ steps.create-release.outputs.result }}
-      version: ${{ steps.get-version.outputs.version }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
-
-      - name: Get version from tauri.conf.json
-        id: get-version
-        shell: bash
-        run: |
-          VERSION=$(grep -o '"version": "[^"]*"' apps/tauri-v2/src-tauri/tauri.conf.json | cut -d'"' -f4)
-          echo "Application version from tauri.conf.json: $VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
       - name: Create Draft Release
         id: create-release
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7.0.1
+        env:
+          TAG: ${{ needs.should-release.outputs.tag }}
+          VERSION: ${{ needs.should-release.outputs.version }}
         with:
           script: |
-            const tag_name = `v${{ steps.get-version.outputs.version }}`;
+            const tag_name = process.env.TAG;
             const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name,
-              name: `SONU v${{ steps.get-version.outputs.version }}`,
+              // Tag exactly the commit that was built. Without this a new tag
+              // is created from the default branch head at publish time.
+              target_commitish: context.sha,
+              name: `SONU v${process.env.VERSION}`,
               draft: true,
               prerelease: false,
               generate_release_notes: true
@@ -86,7 +125,7 @@ jobs:
               // A previous run may have left a draft for this tag: reuse it so
               // re-runs never duplicate releases.
               if (error.status === 422) {
-                const { data: releases } = await github.rest.repos.listReleases({
+                const releases = await github.paginate(github.rest.repos.listReleases, {
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   per_page: 100,
@@ -138,29 +177,84 @@ jobs:
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
-      sign-binaries: false
+      sign-binaries: ${{ contains(matrix.platform, 'macos') && needs.should-release.outputs.sign-macos == 'true' }}
       asset-prefix: "sonu"
       upload-artifacts: false
       release-id: ${{ needs.create-release.outputs.release-id }}
     secrets: inherit
 
-  # Publish the draft release after all platform builds complete.
+  # Checksums and provenance for every asset tauri-action uploaded, while the
+  # release is still a draft (drafts are invisible to `gh release download`
+  # by tag, so assets are fetched by release id).
+  checksums:
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    needs: [should-release, create-release, publish-tauri]
+    if: needs.should-release.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_ID: ${{ needs.create-release.outputs.release-id }}
+    steps:
+      - name: Download release assets
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" --paginate \
+            --jq '.[] | select(.name != "SHA256SUMS") | "\(.id) \(.name)"' |
+          while read -r id name; do
+            gh api -H "Accept: application/octet-stream" \
+              "repos/$GITHUB_REPOSITORY/releases/assets/$id" > "assets/$name"
+          done
+          ls -l assets
+          [ -n "$(ls -A assets)" ] || { echo "::error::release has no assets"; exit 1; }
+
+      - name: Write SHA256SUMS
+        working-directory: assets
+        run: |
+          set -euo pipefail
+          sha256sum -- * | LC_ALL=C sort -k2 > ../SHA256SUMS
+          cat ../SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: SHA256SUMS
+
+      - name: Upload SHA256SUMS
+        run: |
+          set -euo pipefail
+          # Replace a SHA256SUMS left by an earlier attempt on the same draft.
+          old=$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" --paginate \
+            --jq '.[] | select(.name == "SHA256SUMS") | .id')
+          if [ -n "$old" ]; then
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$old"
+          fi
+          gh api --method POST -H "Content-Type: text/plain" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=SHA256SUMS" \
+            --input SHA256SUMS --jq '.browser_download_url'
+
+  # Publish the draft release after all platform builds and checksums complete.
   # Note: tauri-action already uploads latest.json with updater signatures.
   publish-release:
     permissions:
       contents: write
-    needs: [should-release, create-release, publish-tauri]
+    needs: [should-release, create-release, publish-tauri, checksums]
     if: needs.should-release.outputs.skip == 'false'
     runs-on: ubuntu-latest
     steps:
       - name: Publish Release
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7.0.1
+        env:
+          RELEASE_ID: ${{ needs.create-release.outputs.release-id }}
         with:
           script: |
             await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: ${{ needs.create-release.outputs.release-id }},
+              release_id: Number(process.env.RELEASE_ID),
               draft: false
             })
             console.log('Release published successfully!')
