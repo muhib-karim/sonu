@@ -334,7 +334,7 @@ jobs:
           # Reason: apps/tauri-v2/src-tauri/.cargo/audit.toml.
           ignore: RUSTSEC-2026-0235,RUSTSEC-2026-0367,RUSTSEC-2026-0368,RUSTSEC-2026-0369
 
-  # Full `tauri build` on every PR for the three shipped platforms, through
+  # Full `tauri build` on every PR for every shipped target, through
   # the same reusable workflow the release uses. This replaces the old
   # `cargo check` platform job: every platform-gated break in this repo's
   # history (Unix-only clippy lints, a macOS E0384, a Windows cmake/VS failure
@@ -357,10 +357,16 @@ jobs:
             platform: macos-15
             target: aarch64-apple-darwin
             args: --target aarch64-apple-darwin --bundles app,dmg
+          # Cross-compiled on the arm64 runner, as in the release. Built here so
+          # every release target is proven before a tag, not after.
+          - name: macOS x64
+            platform: macos-15
+            target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin --bundles app,dmg
           - name: Linux x64
             platform: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
-            args: --bundles deb,appimage
+            args: --bundles deb,appimage,rpm
     uses: ./.github/workflows/build.yml
     with:
       platform: ${{ matrix.platform }}
