@@ -69,7 +69,7 @@ enum LoadedEngine {
 /// Whisper auto-detect the spoken language; `translate_to_english` maps to
 /// Whisper's translate option (multilingual models only).
 #[cfg(feature = "whisper")]
-fn whisper_inference_params(
+pub(super) fn whisper_inference_params(
     selected_language: &str,
     translate_to_english: bool,
 ) -> WhisperInferenceParams {
