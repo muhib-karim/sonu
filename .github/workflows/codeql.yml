@@ -1,0 +1,51 @@
+name: "CodeQL"
+
+# Static security analysis of the TypeScript/React frontend (and the site's
+# inline scripts). The Rust backend is covered by clippy -D warnings and
+# cargo-audit in ci.yml. Default query suite: security queries with a low
+# false-positive rate, so every alert is worth acting on.
+on:
+  push:
+    branches: [main, "upgrade/**"]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, so new queries run against unchanged code too.
+    - cron: "27 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      # Needed by codeql-action to read workflow run metadata on private forks.
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: javascript-typescript
+          # Interpreted language: no build needed, the extractor reads sources.
+          build-mode: none
+          config: |
+            paths-ignore:
+              - "**/node_modules"
+              - "**/dist"
+              - "**/target"
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: "/language:javascript-typescript"
