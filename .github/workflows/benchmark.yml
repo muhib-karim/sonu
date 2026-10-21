@@ -121,7 +121,7 @@ jobs:
           mkdir -p "$out"
           cp bench.log "$out/" 2>/dev/null || true
           cpu=$(lscpu | sed -n 's/^Model name: *//p' | head -1)
-          backend=$(grep -m1 -oE 'ggml_vulkan: 0 = [^|]*' bench.log || echo "not reported")
+          backend=$(grep -m1 -oE 'Vulkan0: [^|]*' bench.log || echo "CPU (no Vulkan device reported)")
           {
             echo "## Model latency on ubuntu-24.04"
             echo
