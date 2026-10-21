@@ -29,6 +29,37 @@ Cloud transcription and LLM-based text cleanup are available, but they are
 
 SONU is an independent fork of [Handy](https://github.com/cjpais/Handy) by CJ Pais.
 
+## Upstream and what this fork adds
+
+**Upstream.** SONU started from [cjpais/Handy](https://github.com/cjpais/Handy),
+an MIT-licensed offline speech-to-text app, and was last synced with Handy
+**v0.7.0** (January 2026). It has diverged since and is not automatically
+re-synced. Handy supplies the foundation: the Tauri v2 app shell, global
+shortcuts, microphone capture with Silero VAD, local transcription through
+[transcribe-rs](https://github.com/cjpais/transcribe-rs), history, LLM
+post-processing and text insertion into the focused app.
+
+**Licence.** SONU stays MIT. [LICENSE](LICENSE) keeps the upstream copyright
+notice (CJ Pais, 2025) alongside SONU's own, as MIT requires. The Handy name
+and logo are not open source, so SONU uses its own branding.
+
+**What SONU adds**, with the code that implements each item:
+
+| Added in SONU | Since | Where |
+| --- | --- | --- |
+| Cloud transcription (Groq, Deepgram, any OpenAI-compatible endpoint), off by default | 2.2.0 | [`managers/cloud_transcription.rs`](apps/tauri-v2/src-tauri/src/managers/cloud_transcription.rs) |
+| API keys kept in the OS credential store instead of the settings file | 2.2.0 | [`utils/keychain.rs`](apps/tauri-v2/src-tauri/src/utils/keychain.rs) |
+| Notes, snippets and a dictionary UI for custom words | 2.1.0 | [`settings/notes`](apps/tauri-v2/src/components/settings/notes), [`settings/snippets`](apps/tauri-v2/src/components/settings/snippets), [`settings/dictionary`](apps/tauri-v2/src/components/settings/dictionary) |
+| Context-aware dictation: the focused app picks a per-category style for the cleanup prompt | 2.3.0 | [`active_window.rs`](apps/tauri-v2/src-tauri/src/active_window.rs), [`settings/style`](apps/tauri-v2/src/components/settings/style) |
+| Command Mode: speak an instruction to rewrite the selected text | 2.3.0 | [`actions.rs`](apps/tauri-v2/src-tauri/src/actions.rs) |
+| Live local transcription preview in the overlay; light/dark/system themes and accents | 2.4.0 | [`overlay/`](apps/tauri-v2/src/overlay), [`settings/appearance`](apps/tauri-v2/src/components/settings/appearance) |
+| Spoken commands ("new line", "new paragraph") and user-defined voice macros | 2.6.0 | [`apply_voice_commands`](apps/tauri-v2/src-tauri/src/actions.rs) |
+| Model download integrity checks (sha256, or the object-store ETag) and resumable partials | 2.6.1 | [`managers/model.rs`](apps/tauri-v2/src-tauri/src/managers/model.rs) |
+| Crash hardening under `panic = "abort"`, with a CI ratchet against new `unwrap()`/`expect()` sites | 2.6.1 | [`check-panic-ratchet.sh`](apps/tauri-v2/scripts/check-panic-ratchet.sh) |
+| Full `tauri build` on every PR for Windows x64, macOS arm64 and Linux x64; blocking Rust tests including a Whisper transcription regression; CodeQL; gitleaks | 2.7.0 | [`ci.yml`](.github/workflows/ci.yml), [`codeql.yml`](.github/workflows/codeql.yml) |
+| Portable whisper.cpp build (no `-march=native`, so installers no longer depend on the build machine's CPU) | 2.7.0 | [`ggml-portable.cmake`](apps/tauri-v2/src-tauri/cmake/ggml-portable.cmake) |
+| Tagged releases with `SHA256SUMS` and Sigstore build-provenance attestations | 2.7.0 | [`release.yml`](.github/workflows/release.yml) |
+
 ## Key features
 
 | Feature | What it does |
@@ -58,11 +89,12 @@ SONU is an independent fork of [Handy](https://github.com/cjpais/Handy) by CJ Pa
 - Optional AI cleanup and cloud transcription send text or audio to the remote
   provider you configure. They are not local-only processing. Model downloads
   and enabled update checks also use the network.
-- CI checks frontend lint, types, build and unit tests, plus Rust formatting and
-  Clippy on Linux. Rust runtime tests and the dependency audit are **advisory**,
-  so a green CI badge can coexist with their failure. The Windows and macOS
-  checks compile the Parakeet/Moonshine feature set (`cargo check`), not every
-  engine or full desktop interaction.
+- CI checks frontend lint, types, build and unit tests; Rust formatting, Clippy
+  (`-D warnings`) and the Rust unit tests, all blocking; a Whisper-tiny
+  transcription regression on a public-domain recording; and a full
+  `tauri build` for Windows x64, macOS arm64 and Linux x64. The dependency audit
+  is advisory. None of this exercises real microphones, OS permissions or
+  insertion into other apps.
 - Before relying on a release, test first-run permissions, model download,
   shortcut recording, transcription and insertion into your target app on your
   OS. The model catalogue and screenshots are not proof of accuracy. No
