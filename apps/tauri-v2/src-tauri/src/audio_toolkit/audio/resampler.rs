@@ -97,3 +97,110 @@ impl FrameResampler {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::f32::consts::PI;
+
+    const FRAME: Duration = Duration::from_millis(30);
+    /// 30 ms at the 16 kHz rate every engine consumes.
+    const FRAME_16K: usize = 480;
+
+    fn run(resampler: &mut FrameResampler, input: &[f32], piece: usize) -> Vec<Vec<f32>> {
+        let mut frames = Vec::new();
+        for chunk in input.chunks(piece) {
+            resampler.push(chunk, |f| frames.push(f.to_vec()));
+        }
+        resampler.finish(|f| frames.push(f.to_vec()));
+        frames
+    }
+
+    fn tone(hz: f32, rate: usize, samples: usize) -> Vec<f32> {
+        (0..samples)
+            .map(|i| 0.5 * (2.0 * PI * hz * i as f32 / rate as f32).sin())
+            .collect()
+    }
+
+    fn zero_crossings(samples: &[f32]) -> usize {
+        samples
+            .windows(2)
+            .filter(|w| (w[0] < 0.0) != (w[1] < 0.0))
+            .count()
+    }
+
+    #[test]
+    fn same_rate_passes_samples_through_and_pads_the_last_frame() {
+        let mut resampler = FrameResampler::new(16_000, 16_000, FRAME);
+        let input: Vec<f32> = (0..1_000).map(|i| i as f32 / 1_000.0).collect();
+
+        let frames = run(&mut resampler, &input, input.len());
+
+        // 1 000 samples -> two full 480-sample frames plus one zero-padded frame.
+        assert_eq!(frames.len(), 3);
+        assert!(frames.iter().all(|f| f.len() == FRAME_16K));
+        let flat = frames.concat();
+        assert_eq!(&flat[..input.len()], &input[..]);
+        assert!(flat[input.len()..].iter().all(|&s| s == 0.0));
+    }
+
+    #[test]
+    fn finish_without_input_emits_nothing() {
+        let mut resampler = FrameResampler::new(48_000, 16_000, FRAME);
+        let frames = run(&mut resampler, &[], 1);
+        assert!(frames.is_empty());
+    }
+
+    #[test]
+    fn downsampling_48k_to_16k_keeps_duration_and_frame_size() {
+        let mut resampler = FrameResampler::new(48_000, 16_000, FRAME);
+        let input = tone(440.0, 48_000, 48_000);
+
+        let frames = run(&mut resampler, &input, input.len());
+
+        assert!(frames.iter().all(|f| f.len() == FRAME_16K));
+        // One second in should be about one second (16 000 samples) out; the
+        // slack covers the zero-padded final resampler chunk and output frame.
+        let total: usize = frames.iter().map(Vec::len).sum();
+        assert!((15_500..=17_000).contains(&total), "got {total} samples");
+    }
+
+    #[test]
+    fn downsampling_preserves_pitch() {
+        let mut resampler = FrameResampler::new(48_000, 16_000, FRAME);
+        let input = tone(440.0, 48_000, 48_000);
+
+        let flat = run(&mut resampler, &input, input.len()).concat();
+
+        // Half a second from the steady-state middle of the output: a 440 Hz
+        // tone crosses zero 440 times in 0.5 s. Skipping the edges avoids the
+        // filter's start-up delay and the zero padding at the end.
+        let middle = &flat[4_000..12_000];
+        let crossings = zero_crossings(middle);
+        assert!(
+            (430..=450).contains(&crossings),
+            "got {crossings} zero crossings"
+        );
+    }
+
+    #[test]
+    fn output_does_not_depend_on_how_input_is_split() {
+        let input = tone(1_000.0, 44_100, 22_050);
+
+        let mut whole = FrameResampler::new(44_100, 16_000, FRAME);
+        let mut pieces = FrameResampler::new(44_100, 16_000, FRAME);
+
+        // Audio callbacks deliver arbitrary buffer sizes; the frames handed to
+        // the VAD must be identical either way.
+        assert_eq!(
+            run(&mut whole, &input, input.len()),
+            run(&mut pieces, &input, 37)
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "frame duration too short")]
+    fn zero_frame_duration_is_rejected() {
+        let _ = FrameResampler::new(48_000, 16_000, Duration::ZERO);
+    }
+}
