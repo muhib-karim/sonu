@@ -475,7 +475,9 @@
     "yes": "Ja",
     "no": "Nein",
     "noOptionsFound": "Keine Optionen gefunden",
-    "copy": "Kopieren"
+    "copy": "Kopieren",
+    "downloading": "Wird heruntergeladen...",
+    "downloadingCount": "{{count}} werden heruntergeladen..."
   },
   "accessibility": {
     "permissionsRequired": "Bedienungshilfen-Berechtigungen erforderlich",

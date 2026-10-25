@@ -475,7 +475,9 @@
     "yes": "Có",
     "no": "Không",
     "noOptionsFound": "Không tìm thấy tùy chọn",
-    "copy": "Sao chép"
+    "copy": "Sao chép",
+    "downloading": "Đang tải xuống...",
+    "downloadingCount": "Đang tải xuống {{count}} mục..."
   },
   "accessibility": {
     "permissionsRequired": "Cần quyền truy cập",

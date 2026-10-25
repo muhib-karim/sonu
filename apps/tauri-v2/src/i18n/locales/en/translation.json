@@ -475,7 +475,9 @@
     "yes": "Yes",
     "no": "No",
     "noOptionsFound": "No options found",
-    "copy": "Copy"
+    "copy": "Copy",
+    "downloading": "Downloading...",
+    "downloadingCount": "{{count}} downloading..."
   },
   "accessibility": {
     "permissionsRequired": "Accessibility Permissions Required",

@@ -475,7 +475,9 @@
     "yes": "Так",
     "no": "Ні",
     "noOptionsFound": "Опцій не знайдено",
-    "copy": "Копіювати"
+    "copy": "Копіювати",
+    "downloading": "Завантаження...",
+    "downloadingCount": "Завантажується: {{count}}..."
   },
   "accessibility": {
     "permissionsRequired": "Потрібні права доступу",
