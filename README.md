@@ -363,6 +363,16 @@ sonu/
 | [SECURITY.md](SECURITY.md) | Security policy |
 | [AGENTS.md](AGENTS.md) | Build commands and coding conventions |
 
+## Tech stack
+
+- **Desktop app:** Tauri v2 (Rust backend) with a React, TypeScript, Vite and Tailwind CSS frontend, in [`apps/tauri-v2`](apps/tauri-v2)
+- **Speech:** offline transcription in Rust (`transcribe-rs`)
+- **Tests and CI:** Vitest, Playwright, `cargo test`, GitHub Actions
+
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow. Before opening a pull request, run `cargo test`. Please keep each pull request focused and say how you tested it.
+
 ## Support
 
 If SONU is useful to you, you can [support it on Ko-fi](https://ko-fi.com/ai_dev_2024).
