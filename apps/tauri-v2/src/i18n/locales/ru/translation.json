@@ -475,7 +475,9 @@
     "yes": "Да",
     "no": "Нет",
     "noOptionsFound": "Вариантов не найдено",
-    "copy": "Копировать"
+    "copy": "Копировать",
+    "downloading": "Загрузка...",
+    "downloadingCount": "Загружается: {{count}}..."
   },
   "accessibility": {
     "permissionsRequired": "Требуются разрешения на доступ",

@@ -475,7 +475,9 @@
     "yes": "是",
     "no": "否",
     "noOptionsFound": "未找到选项",
-    "copy": "复制"
+    "copy": "复制",
+    "downloading": "下载中...",
+    "downloadingCount": "正在下载 {{count}} 项..."
   },
   "accessibility": {
     "permissionsRequired": "需要辅助功能权限",
