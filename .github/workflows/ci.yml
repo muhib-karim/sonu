@@ -135,7 +135,7 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.8.2
+      - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.8.2
         with:
           workspaces: "./apps/tauri-v2/src-tauri -> target"
           # whisper-rs-sys has no rerun-if-env-changed for cmake flags, so the
@@ -269,7 +269,7 @@ jobs:
       # when the failure came from an earlier step.
       - name: Upload logs
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4.6.0
         with:
           name: rust-check-logs
           path: |
