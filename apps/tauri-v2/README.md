@@ -158,7 +158,6 @@ MIT License - see LICENSE file for details
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/muhib-karim/sonu/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/muhib-karim/sonu/discussions)
 - **Email**: support@sonu.app (if applicable)
 
 ---
