@@ -84,7 +84,7 @@ in `src-tauri/src` and fails when the count rises above
 `scripts/panic-baseline.txt`. It exists because `panic = "abort"` turns any
 panic into a full-app abort.
 
-It is a **ratchet, not a purity gate**: the ~87 existing sites are tolerated.
+It is a **ratchet, not a purity gate**: the ~107 existing sites (see the baseline file) are tolerated.
 When you remove one, lower the baseline in the same commit so the gain sticks.
 Run it locally with:
 

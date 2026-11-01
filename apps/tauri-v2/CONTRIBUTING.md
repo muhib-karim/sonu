@@ -66,8 +66,8 @@ Include: app version, OS, CPU/GPU, steps to reproduce, expected vs actual behavi
 
 ## 💡 Features
 
-Start a [Discussion](https://github.com/muhib-karim/sonu/discussions) for feature ideas.
-Search existing discussions first.
+Open an [issue](https://github.com/muhib-karim/sonu/issues) for feature ideas.
+Search existing issues first.
 
 ## 🔧 Making Changes
 
@@ -100,7 +100,7 @@ AI-assisted PRs are welcome. Mention which tool was used in the PR description.
 ## 📞 Getting Help
 
 - [Discord](https://discord.com/invite/WVBeWsNXK4)
-- [GitHub Discussions](https://github.com/muhib-karim/sonu/discussions)
+- [GitHub Issues](https://github.com/muhib-karim/sonu/issues)
 
 ---
 
