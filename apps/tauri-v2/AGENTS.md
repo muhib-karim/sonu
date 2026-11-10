@@ -22,13 +22,10 @@ bun run dev            # frontend only (Vite)
 bun run tauri build    # production bundle
 ```
 
-**Required for local development** — the VAD model is not committed:
-
-```bash
-mkdir -p src-tauri/resources/models
-curl -o src-tauri/resources/models/silero_vad_v4.onnx \
-  https://blob.handy.computer/silero_vad_v4.onnx
-```
+**No model download is needed for local development.** The Silero VAD model
+(`src-tauri/resources/models/silero_vad_v4.onnx`, 1.8 MB) is committed and
+ships as a bundled resource. Speech-recognition models are different: the app
+downloads them at runtime and they are git-ignored.
 
 **Toolchain notes**
 

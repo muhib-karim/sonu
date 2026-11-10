@@ -17,6 +17,7 @@ src-tauri/gen
 # Test artifacts
 test-results
 playwright-report
+coverage
 
 # Generated files
 src/bindings.ts

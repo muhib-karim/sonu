@@ -1,7 +1,12 @@
 #!/bin/sh
 # Pre-commit hook for SONU
-
-. "$(dirname "$0")/_/husky.sh"
+#
+# git runs this file directly: `bun install` points core.hooksPath at .husky
+# (the `prepare` script in apps/tauri-v2/package.json). husky itself is not a
+# dependency, so there is no .husky/_/husky.sh to source.
+#
+# Keep this file executable and LF-terminated. A CRLF shebang ("/bin/sh\r")
+# cannot be executed on Linux or macOS, and a non-executable hook is skipped.
 
 echo "🔍 Running pre-commit checks..."
 
@@ -20,7 +25,12 @@ if echo "$STAGED_FILES" | grep -E "\.(js|jsx|ts|tsx)$" > /dev/null; then
     # `format` would rewrite files during the commit without re-staging them,
     # so the commit could still land unformatted and fail CI's format:check.
     # Fail here instead and let the author run `bun run format`.
-    bun run format:check || exit 1
+    #
+    # Prettier only, not `bun run format:check`: that script also runs
+    # `cargo fmt -- --check`, so a frontend-only commit failed on any machine
+    # without rustfmt. Rust formatting is checked below whenever .rs files are
+    # staged, and by CI in every case.
+    bun x prettier --check . || exit 1
     
     echo "  - Running TypeScript check..."
     bun run typecheck || exit 1

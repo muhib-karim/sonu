@@ -221,4 +221,62 @@ describe("useSettings", () => {
 
     expect(result.current.settings).toBeNull();
   });
+
+  it("returns false and restores the value when a write fails", async () => {
+    setupMocks();
+    // A backend failure resolves an error result; it does not reject.
+    vi.mocked(commands.changeAudioFeedbackSetting).mockResolvedValue({
+      status: "error",
+      error: "disk full",
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { result } = renderHook(() => useSettings());
+
+    await waitFor(() => {
+      expect(result.current.settings).not.toBeNull();
+    });
+
+    let saved: boolean | undefined;
+    await act(async () => {
+      saved = await result.current.updateSetting("audio_feedback", true);
+    });
+
+    expect(saved).toBe(false);
+    expect(result.current.settings?.audio_feedback).toBe(false);
+    expect(result.current.audioFeedbackEnabled).toBe(false);
+    expect(result.current.isUpdating("audio_feedback")).toBe(false);
+  });
+
+  it("loads once when several consumers mount together", async () => {
+    setupMocks();
+
+    const first = renderHook(() => useSettings());
+    const second = renderHook(() => useSettings());
+
+    await waitFor(() => {
+      expect(first.result.current.settings).not.toBeNull();
+      expect(second.result.current.settings).not.toBeNull();
+    });
+
+    expect(commands.getAppSettings).toHaveBeenCalledTimes(1);
+    expect(commands.getDefaultSettings).toHaveBeenCalledTimes(1);
+    expect(commands.getAvailableMicrophones).toHaveBeenCalledTimes(1);
+    expect(commands.getAvailableOutputDevices).toHaveBeenCalledTimes(1);
+    expect(commands.checkCustomSounds).toHaveBeenCalledTimes(1);
+  });
+
+  it("mirrors the audio feedback setting as audioFeedbackEnabled", async () => {
+    setupMocks();
+    vi.mocked(commands.getAppSettings).mockResolvedValue({
+      status: "ok",
+      data: { ...mockSettings, audio_feedback: true },
+    } as any);
+
+    const { result } = renderHook(() => useSettings());
+
+    await waitFor(() => {
+      expect(result.current.audioFeedbackEnabled).toBe(true);
+    });
+  });
 });

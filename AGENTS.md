@@ -34,8 +34,12 @@ bun run typecheck
 
 # Test suites
 bun run test
+bun run test:coverage # same suite; fails below the floors in vite.config.ts
 bun run test:e2e      # manual pre-release step; not run in CI
 bun run test:rust
+
+# Dependency audit (what the blocking CI job runs)
+bun audit --audit-level=high
 ```
 
 **Building the Rust backend without LLVM.** The `whisper` feature needs
@@ -69,7 +73,7 @@ from loading. See [`apps/tauri-v2/AGENTS.md`](apps/tauri-v2/AGENTS.md) for the
 workaround.
 
 ## CI / CD
-- **CI** (`.github/workflows/ci.yml`): Runs on push/PR to main — lint, format, typecheck, Vitest, panic ratchet, cargo fmt, cargo clippy (`-D warnings`), cargo audit (advisory).
+- **CI** (`.github/workflows/ci.yml`): Runs on push/PR to main — lint, format, typecheck, Vitest with coverage floors, JS dependency audit (`bun audit`, blocking at high), panic ratchet, cargo fmt, cargo clippy (`-D warnings`), cargo audit (advisory).
 - **Build** (`.github/workflows/build.yml`): Reusable workflow for multi-platform Tauri builds (6 targets)
 - **Release** (`.github/workflows/release.yml`): Manual dispatch — creates draft release, builds all platforms, publishes
 - **Dependencies**: Dependabot (`.github/dependabot.yml`) covers cargo, bun, and GitHub Actions.
@@ -91,6 +95,25 @@ Run it locally with:
 ```bash
 cd apps/tauri-v2 && bash scripts/check-panic-ratchet.sh
 ```
+
+### Coverage ratchet
+
+`bun run test:coverage` enforces the floors in `apps/tauri-v2/vite.config.ts`
+(`test.coverage.thresholds`): one global set and a higher one for
+`src/stores/settingsStore.ts`. Like the panic ratchet, they sit just under the
+measured figure. When you add tests, raise them in the same commit; do not
+lower them to make a change pass. The figures were measured on Node 22; the
+slack is there to absorb small differences on other Node versions.
+
+### JS dependency audit
+
+The `JS Dependency Audit` job runs `bun audit --audit-level=high` and blocks.
+It reads `bun.lock` against a live advisory database, so it can fail on a PR
+that did not touch dependencies. To fix a transitive package without moving
+direct dependencies: add a temporary top-level `overrides` entry in
+`package.json` with the patched range, run `bun install`, remove the entry and
+run `bun install` again. Only `bun.lock` should change. (`bun update <name>` on
+bun 1.3.14 adds a transitive package as a new direct dependency instead.)
 
 ## Code style guidelines
 ### TypeScript/React (Tauri frontend)

@@ -25,22 +25,27 @@ interface UseSettingsReturn {
 
   // Binding-specific actions
   updateBinding: (id: string, binding: string) => Promise<void>;
-  resetBinding: (id: string) => Promise<void>;
+  /** Returns `true` if the binding was reset, `false` if the reset failed. */
+  resetBinding: (id: string) => Promise<boolean>;
 
   // Convenience getters
   getSetting: <K extends keyof Settings>(key: K) => Settings[K] | undefined;
 
-  // Post-processing helpers
-  setPostProcessProvider: (providerId: string) => Promise<void>;
+  // Post-processing helpers. Like `updateSetting`, each write returns `true`
+  // if persisted and `false` if it failed and was rolled back.
+  setPostProcessProvider: (providerId: string) => Promise<boolean>;
   updatePostProcessBaseUrl: (
     providerId: string,
     baseUrl: string,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   updatePostProcessApiKey: (
     providerId: string,
     apiKey: string,
-  ) => Promise<void>;
-  updatePostProcessModel: (providerId: string, model: string) => Promise<void>;
+  ) => Promise<boolean>;
+  updatePostProcessModel: (
+    providerId: string,
+    model: string,
+  ) => Promise<boolean>;
   fetchPostProcessModels: (providerId: string) => Promise<string[]>;
 }
 
