@@ -72,6 +72,48 @@ jobs:
       - name: Run tests
         run: bun run test
 
+      # The same suite with V8 coverage. Fails when coverage drops below the
+      # floors in vite.config.ts (`test.coverage.thresholds`). Those floors are
+      # a ratchet: raise them when you add tests, never lower them to get a
+      # change through.
+      - name: Coverage (floors enforced)
+        run: bun run test:coverage
+
+      # Uploaded even when a floor fails, so the report shows what dropped.
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.0
+        with:
+          name: coverage-report
+          path: apps/tauri-v2/coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Blocking: fails on any known high or critical advisory in the JS dependency
+  # graph. Dev dependencies count, because the test and build toolchain runs on
+  # developer machines and in CI. `bun audit` reads bun.lock and queries the npm
+  # advisory database, so no install step is needed.
+  #
+  # It checks against a live database, so this job can turn red on a PR that
+  # did not touch dependencies when a new advisory is published. That is the
+  # intended signal. Fix it by moving the package to a patched release; if none
+  # exists yet, pass the advisory's CVE id to `--ignore` here with a comment
+  # saying why and when to revisit.
+  #
+  # The level is `high`, not `moderate`: one moderate advisory remains
+  # (minimatch 9.x, GHSA-g3hv-75wg-m249) and its fix is a major version that
+  # typescript-eslint does not accept yet.
+  js-audit:
+    name: JS Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.0.2
+
+      - name: Audit (high and critical)
+        run: bun audit --audit-level=high
+
   # Fast, dependency-free check. Runs before the Rust build so a new panic site
   # fails in seconds rather than after a ten-minute toolchain setup.
   panic-ratchet:
