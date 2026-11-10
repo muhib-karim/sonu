@@ -133,8 +133,7 @@ export const StyleSettings: React.FC = () => {
   useEffect(() => {
     if (!settings) return;
     const stored = settings.style_selection as
-      | Record<string, string>
-      | undefined;
+      Record<string, string> | undefined;
     if (stored) {
       setSelectedStyles((prev) => ({
         personal: stored.personal || prev.personal,
