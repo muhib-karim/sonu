@@ -662,7 +662,7 @@ describe("resetBinding", () => {
       get_app_settings: () => baseSettings(),
     });
 
-    await store().resetBinding("transcribe");
+    await expect(store().resetBinding("transcribe")).resolves.toBe(true);
 
     expect(ipc.callsTo("reset_binding")).toEqual([
       { cmd: "reset_binding", args: { id: "transcribe" } },
@@ -670,6 +670,59 @@ describe("resetBinding", () => {
     expect(store().settings?.bindings.transcribe?.current_binding).toBe(
       "ctrl+space",
     );
+    expect(store().isUpdatingKey("binding_transcribe")).toBe(false);
+  });
+
+  // Regression: the result of `commands.resetBinding` was never inspected, so
+  // a backend error resolved `{ status: "error" }`, the `catch` never ran and
+  // the failure was reported to nobody.
+  it("returns false and logs when the backend returns an error", async () => {
+    seed();
+    const ipc = mockTauriCommands({
+      reset_binding: () => backendError("shortcut manager unavailable"),
+      get_app_settings: () => baseSettings(),
+    });
+
+    await expect(store().resetBinding("transcribe")).resolves.toBe(false);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to reset binding transcribe:",
+      expect.objectContaining({ message: "shortcut manager unavailable" }),
+    );
+    // Nothing changed in the backend, so there is nothing to reload.
+    expect(ipc.callsTo("get_app_settings")).toHaveLength(0);
+    expect(store().isUpdatingKey("binding_transcribe")).toBe(false);
+  });
+
+  it("returns false and logs the reason when the command reports success: false", async () => {
+    seed();
+    mockTauriCommands({
+      reset_binding: () => ({
+        success: false,
+        binding: null,
+        error: "default shortcut is taken",
+      }),
+      get_app_settings: () => baseSettings(),
+    });
+
+    await expect(store().resetBinding("transcribe")).resolves.toBe(false);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to reset binding transcribe:",
+      expect.objectContaining({ message: "default shortcut is taken" }),
+    );
+  });
+
+  it("returns false instead of rejecting when the transport fails", async () => {
+    seed();
+    mockTauriCommands({
+      reset_binding: () => {
+        throw new Error("ipc channel closed");
+      },
+    });
+
+    await expect(store().resetBinding("transcribe")).resolves.toBe(false);
+
     expect(store().isUpdatingKey("binding_transcribe")).toBe(false);
   });
 });
@@ -692,7 +745,7 @@ describe("setPostProcessProvider", () => {
     expect(store().isUpdatingKey("post_process_provider_id")).toBe(true);
 
     pending.resolve(null);
-    await write;
+    await expect(write).resolves.toBe(true);
 
     expect(ipc.callsTo("set_post_process_provider")).toEqual([
       { cmd: "set_post_process_provider", args: { providerId: "anthropic" } },
@@ -710,9 +763,57 @@ describe("setPostProcessProvider", () => {
       },
     });
 
-    await store().setPostProcessProvider("anthropic");
+    await expect(store().setPostProcessProvider("anthropic")).resolves.toBe(
+      false,
+    );
 
     expect(store().settings?.post_process_provider_id).toBe("openai");
+    expect(store().isUpdatingKey("post_process_provider_id")).toBe(false);
+  });
+
+  // Regression: a backend error resolved `{ status: "error" }`, so the
+  // rollback in `catch` never ran and nothing was logged. The store only
+  // looked right afterwards because the reload happened to fetch the old id.
+  it("restores the previous provider, logs and returns false when the backend returns an error", async () => {
+    seed();
+    const ipc = mockTauriCommands({
+      set_post_process_provider: () => backendError("unknown provider"),
+      get_app_settings: () => baseSettings(),
+    });
+
+    await expect(store().setPostProcessProvider("anthropic")).resolves.toBe(
+      false,
+    );
+
+    expect(store().settings?.post_process_provider_id).toBe("openai");
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to set post-process provider:",
+      expect.objectContaining({ message: "unknown provider" }),
+    );
+    // The rollback restores the value; no reload is needed to hide a failure.
+    expect(ipc.callsTo("get_app_settings")).toHaveLength(0);
+    expect(store().isUpdatingKey("post_process_provider_id")).toBe(false);
+  });
+
+  it("does not let an older failed switch revert a newer successful one", async () => {
+    seed();
+    const older = deferred<null>();
+    mockTauriCommands({
+      set_post_process_provider: ({ providerId }) =>
+        providerId === "anthropic" ? older.promise : null,
+      get_app_settings: () => ({
+        ...baseSettings(),
+        post_process_provider_id: "groq",
+      }),
+    });
+
+    const first = store().setPostProcessProvider("anthropic");
+    await expect(store().setPostProcessProvider("groq")).resolves.toBe(true);
+
+    older.reject("unknown provider");
+    await expect(first).resolves.toBe(false);
+
+    expect(store().settings?.post_process_provider_id).toBe("groq");
     expect(store().isUpdatingKey("post_process_provider_id")).toBe(false);
   });
 });
@@ -754,7 +855,7 @@ describe("post-process provider settings", () => {
       expect(store().isUpdatingKey(busyKey)).toBe(true);
 
       pending.resolve(null);
-      await write;
+      await expect(write).resolves.toBe(true);
 
       expect(ipc.callsTo(command)).toEqual([{ cmd: command, args }]);
       // The reload is what brings the persisted value back into the store.
@@ -791,13 +892,88 @@ describe("post-process provider settings", () => {
 
     await expect(
       store().updatePostProcessModel("custom", "gpt-test"),
-    ).resolves.not.toThrow();
+    ).resolves.toBe(false);
 
     expect(store().isUpdatingKey("post_process_model:custom")).toBe(false);
     expect(errorSpy).toHaveBeenCalledWith(
       "Failed to update post-process model:",
       expect.any(Error),
     );
+  });
+
+  // Regression: none of the three commands' results was inspected, so a
+  // backend error resolved `{ status: "error" }`, was never logged, and the
+  // caller could not tell the value had not been saved.
+  it.each([
+    {
+      action: "updatePostProcessBaseUrl",
+      command: "change_post_process_base_url_setting",
+      message: "Failed to update post-process base url:",
+      busyKey: "post_process_base_url:custom",
+    },
+    {
+      action: "updatePostProcessApiKey",
+      command: "change_post_process_api_key_setting",
+      message: "Failed to update post-process api key:",
+      busyKey: "post_process_api_key:custom",
+    },
+    {
+      action: "updatePostProcessModel",
+      command: "change_post_process_model_setting",
+      message: "Failed to update post-process model:",
+      busyKey: "post_process_model:custom",
+    },
+  ] as const)(
+    "$action returns false and logs when the backend returns an error",
+    async ({ action, command, message, busyKey }) => {
+      seed();
+      const ipc = mockTauriCommands({
+        [command]: () => backendError("keychain locked"),
+        get_app_settings: () => baseSettings(),
+      });
+
+      await expect(store()[action]("custom", "value")).resolves.toBe(false);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        message,
+        expect.objectContaining({ message: "keychain locked" }),
+      );
+      expect(ipc.callsTo("get_app_settings")).toHaveLength(0);
+      expect(store().isUpdatingKey(busyKey)).toBe(false);
+    },
+  );
+
+  it("updatePostProcessApiKey restores the cached model list when the key was not saved", async () => {
+    seed();
+    useSettingsStore.setState({
+      postProcessModelOptions: { custom: ["a", "b"], openai: ["gpt"] },
+    });
+    mockTauriCommands({
+      change_post_process_api_key_setting: () =>
+        backendError("keychain locked"),
+    });
+
+    await expect(
+      store().updatePostProcessApiKey("custom", "sk-new"),
+    ).resolves.toBe(false);
+
+    // The key is unchanged, so the list fetched with it is still valid.
+    expect(store().postProcessModelOptions).toEqual({
+      custom: ["a", "b"],
+      openai: ["gpt"],
+    });
+  });
+
+  it("updatePostProcessApiKey leaves no cache entry behind when there was none", async () => {
+    seed();
+    mockTauriCommands({
+      change_post_process_api_key_setting: () =>
+        backendError("keychain locked"),
+    });
+
+    await store().updatePostProcessApiKey("custom", "sk-new");
+
+    expect(store().postProcessModelOptions).toEqual({});
   });
 });
 

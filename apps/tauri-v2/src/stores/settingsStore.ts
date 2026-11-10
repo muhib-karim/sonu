@@ -7,6 +7,7 @@ import type {
   VoiceCommand,
 } from "@/bindings";
 import { commands } from "@/bindings";
+import { unwrapResult } from "@/lib/utils/result";
 
 interface SettingsStore {
   settings: Settings | null;
@@ -30,26 +31,33 @@ interface SettingsStore {
   refreshAudioDevices: () => Promise<void>;
   refreshOutputDevices: () => Promise<void>;
   updateBinding: (id: string, binding: string) => Promise<void>;
-  resetBinding: (id: string) => Promise<void>;
+  /** Returns `true` if the binding was reset, `false` if the reset failed. */
+  resetBinding: (id: string) => Promise<boolean>;
   getSetting: <K extends keyof Settings>(key: K) => Settings[K] | undefined;
   isUpdatingKey: (key: string) => boolean;
   playTestSound: (soundType: "start" | "stop") => Promise<void>;
   checkCustomSounds: () => Promise<void>;
-  setPostProcessProvider: (providerId: string) => Promise<void>;
+  // The post-process writes report failure the way `updateSetting` does:
+  // `true` if persisted, `false` if the write failed (and was rolled back).
+  // They never reject, so fire-and-forget callers cannot leak a rejection.
+  setPostProcessProvider: (providerId: string) => Promise<boolean>;
   updatePostProcessSetting: (
     settingType: "base_url" | "api_key" | "model",
     providerId: string,
     value: string,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   updatePostProcessBaseUrl: (
     providerId: string,
     baseUrl: string,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   updatePostProcessApiKey: (
     providerId: string,
     apiKey: string,
-  ) => Promise<void>;
-  updatePostProcessModel: (providerId: string, model: string) => Promise<void>;
+  ) => Promise<boolean>;
+  updatePostProcessModel: (
+    providerId: string,
+    model: string,
+  ) => Promise<boolean>;
   fetchPostProcessModels: (providerId: string) => Promise<string[]>;
   setPostProcessModelOptions: (providerId: string, models: string[]) => void;
 
@@ -428,7 +436,13 @@ export const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    // Reset a specific binding
+    // Reset a specific binding.
+    //
+    // Returns `true` if the backend reset it, `false` if it did not. The
+    // command's result has to be unwrapped: a backend error resolves
+    // `{ status: "error" }` rather than throwing, and a rejected reset comes
+    // back as `success: false`. Neither used to be looked at, so a failed
+    // reset was silent.
     resetBinding: async (id) => {
       const { setUpdating, refreshSettings } = get();
       const updateKey = `binding_${id}`;
@@ -436,19 +450,31 @@ export const useSettingsStore = create<SettingsStore>()(
       setUpdating(updateKey, true);
 
       try {
-        await commands.resetBinding(id);
+        const response = unwrapResult(await commands.resetBinding(id));
+        if (!response.success) {
+          throw new Error(response.error || "Failed to reset binding");
+        }
         await refreshSettings();
+        return true;
       } catch (error) {
         console.error(`Failed to reset binding ${id}:`, error);
+        return false;
       } finally {
         setUpdating(updateKey, false);
       }
     },
 
+    // Select the post-processing provider.
+    //
+    // Returns `true` if persisted, `false` if the write failed and the
+    // previous provider was restored. The rollback follows `updateSetting`:
+    // it only runs, and the busy flag is only cleared, if no newer switch has
+    // started in the meantime.
     setPostProcessProvider: async (providerId) => {
       const { settings, setUpdating, refreshSettings } = get();
       const updateKey = "post_process_provider_id";
       const previousId = settings?.post_process_provider_id ?? null;
+      const version = nextMutationVersion(updateKey);
 
       setUpdating(updateKey, true);
 
@@ -461,23 +487,34 @@ export const useSettingsStore = create<SettingsStore>()(
       }
 
       try {
-        await commands.setPostProcessProvider(providerId);
+        // A backend error resolves `{ status: "error" }`; without unwrapping
+        // it the rollback below never ran.
+        unwrapResult(await commands.setPostProcessProvider(providerId));
         await refreshSettings();
+        return true;
       } catch (error) {
         console.error("Failed to set post-process provider:", error);
-        if (previousId !== null) {
+        if (previousId !== null && isLatestMutation(updateKey, version)) {
           set((state) => ({
             settings: state.settings
               ? { ...state.settings, post_process_provider_id: previousId }
               : null,
           }));
         }
+        return false;
       } finally {
-        setUpdating(updateKey, false);
+        if (isLatestMutation(updateKey, version)) {
+          setUpdating(updateKey, false);
+        }
       }
     },
 
-    // Generic updater for post-processing provider settings
+    // Generic updater for post-processing provider settings.
+    //
+    // Returns `true` if persisted, `false` if the write failed. Each command
+    // result is unwrapped because a backend error resolves
+    // `{ status: "error" }`; it used to be dropped, so a value that was never
+    // saved looked saved.
     updatePostProcessSetting: async (
       settingType: "base_url" | "api_key" | "model",
       providerId: string,
@@ -490,18 +527,26 @@ export const useSettingsStore = create<SettingsStore>()(
 
       try {
         if (settingType === "base_url") {
-          await commands.changePostProcessBaseUrlSetting(providerId, value);
+          unwrapResult(
+            await commands.changePostProcessBaseUrlSetting(providerId, value),
+          );
         } else if (settingType === "api_key") {
-          await commands.changePostProcessApiKeySetting(providerId, value);
+          unwrapResult(
+            await commands.changePostProcessApiKeySetting(providerId, value),
+          );
         } else if (settingType === "model") {
-          await commands.changePostProcessModelSetting(providerId, value);
+          unwrapResult(
+            await commands.changePostProcessModelSetting(providerId, value),
+          );
         }
         await refreshSettings();
+        return true;
       } catch (error) {
         console.error(
           `Failed to update post-process ${settingType.replace("_", " ")}:`,
           error,
         );
+        return false;
       } finally {
         setUpdating(updateKey, false);
       }
@@ -512,6 +557,8 @@ export const useSettingsStore = create<SettingsStore>()(
     },
 
     updatePostProcessApiKey: async (providerId, apiKey) => {
+      const previousModels = get().postProcessModelOptions[providerId];
+
       // Clear cached models when API key changes - user should click refresh after
       set((state) => ({
         postProcessModelOptions: {
@@ -519,7 +566,27 @@ export const useSettingsStore = create<SettingsStore>()(
           [providerId]: [],
         },
       }));
-      return get().updatePostProcessSetting("api_key", providerId, apiKey);
+
+      const saved = await get().updatePostProcessSetting(
+        "api_key",
+        providerId,
+        apiKey,
+      );
+
+      if (!saved) {
+        // The key did not change, so the list fetched with it is still valid.
+        set((state) => {
+          const options = { ...state.postProcessModelOptions };
+          if (previousModels === undefined) {
+            delete options[providerId];
+          } else {
+            options[providerId] = previousModels;
+          }
+          return { postProcessModelOptions: options };
+        });
+      }
+
+      return saved;
     },
 
     updatePostProcessModel: async (providerId, model) => {

@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useSettings } from "../../../hooks/useSettings";
 import { commands, type PostProcessProvider } from "@/bindings";
 import type { ModelOption } from "./types";
@@ -30,6 +32,7 @@ type PostProcessProviderState = {
 const APPLE_PROVIDER_ID = "apple_intelligence";
 
 export const usePostProcessProviderState = (): PostProcessProviderState => {
+  const { t } = useTranslation();
   const {
     settings,
     isUpdating,
@@ -72,6 +75,18 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     )?.[selectedProviderId] ?? "";
   const model = settings?.post_process_models?.[selectedProviderId] ?? "";
 
+  // The store's post-process writes resolve `false` when the value was not
+  // saved (they never reject, so chaining on them is safe). The store has
+  // already rolled back and logged; this is the only place the user is told.
+  const reportIfNotSaved = useCallback(
+    (saved: boolean) => {
+      if (!saved) {
+        toast.error(t("settings.postProcessing.api.errors.save"));
+      }
+    },
+    [t],
+  );
+
   const providerOptions = useMemo<DropdownOption[]>(() => {
     return providers.map((provider) => ({
       value: provider.id,
@@ -112,10 +127,13 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
           }
         }
 
-        void setPostProcessProvider(providerId);
+        const saved = await setPostProcessProvider(providerId);
+        if (!saved) {
+          toast.error(t("settings.postProcessing.api.errors.provider"));
+        }
       })();
     },
-    [selectedProviderId, setPostProcessProvider],
+    [selectedProviderId, setPostProcessProvider, t],
   );
 
   const handleBaseUrlChange = useCallback(
@@ -125,27 +143,33 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
       }
       const trimmed = value.trim();
       if (trimmed && trimmed !== baseUrl) {
-        void updatePostProcessBaseUrl(selectedProvider.id, trimmed);
+        void updatePostProcessBaseUrl(selectedProvider.id, trimmed).then(
+          reportIfNotSaved,
+        );
       }
     },
-    [selectedProvider, baseUrl, updatePostProcessBaseUrl],
+    [selectedProvider, baseUrl, updatePostProcessBaseUrl, reportIfNotSaved],
   );
 
   const handleApiKeyChange = useCallback(
     (value: string) => {
       const trimmed = value.trim();
       if (trimmed !== apiKey) {
-        void updatePostProcessApiKey(selectedProviderId, trimmed);
+        void updatePostProcessApiKey(selectedProviderId, trimmed).then(
+          reportIfNotSaved,
+        );
       }
     },
-    [apiKey, selectedProviderId, updatePostProcessApiKey],
+    [apiKey, selectedProviderId, updatePostProcessApiKey, reportIfNotSaved],
   );
 
   const handleModelSet = useCallback(
     (value: string) => {
-      void updatePostProcessModel(selectedProviderId, value.trim());
+      void updatePostProcessModel(selectedProviderId, value.trim()).then(
+        reportIfNotSaved,
+      );
     },
-    [selectedProviderId, updatePostProcessModel],
+    [selectedProviderId, updatePostProcessModel, reportIfNotSaved],
   );
 
   const handleRefreshModels = useCallback(() => {

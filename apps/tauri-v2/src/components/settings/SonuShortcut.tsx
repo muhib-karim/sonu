@@ -256,6 +256,16 @@ export const SonuShortcut: React.FC<SonuShortcutProps> = ({
     setRecordedKeys([]);
   };
 
+  // `resetBinding` reports failure through its return value; it does not
+  // reject. Without this check a failed reset left the old shortcut in place
+  // and told the user nothing.
+  const handleReset = async () => {
+    const reset = await resetBinding(shortcutId);
+    if (!reset) {
+      toast.error(t("settings.general.shortcut.errors.reset"));
+    }
+  };
+
   // Format the current shortcut keys being recorded
   const formatCurrentKeys = (): string => {
     if (recordedKeys.length === 0)
@@ -358,7 +368,7 @@ export const SonuShortcut: React.FC<SonuShortcutProps> = ({
           </button>
         )}
         <ResetButton
-          onClick={() => resetBinding(shortcutId)}
+          onClick={() => void handleReset()}
           disabled={isUpdating(`binding_${shortcutId}`)}
         />
       </div>

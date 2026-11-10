@@ -64,18 +64,29 @@ export default defineConfig(async ({ mode }) => {
         ],
         // A ratchet, not a target (same idea as scripts/panic-baseline.txt).
         // Each floor sits just under the measured figure: the largest
-        // half-point step below it. Coverage may rise freely; a change that
-        // lowers it fails `bun run test:coverage` and CI. When you add tests,
-        // raise the floors in the same commit so the gain sticks. Do not
-        // lower them to make a change pass.
+        // half-point step that is at least a quarter point below it (the
+        // slack absorbs small differences between Node/V8 versions).
+        // Coverage may rise freely; a change that lowers it fails
+        // `bun run test:coverage` and CI. When you add tests, raise the
+        // floors in the same commit so the gain sticks. Do not lower them to
+        // make a change pass.
         //
-        // Measured 2026-11-10 (114 tests): statements 8.14, branches 7.65,
-        // functions 8.14, lines 8.16.
+        // Measured 2026-11-10 (137 tests):
+        //   all files        statements 13.53, branches 12.18, functions 12.02, lines 13.69
+        //   settingsStore.ts statements 87.77, branches 90.47, functions 64.10, lines 87.27
         thresholds: {
-          statements: 8,
-          branches: 7.5,
-          functions: 8,
-          lines: 8,
+          statements: 13,
+          branches: 11.5,
+          functions: 11.5,
+          lines: 13,
+          // The store is the single source of truth for settings and every
+          // write goes through it, so it gets its own, much higher floor.
+          "src/stores/settingsStore.ts": {
+            statements: 87.5,
+            branches: 90,
+            functions: 63.5,
+            lines: 87,
+          },
         },
       },
       include: ["src/**/*.test.{ts,tsx}"],
