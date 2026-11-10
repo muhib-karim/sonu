@@ -374,7 +374,7 @@ jobs:
           # The action builds its own cargo-audit flags and does not read
           # .cargo/audit.toml, so the documented exceptions are repeated here.
           # Reason: apps/tauri-v2/src-tauri/.cargo/audit.toml.
-          ignore: RUSTSEC-2026-0235,RUSTSEC-2026-0367,RUSTSEC-2026-0368,RUSTSEC-2026-0369
+          ignore: RUSTSEC-2026-0235,RUSTSEC-2026-0367,RUSTSEC-2026-0368,RUSTSEC-2026-0369,RUSTSEC-2026-0429,RUSTSEC-2026-0459
 
   # Full `tauri build` on every PR for every shipped target, through
   # the same reusable workflow the release uses. This replaces the old

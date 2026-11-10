@@ -13,10 +13,43 @@ ignore = [
     # attacker-controlled targets. zip 4 arrives only through
     # tauri-plugin-updater, which depends on it solely on Windows (no Unix
     # permission bits or symlinks there) and only after the update payload's
-    # minisign signature has been verified. Every published tauri-plugin-updater
-    # release, including 3.0.0-alpha, still requires zip ^4, so there is no
-    # upgrade path yet; drop these once it moves to zip >= 9.
+    # minisign signature has been verified.
+    #
+    # Upgrade path (checked 2026-11-10): tauri-plugin-updater 2.14.1 is the
+    # first release that requires zip ^9; every release up to 2.14.0 requires
+    # zip ^4. 2.14.1 also requires tauri ^2.12, and this app is on tauri 2.9.1,
+    # so taking it is a Tauri core upgrade (with the matching @tauri-apps/*
+    # packages), not a lockfile bump. Drop these four entries when the app
+    # moves to tauri-plugin-updater >= 2.14.1.
     "RUSTSEC-2026-0367",
     "RUSTSEC-2026-0368",
     "RUSTSEC-2026-0369",
+    # RUSTSEC-2026-0429: zip < 9 `ZipArchive::extract` aborts the process on a
+    # crafted symlink entry with a huge declared size (denial of service; no
+    # memory corruption, nothing is written). Same dependency path as the three
+    # entries above: Windows only, and only for an update payload whose
+    # minisign signature has already been verified. The app installs updates
+    # solely through `downloadAndInstall`, and tauri-plugin-updater 2.9.0
+    # verifies the signature in `download()` before `install()` extracts
+    # anything, so a hostile archive would have to be signed with the release
+    # key. `cargo update -p zip --precise 9.0.0` is rejected: the plugin
+    # requires zip ^4. Same exit as above.
+    "RUSTSEC-2026-0429",
+    # RUSTSEC-2026-0459: the SQLite bundled by libsqlite3-sys < 0.39 (SQLite
+    # < 3.54.0) can return uninitialised page-cache memory when it opens a
+    # database next to a crafted `-wal` file with a different page size
+    # (CVE-2026-119375; local, needs the victim to open the files).
+    #
+    # The only database SONU opens is its own history.db in the per-user app
+    # data directory (managers/history.rs, WAL mode). Planting a crafted pair
+    # there takes write access to that directory, and what would leak is this
+    # process's memory, surfacing as text in the app's own history view.
+    #
+    # No fix is reachable yet. rusqlite 0.37 requires libsqlite3-sys ^0.35, so
+    # `cargo update -p libsqlite3-sys --precise 0.39.0` is rejected. The fix
+    # needs rusqlite >= 0.41, and rusqlite_migration (used for the history
+    # schema) supports rusqlite ^0.40 at most as of 2.6.0, which still bundles
+    # an affected SQLite. Drop this entry once rusqlite_migration supports
+    # rusqlite >= 0.41 and both are bumped in Cargo.toml.
+    "RUSTSEC-2026-0459",
 ]

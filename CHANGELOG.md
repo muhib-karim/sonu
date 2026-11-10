@@ -35,6 +35,13 @@ enforced in CI.
 - **Blocking `JS Dependency Audit` job in CI** (`bun audit --audit-level=high`).
   It checks `bun.lock` against a live advisory database, so it can fail on a
   pull request that did not touch dependencies when a new advisory appears.
+- **Rust audit: two new advisories triaged, neither fixable by a lockfile
+  update.** `zip` 4.6.1 (RUSTSEC-2026-0429) and `libsqlite3-sys` 0.35.0
+  (RUSTSEC-2026-0459) are recorded in `src-tauri/.cargo/audit.toml` and in the
+  CI job's ignore list, each with its reason and the condition for removing it.
+  The `zip` fix needs `tauri-plugin-updater` 2.14.1, which requires Tauri 2.12
+  (the app is on 2.9.1); the SQLite fix needs `rusqlite` 0.41, which
+  `rusqlite_migration` does not support yet. `Cargo.lock` is unchanged.
 
 ### Added
 
