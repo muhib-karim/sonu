@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+Frontend hardening: the JavaScript dependency advisories are cleared, the
+settings store is tested against the real IPC contract, three settings writes
+that failed silently are fixed, and coverage and dependency audits are now
+enforced in CI.
+
+### Security
+
+- **`bun audit` goes from 74 advisories (3 critical, 40 high) to 1 (moderate).**
+  - Vitest and `@vitest/coverage-v8` move from 2.1.9 to 4.1.12. That removes
+    `tinypool` (two critical advisories, GHSA-5gmw-xhrv-c9v3 and
+    GHSA-85c8-ppgw-ccpr) and fixes the critical Vitest advisory
+    (GHSA-5xrq-8626-4rwp). Vitest 3.x was not enough: it still depends on
+    tinypool 1.x, which has no patched release.
+  - The remaining high advisories were all in transitive packages of the test,
+    lint and build toolchain: brace-expansion, minimatch, rollup, postcss,
+    nanoid, js-yaml, lodash, flatted, form-data, ws, picomatch, browserslist
+    and source-map-js. Each is moved to a patched release inside the range its
+    dependents already declare, in `bun.lock` only. No direct dependency moved
+    apart from the two Vitest packages, no `overrides` were added, and React
+    and Vite stay on their current majors.
+  - Not fixed: minimatch 9.x, GHSA-g3hv-75wg-m249 (moderate). The fix is
+    minimatch 11, a major version `@typescript-eslint/typescript-estree` does
+    not accept.
+- **Blocking `JS Dependency Audit` job in CI** (`bun audit --audit-level=high`).
+  It checks `bun.lock` against a live advisory database, so it can fail on a
+  pull request that did not touch dependencies when a new advisory appears.
+
+### Added
+
+- **Coverage floors.** `bun run test:coverage` fails when coverage drops below
+  the thresholds in `vite.config.ts`: 14.5 / 13 / 13.5 / 14.5 (statements /
+  branches / functions / lines) overall, and 87.5 / 90 / 63.5 / 87 for
+  `src/stores/settingsStore.ts`. They sit just under the measured figures and
+  are meant to be raised with every test that is added. CI runs this after the
+  unit tests and uploads the report.
+- **Tests: 54 in 6 files become 159 in 11.** The settings store is exercised
+  through the real generated bindings with only the Tauri transport mocked
+  (`mockIPC`), so its handling of error results and transport failures is
+  tested as the app sees them. Also covered: `useSettings`, the `useTheme` hook,
+  `useCurrentModel`, `unwrapResult`, the post-processing provider hook and the
+  shortcut reset button.
+
+### Fixed
+
+- **Three settings writes failed silently.** Resetting a shortcut, switching
+  the post-processing provider and saving a post-processing base URL, API key
+  or model all ignored the command's result. A backend failure resolves an
+  error result instead of rejecting, so nothing was rolled back, logged or
+  shown. They now roll back, log and report the failure, and the UI shows a
+  toast. A failed API-key save no longer discards the cached model list, and an
+  older failed provider switch can no longer revert a newer one.
+- **The git hooks never ran.** `.husky/pre-commit` and `.husky/pre-push` were
+  not executable, had CRLF line endings (a `#!/bin/sh\r` shebang cannot be
+  executed on Linux or macOS) and pre-commit sourced a `husky.sh` that does not
+  exist. All three are fixed; a commit now runs lint, format check and
+  typecheck for staged frontend files, and a push runs the tests.
+- The Vite alias `@/store` pointed at `src/store`, which does not exist. It is
+  now `@/stores` → `src/stores`.
+- `apps/tauri-v2/AGENTS.md` said the Silero VAD model is not committed and
+  must be downloaded. It is committed and bundled.
+
+### Changed
+
+- Coverage is measured over all of `src/**` (115 files), not only the files a
+  test imports, and excludes test files, the test setup and the generated
+  bindings. The honest overall figure is about 15%; before the new tests it
+  was about 4%.
+- `resetBinding`, `setPostProcessProvider` and the `updatePostProcess*` actions
+  of the settings store return `Promise<boolean>` (`true` if persisted) instead
+  of `Promise<void>`, matching `updateSetting`.
+
+### Removed
+
+- `@tauri-apps/plugin-sql`. Nothing imported it and the matching Rust crate is
+  not a dependency; history uses `rusqlite` directly.
+
 ## [2.7.0] - 2026-10-21
 
 Engineering and verification release: every pull request now builds the real
