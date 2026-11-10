@@ -82,11 +82,7 @@ export type ShortcutAction =
 export type MicrophoneMode = "auto" | "manual";
 
 export type OverlayPosition =
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right"
-  | "center";
+  "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
 
 export type PasteMethod = "clipboard" | "direct_input" | "keystrokes";
 

@@ -70,8 +70,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
   const apiKey =
     (
       (settings as Record<string, unknown>)?.["post_process_api_keys"] as
-        | Record<string, string>
-        | undefined
+        Record<string, string> | undefined
     )?.[selectedProviderId] ?? "";
   const model = settings?.post_process_models?.[selectedProviderId] ?? "";
 
