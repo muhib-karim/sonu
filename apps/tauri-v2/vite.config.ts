@@ -68,7 +68,7 @@ export default defineConfig(async ({ mode }) => {
         "@/components": resolve(__dirname, "./src/components"),
         "@/lib": resolve(__dirname, "./src/lib"),
         "@/hooks": resolve(__dirname, "./src/hooks"),
-        "@/store": resolve(__dirname, "./src/store"),
+        "@/stores": resolve(__dirname, "./src/stores"),
       },
     },
 
