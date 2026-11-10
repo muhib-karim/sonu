@@ -71,7 +71,9 @@ enforced in CI.
   not executable, had CRLF line endings (a `#!/bin/sh\r` shebang cannot be
   executed on Linux or macOS) and pre-commit sourced a `husky.sh` that does not
   exist. All three are fixed; a commit now runs lint, format check and
-  typecheck for staged frontend files, and a push runs the tests.
+  typecheck for staged frontend files, and a push runs the tests. The
+  frontend branch of the hook runs Prettier alone, so a frontend-only commit
+  no longer fails on a machine without rustfmt.
 - The Vite alias `@/store` pointed at `src/store`, which does not exist. It is
   now `@/stores` → `src/stores`.
 - `apps/tauri-v2/AGENTS.md` said the Silero VAD model is not committed and
