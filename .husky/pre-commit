@@ -1,7 +1,12 @@
 #!/bin/sh
 # Pre-commit hook for SONU
-
-. "$(dirname "$0")/_/husky.sh"
+#
+# git runs this file directly: `bun install` points core.hooksPath at .husky
+# (the `prepare` script in apps/tauri-v2/package.json). husky itself is not a
+# dependency, so there is no .husky/_/husky.sh to source.
+#
+# Keep this file executable and LF-terminated. A CRLF shebang ("/bin/sh\r")
+# cannot be executed on Linux or macOS, and a non-executable hook is skipped.
 
 echo "🔍 Running pre-commit checks..."
 
