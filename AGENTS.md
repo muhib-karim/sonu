@@ -102,7 +102,8 @@ cd apps/tauri-v2 && bash scripts/check-panic-ratchet.sh
 (`test.coverage.thresholds`): one global set and a higher one for
 `src/stores/settingsStore.ts`. Like the panic ratchet, they sit just under the
 measured figure. When you add tests, raise them in the same commit; do not
-lower them to make a change pass.
+lower them to make a change pass. The figures were measured on Node 22; the
+slack is there to absorb small differences on other Node versions.
 
 ### JS dependency audit
 

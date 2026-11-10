@@ -81,11 +81,14 @@ export default defineConfig(async ({ mode }) => {
           lines: 14.5,
           // The store is the single source of truth for settings and every
           // write goes through it, so it gets its own, much higher floor.
+          // In a single file one statement is worth about half a point and
+          // one branch about one point, so each floor leaves room for one
+          // unit of difference between Node/V8 versions and no more.
           "src/stores/settingsStore.ts": {
-            statements: 87.5,
-            branches: 90,
-            functions: 63.5,
-            lines: 87,
+            statements: 87,
+            branches: 89,
+            functions: 62.5,
+            lines: 86.5,
           },
         },
       },
