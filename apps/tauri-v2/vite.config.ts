@@ -69,13 +69,13 @@ export default defineConfig(async ({ mode }) => {
         // raise the floors in the same commit so the gain sticks. Do not
         // lower them to make a change pass.
         //
-        // Measured 2026-11-10 (54 tests): statements 4.21, branches 4.06,
-        // functions 4.07, lines 4.28.
+        // Measured 2026-11-10 (114 tests): statements 8.14, branches 7.65,
+        // functions 8.14, lines 8.16.
         thresholds: {
-          statements: 4,
-          branches: 4,
-          functions: 4,
-          lines: 4,
+          statements: 8,
+          branches: 7.5,
+          functions: 8,
+          lines: 8,
         },
       },
       include: ["src/**/*.test.{ts,tsx}"],
