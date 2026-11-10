@@ -71,14 +71,14 @@ export default defineConfig(async ({ mode }) => {
         // floors in the same commit so the gain sticks. Do not lower them to
         // make a change pass.
         //
-        // Measured 2026-11-10 (137 tests):
-        //   all files        statements 13.53, branches 12.18, functions 12.02, lines 13.69
+        // Measured 2026-11-10 (159 tests):
+        //   all files        statements 14.98, branches 13.30, functions 13.78, lines 14.95
         //   settingsStore.ts statements 87.77, branches 90.47, functions 64.10, lines 87.27
         thresholds: {
-          statements: 13,
-          branches: 11.5,
-          functions: 11.5,
-          lines: 13,
+          statements: 14.5,
+          branches: 13,
+          functions: 13.5,
+          lines: 14.5,
           // The store is the single source of truth for settings and every
           // write goes through it, so it gets its own, much higher floor.
           "src/stores/settingsStore.ts": {

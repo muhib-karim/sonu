@@ -303,7 +303,8 @@ Run from `apps/tauri-v2`:
 bun install --frozen-lockfile
 bun run lint                          # ESLint (type-aware rules, i18n literal check)
 bun run typecheck                     # tsc --noEmit
-bun run test                          # Vitest: 54 tests in 6 files
+bun run test                          # Vitest: 159 tests in 11 files
+bun run test:coverage                 # same tests + coverage floors (vite.config.ts)
 bun run build                         # tsc + Vite production bundle
 bash scripts/check-panic-ratchet.sh   # unwrap()/expect() count must not grow
 bun run test:rust                     # cargo test (needs the Rust toolchain + LLVM)
