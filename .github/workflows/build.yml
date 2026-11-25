@@ -95,9 +95,11 @@ jobs:
           rustup default stable
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
-      - name: Install Rust stable (non-macOS)
+      - name: Install Rust 1.99.1 (non-macOS)
         if: "!contains(inputs.platform, 'macos')"
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # 1.99.1
+        with:
+          toolchain: '1.99.1'
 
       - name: Rust cache
         uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.8.2
