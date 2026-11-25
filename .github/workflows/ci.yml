@@ -349,32 +349,20 @@ jobs:
     name: Rust Dependency Audit
     runs-on: ubuntu-latest
     continue-on-error: true
-    # The workflow declares no permissions, so the token is read-only and
-    # rustsec/audit-check cannot publish its results — it failed with "Resource
-    # not accessible by integration". It needs to create a check run. The job
-    # stays advisory (`continue-on-error`), so this cannot block a merge.
     permissions:
       contents: read
-      checks: write
     defaults:
       run:
         working-directory: apps/tauri-v2/src-tauri
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
 
-      - uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998 # v2.0.0
+      - uses: taiki-e/install-action@fe3acb53a98b62c772db35de75ce0e4595e7ca8c # v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # Must be `working-directory` (kebab-case): that is the input the action
-          # declares. As `workingDirectory` it was silently ignored, so the audit
-          # ran at the repo root where there is no Cargo.toml and died with
-          # "Unexpected end of JSON input". The job-level `defaults.run` above
-          # does not apply here because this is a `uses:` step, not a `run:` step.
-          working-directory: apps/tauri-v2/src-tauri
-          # The action builds its own cargo-audit flags and does not read
-          # .cargo/audit.toml, so the documented exceptions are repeated here.
-          # Reason: apps/tauri-v2/src-tauri/.cargo/audit.toml.
-          ignore: RUSTSEC-2026-0235,RUSTSEC-2026-0367,RUSTSEC-2026-0368,RUSTSEC-2026-0369,RUSTSEC-2026-0429,RUSTSEC-2026-0459
+          tool: cargo-audit
+
+      - name: Run cargo audit (reads .cargo/audit.toml)
+        run: cargo audit
 
   # Full `tauri build` on every PR for every shipped target, through
   # the same reusable workflow the release uses. This replaces the old
