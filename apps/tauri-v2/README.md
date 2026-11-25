@@ -18,7 +18,7 @@ A modern, high-performance offline voice typing application built with Tauri v2,
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (latest stable)
-- [Bun](https://bun.sh/) (package manager)
+- [Bun](https://bun.sh/) 1.3.14 (pinned in `package.json` as `bun@1.3.14`)
 - Git
 
 ### Installation
