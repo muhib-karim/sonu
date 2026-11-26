@@ -70,7 +70,7 @@
     "@vitest/coverage-v8": "^4.1.12",
     "eslint": "^9.39.1",
     "eslint-plugin-i18next": "^6.1.5",
-    "jsdom": "^25.0.1",
+    "jsdom": "^31.0.1",
     "prettier": "^3.9.10",
     "typescript": "~5.9.3",
     "vite": "^6.4.5",
